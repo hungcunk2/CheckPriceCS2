@@ -16,6 +16,9 @@
 !.env.example
 auth.json
 
+# --- SQL dump có dữ liệu (không push GitHub) ---
+/database/sql/*-dump.sql
+
 # --- Dữ liệu app (chỉ trên máy / VPS) ---
 /storage/app/tracked_inventories.json
 /storage/app/price_history/
