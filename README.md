@@ -1,81 +1,31 @@
-# CheckPrice CS2 (Buff163)
+# CheckPrice CS2
 
-Ứng dụng Laravel: **admin** quản lý link kho Steam + check giá Buff163; **trang công khai** chỉ xem giá các kho đã lưu.
+Web theo dõi **kho đồ CS2** (Steam inventory public) và **giá Buff163**, có khu vực quản trị riêng và trang xem công khai.
 
-## Phân quyền
+## Công dụng
 
-| Khu vực | URL | Mô tả |
-|---------|-----|--------|
-| Công khai | `/` | Danh sách kho + tổng giá (Buff163) |
-| Chi tiết | `/kho/{id}` | Bảng skin & giá (snapshot lần check cuối) |
-| Admin | `/admin/login` | Đăng nhập quản trị |
-| Quản lý | `/admin/inventories` | Thêm/sửa/xóa link, check giá, bật/tắt hiển thị |
+- Gắn link kho Steam, lấy danh sách skin tradable và tra giá từ Buff163.
+- Lưu snapshot giá để xem nhanh, không cần gọi Buff mỗi lần mở trang.
+- Quy đổi CNY → VND theo tỷ giá cấu hình.
+- Đồng bộ giá định kỳ: ưu tiên item chưa có giá, sau đó item có giá cũ hơn ngưỡng cache (mặc định 2 giờ).
+- Bật/tắt từng kho trên trang công khai.
 
-## Cài đặt
+## Trang công khai
 
-```bash
-cd D:\CheckPriceCS2
-composer install
-cp .env.example .env
-php artisan key:generate
-```
+- Danh sách các kho được phép hiển thị, tổng giá và thời điểm cập nhật gần nhất.
+- Chi tiết từng kho: avatar/tên Steam, bảng skin, giá CNY/VND, lọc theo loại vũ khí (súng, dao, găng, …).
 
-Cấu hình `.env`:
+## Khu vực admin
 
-```env
+- Đăng nhập bảo vệ; quản lý danh sách kho (thêm, sửa, xóa, sync thủ công).
+- Xem chi tiết kho ngay trong admin: thống kê theo loại vũ khí và bảng giá mở rộng.
+- **Lịch sử giá theo mốc thời gian** (múi giờ Việt Nam):
+  - **Hiện tại (2h):** giá sync gần nhất trong 2 giờ.
+  - **Hôm qua:** giá lần đầu sau 0h hôm qua; kèm chênh số listing Buff (+/−).
+  - **0h hôm nay:** giá lần đầu sau 0h hôm nay.
+  - **7 ngày trước:** giá lần đầu sau 0h cách đây 7 ngày.
 
+## Dữ liệu
 
-BUFF163_SESSION=...   # cookie session từ buff.163.com
-BUFF163_CSRF_TOKEN=... # tùy chọn
-```
-
-```bash
-php artisan serve
-# Terminal khác — tự động lấy giá mỗi 10 phút (dev):
-php artisan schedule:work
-```
-
-- Trang ngoài: http://127.0.0.1:8000   
-
-## Admin làm gì?
-
-1. Đăng nhập admin  
-2. **Thêm kho** — tên hiển thị + link Steam inventory (public)  
-3. Tick **Check giá Buff163 ngay** để lưu snapshot giá  
-4. Bật **Hiển thị trang công khai** — user mới thấy trên `/`  
-5. Nút **sync** để cập nhật giá sau này  
-
-Dữ liệu lưu tại `storage/app/tracked_inventories.json`.
-
-## Đẩy lên GitHub
-
-Các thư mục/file **không** lên repo (đã khai báo trong `.gitignore`):
-
-| Không push | Lý do |
-|------------|--------|
-| `.env` | Mật khẩu admin, `BUFF163_SESSION`, `APP_KEY` |
-| `vendor/` | Cài lại bằng `composer install` |
-| `storage/app/tracked_inventories.json` | Dữ liệu kho + snapshot giá |
-| `storage/app/price_history/` | Lịch sử giá theo ngày |
-| `storage/logs/`, cache, session | Runtime |
-
-```bash
-git init
-git add .
-git status
-# Phải KHÔNG thấy .env, tracked_inventories.json, price_history/*.json
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/<user>/<repo>.git
-git push -u origin main
-```
-
-Trên VPS: clone repo → `cp .env.example .env` → điền secret → `composer install` → `php artisan key:generate` → sync kho lại.
-
-## Lưu ý
-
-- Chỉ **một** dòng `BUFF163_SESSION` trong `.env` (không để dòng trống trùng phía dưới).  
-- `BUFF_PRICE_REFRESH_SECONDS=7200`: skin **đã có giá** chỉ gọi Buff lại sau **2 giờ**; skin **chưa có giá / lỗi** thử lại mỗi lần sync.  
-- **Tự động mỗi 10 phút**: `php artisan schedule:work` hoặc cron `* * * * * php artisan schedule:run` — lệnh `cs2price:sync-prices` (ưu tiên chưa có giá → giá cũ > 2h). Tắt: `BUFF_PRICE_AUTO_SYNC=false`.  
-- Kho lớn: check có thể mất vài phút (`CHECK_MAX_EXECUTION_SECONDS=600`).  
-- Trang ngoài hiển thị giá **đã lưu lần cuối**, không tự gọi Buff khi user mở web.
+- Snapshot kho và giá: lưu cục bộ trên server.
+- Lịch sử giá từng item: tích lũy qua các lần sync để tính các mốc trên.
