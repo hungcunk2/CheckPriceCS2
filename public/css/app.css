@@ -1,0 +1,193 @@
+:root {
+    --primary-color: #7c3aed;
+    --primary-hover: #6d28d9;
+    --main-bg: #e7ecf0;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+}
+
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    background: var(--main-bg);
+    color: var(--text-primary);
+}
+
+.app-header {
+    background: #fff;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--text-primary);
+    font-size: 1.15rem;
+}
+
+.brand strong {
+    color: var(--primary-color);
+}
+
+.panel-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.panel-card .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+.item-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    background: #f3f4f6;
+    border-radius: 6px;
+}
+
+.steam-avatar {
+    border-radius: 10px;
+    object-fit: cover;
+    background: #e5e7eb;
+    border: 1px solid var(--border-color);
+}
+
+.weapon-stats--compact {
+    margin-bottom: 0.75rem;
+}
+
+.weapon-stat-badge {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.4em 0.75em;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.weapon-stat-badge:hover:not(.weapon-stat-badge--active) {
+    background: #ede9fe !important;
+    border-color: #c4b5fd !important;
+}
+
+.weapon-stat-badge--active {
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+}
+
+.weapon-stat-count {
+    font-variant-numeric: tabular-nums;
+}
+
+.steam-profile-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 6px;
+    color: #6b7280;
+    text-decoration: none;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.steam-profile-link:hover {
+    color: #1b2838;
+    background: #e5e7eb;
+}
+
+.steam-profile-link .fa-steam {
+    font-size: 1.15rem;
+}
+
+.steam-avatar--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    font-size: 1.35rem;
+    background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
+}
+
+.inventory-result {
+    margin-top: 1.5rem;
+}
+
+.summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: #f5f3ff;
+    color: #5b21b6;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.table-items td {
+    vertical-align: middle;
+}
+
+.tracked-row:hover {
+    background: #fafafa;
+}
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.65);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.card.hover-shadow {
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.card.hover-shadow:hover {
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+    transform: translateY(-2px);
+}
+
+.inventory-collapse-toggle {
+    color: inherit;
+    transition: background 0.15s ease;
+}
+
+.inventory-collapse-toggle:hover,
+.inventory-collapse-toggle:focus {
+    background: #f9fafb;
+    color: inherit;
+}
+
+.inventory-collapse-toggle .collapse-chevron {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.inventory-collapse-toggle:not(.collapsed) .collapse-chevron {
+    transform: rotate(180deg);
+}

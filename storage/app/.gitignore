@@ -1,0 +1,5 @@
+*
+!public/
+!price_history/
+!price_history/items/
+!.gitignore

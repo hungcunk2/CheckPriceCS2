@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Services;
+
+use RuntimeException;
+
+class InventoryPriceChecker
+{
+    public function __construct(
+        private SteamInventoryService $steam,
+        private Buff163Service $buff,
+        private SteamProfileService $steamProfile,
+    ) {}
+
+    /**
+     * @return array{
+     *   steam_id: string,
+     *   url: string,
+     *   label: string,
+     *   item_count: int,
+     *   total_cny: float,
+     *   total_vnd: float,
+     *   items: list<array<string, mixed>>
+     * }
+     */
+    public function checkUrl(string $url, ?string $label = null): array
+    {
+        $parsed = $this->steam->parseInventoryUrl($url);
+        $steamId = $parsed['steam_id'];
+        $profile = $this->steamProfile->fetchProfile($steamId);
+        $steamItems = $this->steam->fetchItems($steamId);
+
+        if ($steamItems === []) {
+            throw new RuntimeException('Kho không có skin tradable có thể định giá.');
+        }
+
+        $hashNames = array_column($steamItems, 'market_hash_name');
+        $buffPrices = $this->buff->getPricesForHashNames($hashNames);
+
+        $rows = [];
+        $totalCny = 0.0;
+
+        foreach ($steamItems as $item) {
+            $hash = $item['market_hash_name'];
+            $buff = $buffPrices[$hash] ?? null;
+            $priceCny = $buff['sell_min_price'] ?? null;
+            $amount = $item['amount'];
+            $lineCny = $priceCny !== null ? $priceCny * $amount : null;
+
+            if ($lineCny !== null) {
+                $totalCny += $lineCny;
+            }
+
+            $rows[] = [
+                'assetid' => $item['assetid'],
+                'name' => $item['name'],
+                'market_hash_name' => $hash,
+                'icon_url' => $item['icon_url'],
+                'tradable' => $item['tradable'],
+                'amount' => $amount,
+                'buff_price_cny' => $priceCny,
+                'buff_price_vnd' => $this->buff->cnyToVnd($priceCny),
+                'line_total_cny' => $lineCny,
+                'line_total_vnd' => $lineCny !== null ? $this->buff->cnyToVnd($lineCny) : null,
+                'sell_num' => $buff['sell_num'] ?? null,
+                'buff_url' => $buff['buff_url'] ?? null,
+                'buff_error' => $buff['error'] ?? null,
+            ];
+        }
+
+        usort($rows, fn ($a, $b) => ($b['line_total_cny'] ?? 0) <=> ($a['line_total_cny'] ?? 0));
+
+        $pricedCount = collect($rows)->whereNotNull('buff_price_cny')->count();
+        $failedCount = count($rows) - $pricedCount;
+
+        return [
+            'steam_id' => $steamId,
+            'url' => $parsed['url'],
+            'label' => $label ?? $parsed['label'],
+            'steam_persona_name' => $profile['steam_persona_name'],
+            'steam_avatar_url' => $profile['steam_avatar_url'],
+            'item_count' => count($rows),
+            'priced_count' => $pricedCount,
+            'failed_count' => $failedCount,
+            'buff_configured' => (bool) config('cs2price.buff_session'),
+            'total_cny' => round($totalCny, 2),
+            'total_vnd' => $this->buff->cnyToVnd($totalCny) ?? 0,
+            'items' => $rows,
+        ];
+    }
+}

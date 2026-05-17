@@ -1,0 +1,132 @@
+﻿@extends('layouts.public', ['cnyToVnd' => $cnyToVnd])
+
+
+
+@section('title', \App\Support\InventoryDisplay::title($inventory))
+
+
+
+@section('content')
+
+<div class="mb-3">
+
+    <a href="{{ route('public.index') }}" class="text-decoration-none"><i class="fas fa-arrow-left"></i> Tất cả kho</a>
+
+</div>
+
+
+
+<div class="card panel-card mb-4">
+
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+        <div>
+            @include('partials.inventory-identity', ['inventory' => $inventory, 'heading' => 'h4', 'size' => 56])
+        </div>
+
+        <div class="text-end">
+
+            @if(($inventory->last_total_cny ?? 0) > 0)
+
+                <div class="h3 mb-0 text-primary">¥{{ number_format($inventory->last_total_cny, 2) }}</div>
+
+                <div class="h5 text-success mb-0">{{ number_format($inventory->last_total_vnd ?? 0) }} ₫</div>
+
+            @else
+
+                <div class="text-warning">Chưa có dữ liệu giá</div>
+
+            @endif
+
+            @if(!empty($inventory->last_checked_at))
+
+                <div class="small text-muted mt-1">
+
+                    {{ $inventory->item_count ?? 0 }} skin tradable ·
+
+                    {{ \Carbon\Carbon::parse($inventory->last_checked_at)->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
+
+                </div>
+
+            @endif
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+@if(count($items) === 0)
+
+    <div class="alert alert-info">
+
+        Chưa có danh sách skin. Admin vào <strong>/admin/inventories</strong> → bấm nút <strong>sync</strong> (cập nhật giá) để lưu danh sách.
+
+    </div>
+
+@else
+    <div class="inventory-item-filter-root">
+    @if(!empty($weaponStats))
+        <div class="card panel-card mb-4">
+            <div class="card-body">
+                @include('partials.weapon-stats', ['stats' => $weaponStats])
+            </div>
+        </div>
+    @endif
+
+    <div class="card panel-card inventory-collapse-card">
+
+        <div class="card-header p-0 border-0 bg-transparent">
+
+            <button
+
+                type="button"
+
+                class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-3 p-3 d-flex justify-content-between align-items-center gap-2"
+
+                data-bs-toggle="collapse"
+
+                data-bs-target="#inventory-items-list"
+
+                aria-expanded="true"
+
+                aria-controls="inventory-items-list"
+
+            >
+
+                <span>
+
+                    <span class="fw-semibold">Danh sách skin</span>
+
+
+                </span>
+
+                <i class="fas fa-chevron-down collapse-chevron text-muted" aria-hidden="true"></i>
+
+            </button>
+
+        </div>
+
+        <div id="inventory-items-list" class="collapse show">
+
+            <div class="card-body p-0 border-top">
+
+                @include('partials.item-table', ['items' => $items])
+
+            </div>
+
+        </div>
+
+    </div>
+    </div>
+
+@endif
+
+@endsection
+
+@push('scripts')
+<script src="{{ asset('js/inventory-weapon-filter.js') }}"></script>
+@endpush
+
