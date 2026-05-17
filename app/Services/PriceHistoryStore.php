@@ -2,43 +2,41 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Storage;
+use App\Models\PriceHistoryPoint;
+use Illuminate\Support\Facades\DB;
 
 class PriceHistoryStore
 {
-    private const DIR = 'price_history/items';
-
     public function append(string $marketHashName, float $priceCny, ?int $sellNum, string $recordedAt): void
     {
         if ($marketHashName === '') {
             return;
         }
 
-        $path = $this->path($marketHashName);
-        $data = $this->readFile($path);
-        $points = $data['points'] ?? [];
+        $hash = $this->itemHash($marketHashName);
+        $priceCny = round($priceCny, 2);
+        $at = \Carbon\Carbon::parse($recordedAt);
 
-        $last = $points[array_key_last($points)] ?? null;
-        if ($last
-            && ($last['recorded_at'] ?? '') === $recordedAt
-            && (float) ($last['price_cny'] ?? 0) === $priceCny
-            && (int) ($last['sell_num'] ?? -1) === (int) ($sellNum ?? -1)
-        ) {
+        $exists = PriceHistoryPoint::query()
+            ->where('item_hash', $hash)
+            ->where('recorded_at', $at)
+            ->where('price_cny', $priceCny)
+            ->where('sell_num', $sellNum)
+            ->exists();
+
+        if ($exists) {
             return;
         }
 
-        $points[] = [
-            'recorded_at' => $recordedAt,
-            'price_cny' => round($priceCny, 2),
-            'sell_num' => $sellNum,
-        ];
-
-        $points = $this->trimPoints($points);
-
-        Storage::disk('local')->put($path, json_encode([
+        PriceHistoryPoint::query()->create([
+            'item_hash' => $hash,
             'market_hash_name' => $marketHashName,
-            'points' => $points,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            'recorded_at' => $at,
+            'price_cny' => $priceCny,
+            'sell_num' => $sellNum,
+        ]);
+
+        $this->trimPoints($hash);
     }
 
     /**
@@ -46,49 +44,51 @@ class PriceHistoryStore
      */
     public function points(string $marketHashName): array
     {
-        $data = $this->readFile($this->path($marketHashName));
+        $hash = $this->itemHash($marketHashName);
 
-        return is_array($data['points'] ?? null) ? $data['points'] : [];
+        return PriceHistoryPoint::query()
+            ->where('item_hash', $hash)
+            ->orderBy('recorded_at')
+            ->get()
+            ->map(fn (PriceHistoryPoint $p) => [
+                'recorded_at' => $p->recorded_at->toIso8601String(),
+                'price_cny' => (float) $p->price_cny,
+                'sell_num' => $p->sell_num,
+            ])
+            ->all();
     }
 
-    private function path(string $marketHashName): string
+    private function itemHash(string $marketHashName): string
     {
-        return self::DIR.'/'.md5($marketHashName).'.json';
+        return md5($marketHashName);
     }
 
-    /**
-     * @return array{market_hash_name?: string, points?: list<array<string, mixed>>}
-     */
-    private function readFile(string $path): array
-    {
-        if (! Storage::disk('local')->exists($path)) {
-            return [];
-        }
-
-        $decoded = json_decode(Storage::disk('local')->get($path), true);
-
-        return is_array($decoded) ? $decoded : [];
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $points
-     * @return list<array<string, mixed>>
-     */
-    private function trimPoints(array $points): array
+    private function trimPoints(string $itemHash): void
     {
         $maxDays = (int) config('cs2price.price_history_days', 90);
-        $cutoff = now()->subDays($maxDays)->toIso8601String();
+        $cutoff = now()->subDays($maxDays);
 
-        $points = array_values(array_filter(
-            $points,
-            fn ($p) => ($p['recorded_at'] ?? '') >= $cutoff
-        ));
+        PriceHistoryPoint::query()
+            ->where('item_hash', $itemHash)
+            ->where('recorded_at', '<', $cutoff)
+            ->delete();
 
         $maxPoints = (int) config('cs2price.price_history_max_points', 3000);
-        if (count($points) > $maxPoints) {
-            $points = array_slice($points, -$maxPoints);
+        $count = PriceHistoryPoint::query()->where('item_hash', $itemHash)->count();
+
+        if ($count <= $maxPoints) {
+            return;
         }
 
-        return $points;
+        $idsToKeep = PriceHistoryPoint::query()
+            ->where('item_hash', $itemHash)
+            ->orderByDesc('recorded_at')
+            ->limit($maxPoints)
+            ->pluck('id');
+
+        PriceHistoryPoint::query()
+            ->where('item_hash', $itemHash)
+            ->whereNotIn('id', $idsToKeep)
+            ->delete();
     }
 }

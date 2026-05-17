@@ -8,6 +8,7 @@ use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
+use App\Support\InventorySteamProfileResolver;
 use App\Support\InventoryWeaponStats;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,7 @@ class InventoryController extends Controller
         private TrackedInventoryStore $store,
         private InventoryResultPersister $persister,
         private PriceHistoryService $priceHistory,
+        private InventorySteamProfileResolver $steamProfileResolver,
     ) {}
 
     public function index(): View
@@ -51,12 +53,11 @@ class InventoryController extends Controller
     {
         $validated = $this->validateForm($request);
 
-        $row = $this->store->upsert([
+        $row = $this->store->upsert($this->steamProfileResolver->mergeIntoAttributes([
             'label' => $validated['label'],
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public', true),
-            'sort_order' => (int) ($validated['sort_order'] ?? 0),
-        ]);
+        ], $validated['url']));
 
         if ($request->boolean('check_now')) {
             return $this->runCheckAndRedirect((int) $row->id, $validated['url'], $validated['label'], $checker);
@@ -88,12 +89,11 @@ class InventoryController extends Controller
 
         $validated = $this->validateForm($request);
 
-        $this->store->upsert([
+        $this->store->upsert($this->steamProfileResolver->mergeIntoAttributes([
             'label' => $validated['label'],
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public'),
-            'sort_order' => (int) ($validated['sort_order'] ?? 0),
-        ], $inventory);
+        ], $validated['url']), $inventory);
 
         if ($request->boolean('check_now')) {
             return $this->runCheckAndRedirect($inventory, $validated['url'], $validated['label'], $checker);
@@ -150,7 +150,6 @@ class InventoryController extends Controller
         return $request->validate([
             'label' => ['required', 'string', 'max:120'],
             'url' => ['required', 'url', 'max:2000'],
-            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_public' => ['sometimes', 'boolean'],
             'check_now' => ['sometimes', 'boolean'],
         ]);

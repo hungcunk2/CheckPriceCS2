@@ -29,25 +29,21 @@
                     <div class="form-text">Kho phải để public.</div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Thứ tự hiển thị</label>
-                        <input type="number" name="sort_order" class="form-control" min="0" max="9999"
-                            value="{{ old('sort_order', $inventory->sort_order ?? 0) }}">
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_public" value="1" id="is_public"
+                            {{ old('is_public', $inventory->is_public ?? true) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="is_public">Hiển thị trên trang công khai</label>
                     </div>
-                    <div class="col-md-8 mb-3 d-flex align-items-end">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="is_public" value="1" id="is_public"
-                                {{ old('is_public', $inventory->is_public ?? true) ? 'checked' : '' }}>
-                            <label class="form-check-label" for="is_public">Hiển thị trên trang công khai</label>
-                        </div>
-                    </div>
+                    <div class="form-text">Danh sách kho tự sắp theo tổng giá Buff từ cao xuống thấp.</div>
                 </div>
 
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" name="check_now" value="1" id="check_now" checked>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="check_now" value="1" id="check_now"
+                        {{ old('check_now') ? 'checked' : '' }}>
                     <label class="form-check-label" for="check_now">Check giá Buff163 ngay sau khi lưu</label>
                 </div>
+                <p class="small text-muted mb-4">Kho lớn: trên VPS nên bỏ tick, lưu xong bấm sync hoặc chờ auto 10 phút.</p>
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Lưu</button>

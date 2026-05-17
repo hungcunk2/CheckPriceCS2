@@ -46,7 +46,7 @@
                         aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
                         aria-controls="admin-inv-items-{{ $inv->id }}"
                     >
-                        <td>{{ $inv->sort_order ?? 0 }}</td>
+                        <td>{{ $loop->iteration }}</td>
                         <td>
                             @if(!empty($inv->steam_avatar_url))
                                 <img src="{{ $inv->steam_avatar_url }}" alt="" class="steam-avatar float-start me-2" width="32" height="32" loading="lazy">

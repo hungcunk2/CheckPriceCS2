@@ -2,19 +2,21 @@
 
 namespace App\Services;
 
+use App\Models\TrackedInventory;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 
 class TrackedInventoryStore
 {
-    private const FILE = 'tracked_inventories.json';
-
     /**
      * @return Collection<int, object>
      */
     public function all(): Collection
     {
-        return $this->mapRows($this->read());
+        return TrackedInventory::query()
+            ->orderByDesc('last_total_cny')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (TrackedInventory $row) => $this->asObject($row));
     }
 
     /**
@@ -22,26 +24,29 @@ class TrackedInventoryStore
      */
     public function publicInventories(): Collection
     {
-        return $this->all()
-            ->filter(fn (object $row) => ($row->is_public ?? true) !== false)
-            ->sortBy(fn (object $row) => sprintf('%05d-%s', $row->sort_order ?? 0, $row->updated_at ?? ''))
-            ->values();
+        return TrackedInventory::query()
+            ->where('is_public', true)
+            ->orderByDesc('last_total_cny')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (TrackedInventory $row) => $this->asObject($row));
     }
 
     public function find(int $id): ?object
     {
-        return $this->all()->first(fn (object $row) => (int) $row->id === $id);
+        $row = TrackedInventory::query()->find($id);
+
+        return $row ? $this->asObject($row) : null;
     }
 
     public function findPublic(int $id): ?object
     {
-        $row = $this->find($id);
+        $row = TrackedInventory::query()
+            ->where('id', $id)
+            ->where('is_public', true)
+            ->first();
 
-        if (! $row || ($row->is_public ?? true) === false) {
-            return null;
-        }
-
-        return $row;
+        return $row ? $this->asObject($row) : null;
     }
 
     /**
@@ -49,93 +54,67 @@ class TrackedInventoryStore
      */
     public function upsert(array $attributes, ?int $id = null): object
     {
-        $rows = $this->read();
-        $now = now()->toIso8601String();
+        $model = null;
 
         if ($id) {
-            foreach ($rows as $index => $row) {
-                if ((int) ($row['id'] ?? 0) === $id) {
-                    $rows[$index] = array_merge($row, $attributes, ['updated_at' => $now]);
-
-                    $this->write($rows);
-
-                    return (object) $rows[$index];
-                }
-            }
+            $model = TrackedInventory::query()->find($id);
         }
 
-        foreach ($rows as $index => $row) {
-            if (($row['url'] ?? '') === ($attributes['url'] ?? '')) {
-                $rows[$index] = array_merge($row, $attributes, ['updated_at' => $now]);
-                $this->write($rows);
-
-                return (object) $rows[$index];
-            }
+        if (! $model && ! empty($attributes['url'])) {
+            $model = TrackedInventory::query()->where('url', $attributes['url'])->first();
         }
 
-        $row = array_merge([
-            'id' => $this->nextId($rows),
-            'is_public' => true,
-            'sort_order' => 0,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ], $attributes);
-        $rows[] = $row;
-        $this->write($rows);
+        $payload = $this->normalizeAttributes($attributes);
 
-        return (object) $row;
+        if ($model) {
+            $model->fill($payload);
+            $model->save();
+        } else {
+            $model = TrackedInventory::query()->create(array_merge([
+                'is_public' => true,
+            ], $payload));
+        }
+
+        return $this->asObject($model);
     }
 
     public function delete(int $id): void
     {
-        $rows = array_values(array_filter(
-            $this->read(),
-            fn ($row) => (int) ($row['id'] ?? 0) !== $id
-        ));
-        $this->write($rows);
+        TrackedInventory::query()->where('id', $id)->delete();
     }
 
     /**
-     * @param  list<array<string, mixed>>  $rows
-     * @return Collection<int, object>
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
      */
-    private function mapRows(array $rows): Collection
+    private function normalizeAttributes(array $attributes): array
     {
-        return collect($rows)
-            ->sortByDesc('updated_at')
-            ->map(fn (array $row) => (object) $row)
-            ->values();
-    }
+        $allowed = [
+            'label', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
+            'is_public', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
+            'item_count', 'priced_count', 'failed_count', 'last_snapshot',
+        ];
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function read(): array
-    {
-        if (! Storage::disk('local')->exists(self::FILE)) {
-            return [];
+        $payload = array_intersect_key($attributes, array_flip($allowed));
+
+        if (isset($payload['last_checked_at']) && is_string($payload['last_checked_at'])) {
+            $payload['last_checked_at'] = \Carbon\Carbon::parse($payload['last_checked_at']);
         }
 
-        $decoded = json_decode(Storage::disk('local')->get(self::FILE), true);
-
-        return is_array($decoded) ? $decoded : [];
+        return $payload;
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $rows
-     */
-    private function write(array $rows): void
+    private function asObject(TrackedInventory $row): object
     {
-        Storage::disk('local')->put(self::FILE, json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    }
+        $data = $row->toArray();
 
-    /**
-     * @param  list<array<string, mixed>>  $rows
-     */
-    private function nextId(array $rows): int
-    {
-        $max = collect($rows)->max('id');
+        if ($row->last_checked_at) {
+            $data['last_checked_at'] = $row->last_checked_at->toIso8601String();
+        }
 
-        return ($max ?? 0) + 1;
+        $data['created_at'] = $row->created_at?->toIso8601String();
+        $data['updated_at'] = $row->updated_at?->toIso8601String();
+
+        return (object) $data;
     }
 }
