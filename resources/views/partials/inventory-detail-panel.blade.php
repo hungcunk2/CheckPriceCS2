@@ -6,13 +6,6 @@
     </div>
 @else
     <div class="inventory-item-filter-root">
-        @if($admin)
-            <p class="small text-muted mb-2 mb-md-3">
-                <strong>Hiện tại (2h):</strong> giá sync gần nhất trong 2 giờ ·
-                <strong>Hôm qua:</strong> giá lần đầu sau 0h hôm qua, số ± = thay đổi listing Buff ·
-                <strong>0h hôm nay / 7 ngày:</strong> giá lần đầu sau 0h ngày đó
-            </p>
-        @endif
         @if(count($weaponStats) > 0)
             @include('partials.weapon-stats', ['stats' => $weaponStats, 'compact' => $compact])
         @endif

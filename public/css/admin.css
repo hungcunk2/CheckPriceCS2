@@ -1052,6 +1052,27 @@ body.dark-mode .form-control {
     border: 1px solid var(--border-color, #e5e7eb);
 }
 
+.admin-inventory-summary-row {
+    cursor: pointer;
+}
+
+.admin-inventory-summary-row:hover {
+    background-color: rgba(59, 130, 246, 0.06);
+}
+
+.admin-inventory-summary-row[aria-expanded="true"] {
+    background-color: rgba(59, 130, 246, 0.08);
+}
+
+.admin-inventory-toggle-btn .admin-inventory-chevron {
+    transition: transform 0.2s ease;
+}
+
+.admin-inventory-toggle-btn[aria-expanded="true"] .admin-inventory-chevron,
+.admin-inventory-summary-row[aria-expanded="true"] + .admin-inventory-detail-row .admin-inventory-chevron {
+    transform: rotate(180deg);
+}
+
 .admin-inventory-detail-row .table {
     background: #fff;
 }

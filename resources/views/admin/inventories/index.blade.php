@@ -38,7 +38,14 @@
             <tbody>
                 @forelse($inventories as $inv)
                     @php $items = $inv->display_items ?? []; @endphp
-                    <tr>
+                    <tr
+                        class="admin-inventory-summary-row"
+                        role="button"
+                        tabindex="0"
+                        data-bs-target="#admin-inv-items-{{ $inv->id }}"
+                        aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
+                        aria-controls="admin-inv-items-{{ $inv->id }}"
+                    >
                         <td>{{ $inv->sort_order ?? 0 }}</td>
                         <td>
                             @if(!empty($inv->steam_avatar_url))
@@ -70,16 +77,16 @@
                                 <span class="badge text-bg-secondary">Ẩn</span>
                             @endif
                         </td>
-                        <td class="text-end text-nowrap">
+                        <td class="text-end text-nowrap admin-inventory-actions">
                             <button
                                 type="button"
-                                class="btn btn-sm btn-outline-secondary"
+                                class="btn btn-sm btn-outline-secondary admin-inventory-toggle-btn"
                                 data-bs-toggle="collapse"
                                 data-bs-target="#admin-inv-items-{{ $inv->id }}"
                                 aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
                                 title="Danh sách skin"
                             >
-                                <i class="fas fa-list"></i>
+                                <i class="fas fa-chevron-down admin-inventory-chevron"></i>
                             </button>
                             <a href="{{ route('public.show', $inv->id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Xem trang công khai"><i class="fas fa-eye"></i></a>
                             <button type="button" class="btn btn-sm btn-outline-primary btn-refresh" data-id="{{ $inv->id }}" title="Check giá"><i class="fas fa-sync-alt"></i></button>
@@ -120,6 +127,40 @@
 @push('scripts')
 <script src="{{ asset('js/inventory-weapon-filter.js') }}"></script>
 <script>
+document.querySelectorAll('.admin-inventory-actions').forEach(cell => {
+    cell.addEventListener('click', e => e.stopPropagation());
+});
+
+document.querySelectorAll('.admin-inventory-summary-row').forEach(row => {
+    const targetSel = row.getAttribute('data-bs-target');
+    const toggle = () => {
+        const el = document.querySelector(targetSel);
+        if (el) bootstrap.Collapse.getOrCreateInstance(el).toggle();
+    };
+    row.addEventListener('click', e => {
+        if (e.target.closest('.admin-inventory-actions')) return;
+        toggle();
+    });
+    row.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle();
+        }
+    });
+});
+
+document.querySelectorAll('[id^="admin-inv-items-"]').forEach(panel => {
+    panel.addEventListener('show.bs.collapse', () => syncAdminInventoryChevron(panel.id, true));
+    panel.addEventListener('hide.bs.collapse', () => syncAdminInventoryChevron(panel.id, false));
+});
+
+function syncAdminInventoryChevron(panelId, open) {
+    const btn = document.querySelector('[data-bs-target="#' + panelId + '"].admin-inventory-toggle-btn');
+    const row = document.querySelector('[data-bs-target="#' + panelId + '"].admin-inventory-summary-row');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (row) row.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 document.querySelectorAll('.btn-refresh').forEach(btn => {
     btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
