@@ -23,8 +23,7 @@ php artisan key:generate
 Cấu hình `.env`:
 
 ```env
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
+
 
 BUFF163_SESSION=...   # cookie session từ buff.163.com
 BUFF163_CSRF_TOKEN=... # tùy chọn
