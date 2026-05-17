@@ -35,8 +35,7 @@ php artisan serve
 php artisan schedule:work
 ```
 
-- Trang ngoài: http://127.0.0.1:8000  
-- Admin: http://127.0.0.1:8000/admin/login  
+- Trang ngoài: http://127.0.0.1:8000   
 
 ## Admin làm gì?
 
