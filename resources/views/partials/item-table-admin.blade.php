@@ -37,7 +37,7 @@
                     <tr data-weapon-category="{{ $weaponCategory }}">
                         <td>
                             @if(!empty($item->icon_url))
-                                <img src="{{ $item->icon_url }}" class="item-thumb" alt="" style="width:36px;height:36px">
+                                <img src="{{ $item->icon_url }}" class="item-thumb image-zoomable" alt="" style="width:36px;height:36px">
                             @endif
                         </td>
                         <td>

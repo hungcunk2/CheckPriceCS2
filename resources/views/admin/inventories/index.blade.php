@@ -50,7 +50,7 @@
                         <td>
                             <div class="d-flex align-items-center gap-2">
                             @if(!empty($inv->steam_avatar_url))
-                                <img src="{{ $inv->steam_avatar_url }}" alt="" class="steam-avatar flex-shrink-0" width="48" height="48" loading="lazy" style="--steam-avatar-size: 48px">
+                                <img src="{{ $inv->steam_avatar_url }}" alt="" class="steam-avatar image-zoomable flex-shrink-0" width="48" height="48" loading="lazy" style="--steam-avatar-size: 48px">
                             @endif
                                 <div class="min-w-0">
                                     <div class="fw-semibold">{{ \App\Support\InventoryDisplay::title($inv) }}</div>

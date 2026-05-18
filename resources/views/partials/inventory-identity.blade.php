@@ -14,7 +14,7 @@
         <img
             src="{{ $avatar }}"
             alt=""
-            class="steam-avatar flex-shrink-0"
+            class="steam-avatar image-zoomable flex-shrink-0"
             width="{{ $size }}"
             height="{{ $size }}"
             loading="lazy"
