@@ -28,10 +28,7 @@ class InventoryController extends Controller
     {
         $inventories = $this->store->all()->map(function (object $inv) {
             $items = InventorySnapshotReader::itemsFromInventory($inv);
-            $held = InventorySnapshotReader::heldItemsFromInventory($inv);
             $inv->display_items = $this->priceHistory->enrichItems($items);
-            $inv->display_held_items = $this->priceHistory->enrichItems($held);
-            $inv->held_total_cny = InventorySnapshotReader::heldTotalCnyFromInventory($inv);
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
             return $inv;
@@ -198,5 +195,4 @@ class InventoryController extends Controller
             @ini_set('max_execution_time', (string) $seconds);
         }
     }
-
 }

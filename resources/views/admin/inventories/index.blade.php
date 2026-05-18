@@ -67,13 +67,7 @@
                                 <span class="text-warning">Chưa có giá</span>
                             @endif
                         </td>
-                        <td>
-                            {{ count($items) ?: ($inv->item_count ?? 0) }}
-                            @php $heldN = count($inv->display_held_items ?? []); @endphp
-                            @if($heldN > 0)
-                                <br><small class="text-warning" title="Đang trade hold Steam">+{{ $heldN }} hold</small>
-                            @endif
-                        </td>
+                        <td>{{ count($items) ?: ($inv->item_count ?? 0) }}</td>
                         <td class="small" style="min-width: 140px">
                             @include('partials.trade-countdown', [
                                 'inventory' => $inv,
@@ -127,8 +121,6 @@
                                     @include('partials.inventory-detail-panel', [
                                         'inventory' => $inv,
                                         'items' => $inv->display_items ?? $items,
-                                        'heldItems' => $inv->display_held_items ?? [],
-                                        'heldTotalCny' => $inv->held_total_cny ?? null,
                                         'weaponStats' => $inv->weapon_stats ?? [],
                                         'admin' => true,
                                     ])

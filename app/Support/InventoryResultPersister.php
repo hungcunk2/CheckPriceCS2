@@ -37,9 +37,7 @@ class InventoryResultPersister
             'last_snapshot' => [
                 'total_cny' => $result['total_cny'],
                 'total_vnd' => $result['total_vnd'],
-                'held_total_cny' => $result['held_total_cny'] ?? 0,
                 'items' => $result['items'] ?? [],
-                'held_items' => $result['held_items'] ?? [],
             ],
         ];
 

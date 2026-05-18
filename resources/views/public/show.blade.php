@@ -50,11 +50,8 @@
 
                 <div class="small text-muted mt-1">
 
-                    {{ $inventory->item_count ?? 0 }} skin tradable
-                    @if(count($heldItems ?? []) > 0)
-                        · {{ count($heldItems) }} hold
-                    @endif
-                    ·
+                    {{ $inventory->item_count ?? 0 }} skin tradable ·
+
                     {{ \Carbon\Carbon::parse($inventory->last_checked_at)->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
 
                 </div>
@@ -69,7 +66,7 @@
 
 
 
-@if(count($items) === 0 && count($heldItems ?? []) === 0)
+@if(count($items) === 0)
 
     <div class="alert alert-info">
 
@@ -87,7 +84,6 @@
         </div>
     @endif
 
-    @if(count($items) > 0)
     <div class="card panel-card inventory-collapse-card">
 
         <div class="card-header p-0 border-0 bg-transparent">
@@ -132,19 +128,6 @@
         </div>
 
     </div>
-    @endif
-
-    @if(count($heldItems ?? []) > 0)
-        <div class="card panel-card mb-4">
-            <div class="card-body">
-                @include('partials.held-items-section', [
-                    'items' => $heldItems,
-                    'heldTotalCny' => $heldTotalCny ?? null,
-                    'compact' => false,
-                ])
-            </div>
-        </div>
-    @endif
     </div>
 
 @endif
