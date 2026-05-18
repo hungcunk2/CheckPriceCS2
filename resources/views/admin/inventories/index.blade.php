@@ -48,11 +48,15 @@
                     >
                         <td>{{ $loop->iteration }}</td>
                         <td>
+                            <div class="d-flex align-items-center gap-2">
                             @if(!empty($inv->steam_avatar_url))
-                                <img src="{{ $inv->steam_avatar_url }}" alt="" class="steam-avatar float-start me-2" width="32" height="32" loading="lazy">
+                                <img src="{{ $inv->steam_avatar_url }}" alt="" class="steam-avatar flex-shrink-0" width="48" height="48" loading="lazy" style="--steam-avatar-size: 48px">
                             @endif
-                            <div class="fw-semibold">{{ \App\Support\InventoryDisplay::title($inv) }}</div>
-                            <div class="small text-muted text-truncate" style="max-width:240px">{{ $inv->url }}</div>
+                                <div class="min-w-0">
+                                    <div class="fw-semibold">{{ \App\Support\InventoryDisplay::title($inv) }}</div>
+                                    <div class="small text-muted text-truncate" style="max-width:240px">{{ $inv->url }}</div>
+                                </div>
+                            </div>
                         </td>
                         <td>
                             @if(($inv->last_total_cny ?? 0) > 0)

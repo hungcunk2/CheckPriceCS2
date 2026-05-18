@@ -1045,7 +1045,9 @@ body.dark-mode .form-control {
 }
 
 .steam-avatar {
-    border-radius: 8px;
+    width: var(--steam-avatar-size, 48px);
+    height: var(--steam-avatar-size, 48px);
+    border-radius: 10px;
     object-fit: cover;
     background: #e5e7eb;
     border: 1px solid var(--border-color, #e5e7eb);
@@ -1086,7 +1088,7 @@ body.dark-mode .form-control {
     align-items: center;
     justify-content: center;
     color: #6b7280;
-    font-size: 1.1rem;
+    font-size: calc(var(--steam-avatar-size, 48px) * 0.42);
     background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
 }
 

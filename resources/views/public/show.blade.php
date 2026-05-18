@@ -22,7 +22,7 @@
     <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
 
         <div>
-            @include('partials.inventory-identity', ['inventory' => $inventory, 'heading' => 'h4', 'size' => 56])
+            @include('partials.inventory-identity', ['inventory' => $inventory, 'heading' => 'h4', 'size' => 72])
         </div>
 
         <div class="text-end">

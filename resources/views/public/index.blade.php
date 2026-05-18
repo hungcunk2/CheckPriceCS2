@@ -19,14 +19,14 @@
                 <div class="card-header p-0 border-0 bg-transparent">
                     <button
                         type="button"
-                        class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-top-3 d-flex flex-wrap justify-content-between align-items-start gap-3 {{ $loop->first ? '' : 'collapsed' }}"
+                        class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-top-3 d-flex flex-wrap justify-content-between align-items-center gap-3 {{ $loop->first ? '' : 'collapsed' }}"
                         data-bs-toggle="collapse"
                         data-bs-target="#inv-items-{{ $inv->id }}"
                         aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
                         aria-controls="inv-items-{{ $inv->id }}"
                     >
                         <div class="pe-2 flex-grow-1 min-w-0">
-                            @include('partials.inventory-identity', ['inventory' => $inv, 'size' => 44])
+                            @include('partials.inventory-identity', ['inventory' => $inv, 'size' => 60])
                         </div>
                         <div class="d-flex align-items-start gap-3">
                             <div class="text-end">
@@ -59,7 +59,7 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                         <div>
-                            @include('partials.inventory-identity', ['inventory' => $inv, 'size' => 44])
+                            @include('partials.inventory-identity', ['inventory' => $inv, 'size' => 60])
                         </div>
                         <div class="text-end">
                             @if(($inv->last_total_cny ?? 0) > 0)
