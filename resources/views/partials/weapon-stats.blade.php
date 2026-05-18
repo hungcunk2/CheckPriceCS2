@@ -10,7 +10,7 @@
             <span class="weapon-filter-count text-muted"></span>
             <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline weapon-filter-clear">Bỏ lọc</button>
         </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center weapon-stat-list">
+        <div class="d-flex flex-wrap align-items-center weapon-stat-list">
             <button
                 type="button"
                 class="badge rounded-pill weapon-stat-badge weapon-stat-badge--active bg-primary text-white border-0"

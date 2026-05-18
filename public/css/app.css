@@ -160,16 +160,27 @@ html[data-currency="usd"] .price-col-label-vnd {
     border: 1px solid var(--border-color);
 }
 
+.weapon-stats {
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
 .weapon-stats--compact {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1.15rem;
+}
+
+.weapon-stat-list {
+    gap: 0.55rem 0.7rem;
 }
 
 .weapon-stat-badge {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 500;
-    padding: 0.4em 0.75em;
+    padding: 0.5em 0.95em;
+    margin: 0;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .weapon-stat-badge:hover:not(.weapon-stat-badge--active) {
@@ -233,6 +244,20 @@ html[data-currency="usd"] .price-col-label-vnd {
 
 .table-items td {
     vertical-align: middle;
+}
+
+.item-table thead th {
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.item-table tbody td {
+    padding: 0.7rem 1rem;
+}
+
+.item-table-wrap {
+    margin-top: 0.25rem;
 }
 
 .tracked-row:hover {
@@ -311,6 +336,12 @@ html[data-currency="usd"] .price-col-label-vnd {
 
 [data-bs-theme="dark"] .tracked-row:hover {
     background: #21262d;
+}
+
+[data-bs-theme="dark"] .weapon-stat-badge.bg-light {
+    background: #21262d !important;
+    color: #e6edf3 !important;
+    border-color: #30363d !important;
 }
 
 [data-bs-theme="dark"] .weapon-stat-badge:hover:not(.weapon-stat-badge--active) {
