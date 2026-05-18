@@ -12,6 +12,7 @@ use App\Support\InventoryWeaponStats;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\View\View;
 use RuntimeException;
 
@@ -55,6 +56,7 @@ class InventoryController extends Controller
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public', true),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
+            'trade_at' => $this->parseTradeAtInput($request->input('trade_at')),
         ]);
 
         if ($request->boolean('check_now')) {
@@ -92,6 +94,7 @@ class InventoryController extends Controller
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public'),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
+            'trade_at' => $this->parseTradeAtInput($request->input('trade_at')),
         ], $inventory);
 
         if ($request->boolean('check_now')) {
@@ -150,9 +153,19 @@ class InventoryController extends Controller
             'label' => ['required', 'string', 'max:120'],
             'url' => ['required', 'url', 'max:2000'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'trade_at' => ['nullable', 'date'],
             'is_public' => ['sometimes', 'boolean'],
             'check_now' => ['sometimes', 'boolean'],
         ]);
+    }
+
+    private function parseTradeAtInput(?string $value): ?Carbon
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return Carbon::parse($value, 'Asia/Ho_Chi_Minh')->utc();
     }
 
     private function runCheckAndRedirect(int $id, string $url, string $label, InventoryPriceChecker $checker): RedirectResponse

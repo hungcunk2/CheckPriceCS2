@@ -17,6 +17,7 @@ CREATE TABLE `tracked_inventories` (
   `steam_avatar_url` varchar(512) DEFAULT NULL,
   `is_public` tinyint(1) NOT NULL DEFAULT 1,
   `sort_order` smallint unsigned NOT NULL DEFAULT 0,
+  `trade_at` timestamp NULL DEFAULT NULL,
   `last_checked_at` timestamp NULL DEFAULT NULL,
   `last_total_cny` decimal(14,2) DEFAULT NULL,
   `last_total_vnd` bigint unsigned DEFAULT NULL,

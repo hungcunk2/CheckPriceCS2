@@ -30,6 +30,7 @@
     <script src="{{ asset('js/theme-toggle.js') }}"></script>
     <script src="{{ asset('js/currency-switch.js') }}"></script>
     <script src="{{ asset('js/image-lightbox.js') }}"></script>
+    <script src="{{ asset('js/trade-countdown.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

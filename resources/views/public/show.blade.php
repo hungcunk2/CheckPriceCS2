@@ -39,6 +39,13 @@
 
             @endif
 
+            @include('partials.trade-countdown', [
+                'inventory' => $inventory,
+                'showLabel' => true,
+                'label' => 'Còn lại',
+                'class' => 'trade-countdown--card mt-2',
+            ])
+
             @if(!empty($inventory->last_checked_at))
 
                 <div class="small text-muted mt-1">

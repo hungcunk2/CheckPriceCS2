@@ -30,6 +30,7 @@
                     <th>Kho</th>
                     <th>Giá Buff</th>
                     <th>Skin</th>
+                    <th>Trade</th>
                     <th>Cập nhật</th>
                     <th>Public</th>
                     <th class="text-end">Thao tác</th>
@@ -67,6 +68,17 @@
                             @endif
                         </td>
                         <td>{{ count($items) ?: ($inv->item_count ?? 0) }}</td>
+                        <td class="small" style="min-width: 140px">
+                            @include('partials.trade-countdown', [
+                                'inventory' => $inv,
+                                'showLabel' => true,
+                                'label' => 'Còn',
+                                'class' => 'trade-countdown--table',
+                            ])
+                            @if(empty($inv->trade_at))
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td class="small">
                             @if(!empty($inv->last_checked_at))
                                 {{ \Carbon\Carbon::parse($inv->last_checked_at)->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
@@ -103,7 +115,7 @@
                         </td>
                     </tr>
                     <tr class="admin-inventory-detail-row">
-                        <td colspan="7" class="p-0 border-0">
+                        <td colspan="8" class="p-0 border-0">
                             <div id="admin-inv-items-{{ $inv->id }}" class="collapse {{ $loop->first ? 'show' : '' }}">
                                 <div class="p-4 border-top bg-light inventory-detail-panel-wrap">
                                     @include('partials.inventory-detail-panel', [
@@ -118,7 +130,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Chưa có kho nào. Bấm "Thêm kho" để bắt đầu.</td>
+                        <td colspan="8" class="text-center text-muted py-4">Chưa có kho nào. Bấm "Thêm kho" để bắt đầu.</td>
                     </tr>
                 @endforelse
             </tbody>

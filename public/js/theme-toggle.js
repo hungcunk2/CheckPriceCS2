@@ -22,6 +22,7 @@
 
     function applyTheme(theme) {
         document.documentElement.setAttribute('data-bs-theme', theme);
+        document.documentElement.classList.toggle('dark-mode', theme === 'dark');
         if (document.body) {
             document.body.classList.toggle('dark-mode', theme === 'dark');
         }
@@ -34,9 +35,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        applyTheme(currentTheme());
         document.querySelectorAll('.theme-toggle-btn').forEach(function (btn) {
             btn.addEventListener('click', toggleTheme);
         });
-        syncToggleButtons();
     });
 })();

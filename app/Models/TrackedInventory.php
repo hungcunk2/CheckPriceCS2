@@ -14,6 +14,7 @@ class TrackedInventory extends Model
         'steam_avatar_url',
         'is_public',
         'sort_order',
+        'trade_at',
         'last_checked_at',
         'last_total_cny',
         'last_total_vnd',
@@ -27,6 +28,7 @@ class TrackedInventory extends Model
     {
         return [
             'is_public' => 'boolean',
+            'trade_at' => 'datetime',
             'last_checked_at' => 'datetime',
             'last_total_cny' => 'float',
             'last_snapshot' => 'array',

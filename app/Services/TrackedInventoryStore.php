@@ -91,7 +91,7 @@ class TrackedInventoryStore
     {
         $allowed = [
             'label', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
-            'is_public', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
+            'is_public', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
             'item_count', 'priced_count', 'failed_count', 'last_snapshot',
         ];
 
@@ -99,6 +99,12 @@ class TrackedInventoryStore
 
         if (isset($payload['last_checked_at']) && is_string($payload['last_checked_at'])) {
             $payload['last_checked_at'] = \Carbon\Carbon::parse($payload['last_checked_at']);
+        }
+
+        if (array_key_exists('trade_at', $payload)) {
+            $payload['trade_at'] = filled($payload['trade_at'])
+                ? \Carbon\Carbon::parse($payload['trade_at'])
+                : null;
         }
 
         return $payload;
@@ -110,6 +116,10 @@ class TrackedInventoryStore
 
         if ($row->last_checked_at) {
             $data['last_checked_at'] = $row->last_checked_at->toIso8601String();
+        }
+
+        if ($row->trade_at) {
+            $data['trade_at'] = $row->trade_at->toIso8601String();
         }
 
         $data['created_at'] = $row->created_at?->toIso8601String();

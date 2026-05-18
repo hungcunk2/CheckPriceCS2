@@ -29,6 +29,27 @@
                     <div class="form-text">Kho phải để public.</div>
                 </div>
 
+                @php
+                    $tradeAtValue = old('trade_at');
+                    if ($tradeAtValue === null && !empty($inventory->trade_at)) {
+                        $tradeAtValue = \Carbon\Carbon::parse($inventory->trade_at)
+                            ->timezone('Asia/Ho_Chi_Minh')
+                            ->format('Y-m-d\TH:i');
+                    }
+                @endphp
+                <div class="mb-3">
+                    <label class="form-label" for="trade_at">Thời gian trade</label>
+                    <input
+                        type="datetime-local"
+                        name="trade_at"
+                        id="trade_at"
+                        class="form-control @error('trade_at') is-invalid @enderror"
+                        value="{{ $tradeAtValue }}"
+                    >
+                    @error('trade_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">Giờ Việt Nam (GMT+7). Để trống nếu chưa có — trang công khai sẽ hiện đếm ngược.</div>
+                </div>
+
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="is_public" value="1" id="is_public"

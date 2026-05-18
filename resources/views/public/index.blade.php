@@ -36,6 +36,12 @@
                                 @else
                                     <div class="text-warning">Chưa có giá Buff</div>
                                 @endif
+                                @include('partials.trade-countdown', [
+                                    'inventory' => $inv,
+                                    'showLabel' => true,
+                                    'label' => 'Còn lại',
+                                    'class' => 'trade-countdown--card mt-2',
+                                ])
                                 @if(!empty($inv->last_checked_at))
                                     <div class="small text-muted mt-1">
                                         {{ count($items) }} skin ·
@@ -68,6 +74,12 @@
                             @else
                                 <div class="text-warning">Chưa có giá Buff</div>
                             @endif
+                            @include('partials.trade-countdown', [
+                                'inventory' => $inv,
+                                'showLabel' => true,
+                                'label' => 'Còn lại',
+                                'class' => 'trade-countdown--card mt-2',
+                            ])
                         </div>
                     </div>
                     <div class="alert alert-info mb-0 py-2 small">
