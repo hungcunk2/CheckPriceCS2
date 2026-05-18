@@ -1319,6 +1319,8 @@ body.dark-mode .steam-avatar--placeholder {
     line-height: 0;
     cursor: zoom-in;
     border-radius: 6px;
+    font-family: inherit;
+    vertical-align: middle;
 }
 
 .img-zoom-trigger:focus-visible {

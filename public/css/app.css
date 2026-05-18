@@ -171,6 +171,8 @@ html[data-currency="usd"] .price-col-label-vnd {
     line-height: 0;
     cursor: zoom-in;
     border-radius: 6px;
+    font-family: inherit;
+    vertical-align: middle;
 }
 
 .img-zoom-trigger:focus-visible {
@@ -420,6 +422,11 @@ html[data-currency="usd"] .price-col-label-vnd {
     color: inherit;
     padding: 1.35rem 1.4rem 1.2rem !important;
     transition: background 0.15s ease;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    text-align: inherit;
 }
 
 .inventory-collapse-toggle:hover,

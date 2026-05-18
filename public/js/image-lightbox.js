@@ -11,7 +11,11 @@
 
     let lastFocus = null;
 
-    function openLightbox(src, label) {
+    function openFromTrigger(trigger) {
+        const targetImg = trigger.querySelector('img');
+        const src = trigger.dataset.zoomSrc || targetImg?.currentSrc || targetImg?.src;
+        const label = trigger.dataset.zoomCaption || targetImg?.alt || '';
+
         if (!src) {
             return;
         }
@@ -47,20 +51,26 @@
 
         event.preventDefault();
         event.stopPropagation();
+        openFromTrigger(trigger);
+    });
 
-        const targetImg = trigger.querySelector('img');
-        const src = trigger.dataset.zoomSrc || targetImg?.currentSrc || targetImg?.src;
-        const label = trigger.dataset.zoomCaption || targetImg?.alt || '';
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !overlay.hidden) {
+            event.preventDefault();
+            closeLightbox();
+            return;
+        }
 
-        openLightbox(src, label);
+        const trigger = event.target.closest('.img-zoom-trigger');
+        if (!trigger || (event.key !== 'Enter' && event.key !== ' ')) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        openFromTrigger(trigger);
     });
 
     backdrop?.addEventListener('click', closeLightbox);
     closeBtn?.addEventListener('click', closeLightbox);
-
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !overlay.hidden) {
-            closeLightbox();
-        }
-    });
 })();

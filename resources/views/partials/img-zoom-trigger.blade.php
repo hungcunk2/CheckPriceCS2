@@ -8,13 +8,14 @@
     $imgStyle = $style ?? '';
 @endphp
 @if($src !== '')
-    <button
-        type="button"
+    <span
+        role="button"
+        tabindex="0"
         class="img-zoom-trigger {{ $triggerClass ?? '' }}"
         data-zoom-src="{{ $largeSrc }}"
         @if($caption !== '') data-zoom-caption="{{ $caption }}" @endif
         aria-label="Phóng to ảnh"
     >
         <img src="{{ $src }}" alt="{{ $caption }}" class="{{ $imgClass }}" @if($imgStyle !== '') style="{{ $imgStyle }}" @endif loading="lazy">
-    </button>
+    </span>
 @endif
