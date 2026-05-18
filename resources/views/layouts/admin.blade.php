@@ -87,6 +87,7 @@
                 @endif
                 @yield('content')
             </main>
+            @include('partials.footer', ['compact' => true])
         </div>
     </div>
 

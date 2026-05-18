@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     @stack('styles')
 </head>
-<body>
+<body class="app-shell">
     <header class="app-header">
         <div class="container-fluid px-4 d-flex align-items-center justify-content-between py-3">
             <a href="{{ route('public.index') }}" class="brand text-decoration-none">
@@ -21,9 +21,10 @@
             @include('partials.header-actions')
         </div>
     </header>
-    <main class="app-main container-fluid px-4 pb-5">
+    <main class="app-main container-fluid px-4 pb-4">
         @yield('content')
     </main>
+    @include('partials.footer')
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/theme-toggle.js') }}"></script>
     <script src="{{ asset('js/currency-switch.js') }}"></script>
