@@ -11,14 +11,13 @@
 @endphp
 <div class="inventory-identity d-flex align-items-center gap-3 {{ $class ?? '' }}" style="--steam-avatar-size: {{ $size }}px">
     @if($avatar)
-        <img
-            src="{{ $avatar }}"
-            alt=""
-            class="steam-avatar flex-shrink-0"
-            width="{{ $size }}"
-            height="{{ $size }}"
-            loading="lazy"
-        >
+        @include('partials.img-zoom-trigger', [
+            'src' => $avatar,
+            'caption' => $title,
+            'class' => 'steam-avatar flex-shrink-0',
+            'style' => "width:{$size}px;height:{$size}px",
+            'triggerClass' => 'flex-shrink-0',
+        ])
     @else
         <div class="steam-avatar steam-avatar--placeholder flex-shrink-0">
             <i class="fab fa-steam"></i>
