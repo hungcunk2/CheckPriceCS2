@@ -9,23 +9,53 @@ use Symfony\Component\HttpFoundation\Response;
 class SkipSessionForSocialCrawlers
 {
     /**
-     * Bot chia sẻ (FB, Zalo, X…) không cần session — tránh cookie gây cache/preview lỗi.
+     * Bot chia sẻ (Messenger/FB, Zalo, X…) — không gửi cookie session (FB hay cache preview lỗi).
      *
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $ua = (string) $request->userAgent();
-
-        if ($ua !== '' && preg_match(
-            '/facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|WhatsApp|TelegramBot|Discordbot|Zalo/i',
-            $ua
-        )) {
-            config([
-                'session.driver' => 'array',
-            ]);
+        if (! $this->isSocialCrawler($request)) {
+            return $next($request);
         }
 
-        return $next($request);
+        config([
+            'session.driver' => 'array',
+        ]);
+
+        $response = $next($request);
+
+        return $this->withoutSessionCookies($response);
+    }
+
+    public function isSocialCrawler(Request $request): bool
+    {
+        $ua = (string) $request->userAgent();
+
+        if ($ua === '') {
+            return false;
+        }
+
+        return (bool) preg_match(
+            '/facebookexternalhit|Facebot|Meta-ExternalAgent|meta-externalagent|facebookcatalog|'
+            .'Twitterbot|LinkedInBot|Slackbot|WhatsApp|TelegramBot|Discordbot|Zalo/i',
+            $ua
+        );
+    }
+
+    private function withoutSessionCookies(Response $response): Response
+    {
+        foreach ($response->headers->getCookies() as $cookie) {
+            $response->headers->removeCookie(
+                $cookie->getName(),
+                $cookie->getPath(),
+                $cookie->getDomain(),
+                $cookie->isSecure(),
+                $cookie->isHttpOnly(),
+                $cookie->getSameSite()
+            );
+        }
+
+        return $response;
     }
 }
