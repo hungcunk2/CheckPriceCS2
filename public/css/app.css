@@ -153,11 +153,26 @@ html[data-currency="usd"] .price-col-label-vnd {
     border-radius: 6px;
 }
 
+.inventory-identity {
+    --steam-avatar-size: 56px;
+}
+
 .steam-avatar {
-    border-radius: 10px;
+    width: var(--steam-avatar-size, 56px);
+    height: var(--steam-avatar-size, 56px);
+    border-radius: 12px;
     object-fit: cover;
     background: #e5e7eb;
     border: 1px solid var(--border-color);
+}
+
+.inventory-identity .steam-profile-link {
+    width: 2rem;
+    height: 2rem;
+}
+
+.inventory-identity .steam-profile-link .fa-steam {
+    font-size: 1.25rem;
 }
 
 .weapon-stats {
@@ -223,7 +238,7 @@ html[data-currency="usd"] .price-col-label-vnd {
     align-items: center;
     justify-content: center;
     color: #6b7280;
-    font-size: 1.35rem;
+    font-size: calc(var(--steam-avatar-size, 56px) * 0.42);
     background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
 }
 
