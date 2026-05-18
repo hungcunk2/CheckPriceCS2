@@ -3,11 +3,13 @@
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\PublicInventoryController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicInventoryController::class, 'index'])->name('public.index');
 Route::get('/kho/{inventory}', [PublicInventoryController::class, 'show'])->whereNumber('inventory')->name('public.show');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');

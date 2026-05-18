@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\TrackedInventoryStore;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
+use App\Support\SiteMeta;
 use Illuminate\View\View;
 
 class PublicInventoryController extends Controller
@@ -38,6 +39,7 @@ class PublicInventoryController extends Controller
             'inventory' => $row,
             'items' => $items,
             'weaponStats' => InventoryWeaponStats::summarize($items),
+            'meta' => SiteMeta::forInventory($row),
         ]);
     }
 }
