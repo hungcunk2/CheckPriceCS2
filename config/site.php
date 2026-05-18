@@ -50,4 +50,7 @@ return [
 
     'author' => env('SITE_AUTHOR', 'Nguyễn Tuấn Hùng'),
 
+    /** Mã từ Google Search Console → HTML tag */
+    'google_site_verification' => env('GOOGLE_SITE_VERIFICATION', ''),
+
 ];

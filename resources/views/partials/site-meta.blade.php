@@ -31,6 +31,9 @@
 <meta name="author" content="{{ $author }}">
 <meta name="robots" content="{{ $robots }}">
 <meta name="theme-color" content="{{ $themeColor }}">
+@if(filled(config('site.google_site_verification')))
+<meta name="google-site-verification" content="{{ config('site.google_site_verification') }}">
+@endif
 <link rel="canonical" href="{{ $canonical }}">
 
 <meta property="og:type" content="{{ $ogType }}">
