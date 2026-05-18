@@ -32,8 +32,8 @@ FLUSH PRIVILEGES;
 SQL
 
 if [ ! -f "$APP_DIR/.env" ]; then
-  echo "Chưa có $APP_DIR/.env — clone project và cp .env.example trước."
-  exit 1
+  echo "Chưa có $APP_DIR/.env — chạy: bash $APP_DIR/deploy/setup-env.sh"
+  bash "$APP_DIR/deploy/setup-env.sh"
 fi
 
 cd "$APP_DIR"

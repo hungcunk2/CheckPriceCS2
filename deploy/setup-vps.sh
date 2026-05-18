@@ -32,16 +32,9 @@ fi
 
 cd "$APP_DIR"
 
-if [ ! -f .env ]; then
-  cp .env.example .env
-  php artisan key:generate --force
-  sed -i 's|^APP_ENV=.*|APP_ENV=production|' .env
-  sed -i 's|^APP_DEBUG=.*|APP_DEBUG=false|' .env
-  sed -i 's|^APP_URL=.*|APP_URL=http://160.187.146.255|' .env
-fi
-
 composer install --no-dev --optimize-autoloader --no-interaction
 
+bash "$APP_DIR/deploy/setup-env.sh"
 bash "$APP_DIR/deploy/configure-mysql.sh"
 
 chown -R www-data:www-data storage bootstrap/cache
@@ -74,7 +67,8 @@ CRON_LINE="* * * * * cd ${APP_DIR} && php artisan schedule:run >> /dev/null 2>&1
 
 echo ""
 echo "=== Xong phần cài đặt ==="
-echo "1. nano $APP_DIR/.env  (ADMIN_*, BUFF163_SESSION — DB đã cấu hình MySQL)"
+echo "1. Bổ sung Buff (nếu chưa): sudo BUFF163_SESSION='...' bash $APP_DIR/deploy/setup-env.sh"
+echo "   hoặc: sudo nano $APP_DIR/.env"
 echo "2. php artisan config:cache"
 echo "3. Mở: http://160.187.146.255"
 echo "4. Admin: http://160.187.146.255/admin/login"

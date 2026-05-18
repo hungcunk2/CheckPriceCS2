@@ -17,7 +17,7 @@
                     <th class="text-end">Hôm qua<br><span class="fw-normal small text-muted">(± listing)</span></th>
                     <th class="text-end">0h hôm nay</th>
                     <th class="text-end">7 ngày trước</th>
-                    <th class="text-end">USD (2h)</th>
+                    <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span> <span class="fw-normal small text-muted">(2h)</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -84,11 +84,7 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            @if($price2h !== null)
-                                {{ Currency::formatUsd(Currency::cnyToUsd($price2h)) }}
-                            @else
-                                —
-                            @endif
+                            @include('partials.price-cell', ['cny' => $price2h])
                         </td>
                     </tr>
                 @endforeach

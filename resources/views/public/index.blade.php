@@ -31,7 +31,7 @@
                         <div class="d-flex align-items-start gap-3">
                             <div class="text-end">
                                 @if(($inv->last_total_cny ?? 0) > 0)
-                                    <div class="h4 mb-0 text-primary">{{ Currency::formatUsd(Currency::cnyToUsd($inv->last_total_cny)) }}</div>
+                                    <div class="h4 mb-0 text-primary">@include('partials.price-converted', ['cny' => $inv->last_total_cny])</div>
                                     <div class="small text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</div>
                                 @else
                                     <div class="text-warning">Chưa có giá Buff</div>
@@ -63,7 +63,7 @@
                         </div>
                         <div class="text-end">
                             @if(($inv->last_total_cny ?? 0) > 0)
-                                <div class="h4 mb-0 text-primary">{{ Currency::formatUsd(Currency::cnyToUsd($inv->last_total_cny)) }}</div>
+                                <div class="h4 mb-0 text-primary">@include('partials.price-converted', ['cny' => $inv->last_total_cny])</div>
                                 <div class="small text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</div>
                             @else
                                 <div class="text-warning">Chưa có giá Buff</div>

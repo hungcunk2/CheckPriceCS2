@@ -56,7 +56,7 @@
                         </td>
                         <td>
                             @if(($inv->last_total_cny ?? 0) > 0)
-                                <span class="text-success">{{ \App\Support\Currency::formatUsd(\App\Support\Currency::cnyToUsd($inv->last_total_cny)) }}</span><br>
+                                <span class="text-success">@include('partials.price-converted', ['cny' => $inv->last_total_cny])</span><br>
                                 <small class="text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</small>
                             @else
                                 <span class="text-warning">Chưa có giá</span>

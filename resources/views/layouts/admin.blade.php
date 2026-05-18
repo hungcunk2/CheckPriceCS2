@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
     @include('partials.theme-init')
+    @include('partials.currency-init')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -61,6 +62,7 @@
                     <h1 class="page-title mb-0">@yield('page-title', 'Dashboard')</h1>
                 </div>
                 <div class="header-right d-flex align-items-center gap-3">
+                    @include('partials.currency-switch')
                     <button
                         type="button"
                         class="btn btn-sm theme-toggle-btn"
@@ -97,6 +99,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/theme-toggle.js') }}"></script>
+    <script src="{{ asset('js/currency-switch.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

@@ -29,7 +29,7 @@
 
             @if(($inventory->last_total_cny ?? 0) > 0)
 
-                <div class="h3 mb-0 text-primary">{{ Currency::formatUsd(Currency::cnyToUsd($inventory->last_total_cny)) }}</div>
+                <div class="h3 mb-0 text-primary">@include('partials.price-converted', ['cny' => $inventory->last_total_cny])</div>
 
                 <div class="small text-muted mb-0">¥{{ number_format($inventory->last_total_cny, 2) }}</div>
 

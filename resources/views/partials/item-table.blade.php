@@ -14,7 +14,7 @@
                     <th>Item</th>
                     <th class="text-center">SL</th>
                     <th class="text-end">Giá Buff</th>
-                    <th class="text-end">USD</th>
+                    <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span></th>
                     <th class="text-end">Tổng</th>
                 </tr>
             </thead>
@@ -48,20 +48,10 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            @php $unitUsd = $item->buff_price_usd ?? Currency::cnyToUsd($item->buff_price_cny ?? null); @endphp
-                            @if($unitUsd !== null)
-                                {{ Currency::formatUsd($unitUsd) }}
-                            @else
-                                —
-                            @endif
+                            @include('partials.price-cell', ['cny' => $item->buff_price_cny ?? null])
                         </td>
                         <td class="text-end fw-semibold">
-                            @php $lineUsd = $item->line_total_usd ?? Currency::cnyToUsd($item->line_total_cny ?? null); @endphp
-                            @if($lineUsd !== null)
-                                {{ Currency::formatUsd($lineUsd) }}
-                            @else
-                                —
-                            @endif
+                            @include('partials.price-cell', ['cny' => $item->line_total_cny ?? null])
                         </td>
                     </tr>
                 @endforeach

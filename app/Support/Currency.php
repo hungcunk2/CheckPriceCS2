@@ -55,4 +55,13 @@ class Currency
 
         return '$'.number_format($usd, 2);
     }
+
+    public static function formatVnd(?float $vnd): string
+    {
+        if ($vnd === null) {
+            return '—';
+        }
+
+        return number_format($vnd).' ₫';
+    }
 }
