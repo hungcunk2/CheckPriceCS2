@@ -14,9 +14,9 @@
                     <th>Item</th>
                     <th class="text-center">SL</th>
                     <th class="text-end">Hiện tại<br><span class="fw-normal small text-muted">(2h)</span></th>
-                    <th class="text-end">Hôm qua</th>
-                    <th class="text-end">0h hôm nay</th>
-                    <th class="text-end">7 ngày trước</th>
+                    <th class="text-end">Hôm qua<br><span class="fw-normal small text-muted">± so với HT</span></th>
+                    <th class="text-end">0h hôm nay<br><span class="fw-normal small text-muted">± so với HT</span></th>
+                    <th class="text-end">7 ngày trước<br><span class="fw-normal small text-muted">± so với HT</span></th>
                     <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span> <span class="fw-normal small text-muted">(2h)</span></th>
                 </tr>
             </thead>
@@ -30,7 +30,9 @@
                         $yesterday = is_array($hist) ? ($hist['yesterday'] ?? null) : null;
                         $todayOpen = is_array($hist) ? ($hist['today_open'] ?? null) : null;
                         $days7 = is_array($hist) ? ($hist['days_7'] ?? null) : null;
-                        $priceDelta = is_array($hist) ? ($hist['price_cny_delta'] ?? null) : null;
+                        $deltaYesterday = is_array($hist) ? ($hist['price_cny_delta_yesterday'] ?? null) : null;
+                        $deltaTodayOpen = is_array($hist) ? ($hist['price_cny_delta_today_open'] ?? null) : null;
+                        $deltaDays7 = is_array($hist) ? ($hist['price_cny_delta_days_7'] ?? null) : null;
                         $price2h = $cur['price_cny'] ?? $item->buff_price_cny ?? null;
                         $stale = ! empty($cur['stale']);
                     @endphp
@@ -50,11 +52,6 @@
                         <td class="text-end">
                             @if($price2h !== null)
                                 <span class="{{ $stale ? 'text-warning' : '' }}">¥{{ number_format($price2h, 2) }}</span>
-                                @if($priceDelta !== null)
-                                    <div class="small {{ $priceDelta > 0 ? 'text-success' : ($priceDelta < 0 ? 'text-danger' : 'text-muted') }}">
-                                        {{ $priceDelta > 0 ? '+' : '' }}¥{{ number_format($priceDelta, 2) }}
-                                    </div>
-                                @endif
                                 @if($stale)
                                     <div class="small text-warning d-block">ngoài 2h</div>
                                 @endif
@@ -65,6 +62,7 @@
                         <td class="text-end">
                             @if(!empty($yesterday['price_cny']))
                                 ¥{{ number_format($yesterday['price_cny'], 2) }}
+                                @include('partials.price-cny-delta', ['delta' => $deltaYesterday])
                             @else
                                 —
                             @endif
@@ -72,6 +70,7 @@
                         <td class="text-end">
                             @if(!empty($todayOpen['price_cny']))
                                 ¥{{ number_format($todayOpen['price_cny'], 2) }}
+                                @include('partials.price-cny-delta', ['delta' => $deltaTodayOpen])
                             @else
                                 —
                             @endif
@@ -79,6 +78,7 @@
                         <td class="text-end">
                             @if(!empty($days7['price_cny']))
                                 ¥{{ number_format($days7['price_cny'], 2) }}
+                                @include('partials.price-cny-delta', ['delta' => $deltaDays7])
                             @else
                                 —
                             @endif

@@ -34,7 +34,9 @@ class PriceHistoryService
      *   today_open: array{price_cny: float|null, sell_num: int|null, recorded_at: string|null}|null,
      *   yesterday: array{price_cny: float|null, sell_num: int|null, recorded_at: string|null}|null,
      *   days_7: array{price_cny: float|null, sell_num: int|null, recorded_at: string|null}|null,
-     *   price_cny_delta: float|null,
+     *   price_cny_delta_yesterday: float|null,
+     *   price_cny_delta_today_open: float|null,
+     *   price_cny_delta_days_7: float|null,
      *   sell_num_delta: int|null
      * }
      */
@@ -53,10 +55,9 @@ class PriceHistoryService
         $yesterday = $this->firstAfterMidnight($points, $now->copy()->subDay()->startOfDay());
         $days7 = $this->firstAfterMidnight($points, $now->copy()->subDays(7)->startOfDay());
 
-        $priceCnyDelta = null;
-        if ($current !== null && $yesterday !== null) {
-            $priceCnyDelta = round($current['price_cny'] - $yesterday['price_cny'], 2);
-        }
+        $priceCnyDeltaYesterday = $this->priceDelta($current, $yesterday);
+        $priceCnyDeltaTodayOpen = $this->priceDelta($current, $todayOpen);
+        $priceCnyDeltaDays7 = $this->priceDelta($current, $days7);
 
         $sellNumDelta = null;
         if ($current !== null && $yesterday !== null) {
@@ -77,9 +78,24 @@ class PriceHistoryService
             'today_open' => $todayOpen,
             'yesterday' => $yesterday,
             'days_7' => $days7,
-            'price_cny_delta' => $priceCnyDelta,
+            'price_cny_delta_yesterday' => $priceCnyDeltaYesterday,
+            'price_cny_delta_today_open' => $priceCnyDeltaTodayOpen,
+            'price_cny_delta_days_7' => $priceCnyDeltaDays7,
             'sell_num_delta' => $sellNumDelta,
         ];
+    }
+
+    /**
+     * @param  array{price_cny: float, sell_num: int|null, recorded_at: string}|null  $current
+     * @param  array{price_cny: float, sell_num: int|null, recorded_at: string}|null  $reference
+     */
+    private function priceDelta(?array $current, ?array $reference): ?float
+    {
+        if ($current === null || $reference === null) {
+            return null;
+        }
+
+        return round($current['price_cny'] - $reference['price_cny'], 2);
     }
 
     /**
