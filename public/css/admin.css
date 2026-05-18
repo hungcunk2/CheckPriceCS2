@@ -66,7 +66,7 @@ body {
 }
 
 .logo .site-logo {
-    height: 52px;
+    height: 64px;
     width: auto;
     max-width: 100%;
 }
@@ -1088,4 +1088,39 @@ body.dark-mode .form-control {
     color: #6b7280;
     font-size: 1.1rem;
     background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
+}
+
+.theme-toggle-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--sidebar-bg);
+    color: var(--text-secondary);
+}
+
+.theme-toggle-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+body.dark-mode #admin-loading {
+    background: rgba(13, 17, 23, 0.82) !important;
+}
+
+body.dark-mode .admin-inventory-detail-row .table {
+    background: #1f2937;
+}
+
+body.dark-mode .admin-inventory-detail-row .bg-light {
+    background-color: #111827 !important;
+}
+
+body.dark-mode .steam-avatar--placeholder {
+    background: linear-gradient(145deg, #374151, #1f2937);
+    color: #9ca3af;
 }

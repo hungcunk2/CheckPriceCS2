@@ -24,7 +24,6 @@ class PublicInventoryController extends Controller
 
         return view('public.index', [
             'inventories' => $inventories,
-            'cnyToVnd' => config('cs2price.cny_to_vnd'),
         ]);
     }
 
@@ -39,7 +38,6 @@ class PublicInventoryController extends Controller
             'inventory' => $row,
             'items' => $items,
             'weaponStats' => InventoryWeaponStats::summarize($items),
-            'cnyToVnd' => config('cs2price.cny_to_vnd'),
         ]);
     }
 }

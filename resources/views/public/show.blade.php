@@ -1,4 +1,4 @@
-﻿@extends('layouts.public', ['cnyToVnd' => $cnyToVnd])
+﻿@extends('layouts.public')
 
 
 
@@ -7,6 +7,7 @@
 
 
 @section('content')
+@php use App\Support\Currency; @endphp
 
 <div class="mb-3">
 
@@ -28,9 +29,9 @@
 
             @if(($inventory->last_total_cny ?? 0) > 0)
 
-                <div class="h3 mb-0 text-primary">¥{{ number_format($inventory->last_total_cny, 2) }}</div>
+                <div class="h3 mb-0 text-primary">{{ Currency::formatUsd(Currency::cnyToUsd($inventory->last_total_cny)) }}</div>
 
-                <div class="h5 text-success mb-0">{{ number_format($inventory->last_total_vnd ?? 0) }} ₫</div>
+                <div class="small text-muted mb-0">¥{{ number_format($inventory->last_total_cny, 2) }}</div>
 
             @else
 

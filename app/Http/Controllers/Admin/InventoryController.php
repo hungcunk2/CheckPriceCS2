@@ -36,7 +36,6 @@ class InventoryController extends Controller
         return view('admin.inventories.index', [
             'inventories' => $inventories,
             'buffConfigured' => filled(config('cs2price.buff_session')),
-            'cnyToVnd' => config('cs2price.cny_to_vnd'),
         ]);
     }
 
@@ -132,7 +131,7 @@ class InventoryController extends Controller
 
             return redirect()
                 ->route('admin.inventories.index')
-                ->with('success', 'Đã cập nhật giá Buff163.');
+                ->with('success', 'Đã cập nhật giá.');
         } catch (RuntimeException $e) {
             if ($request->wantsJson()) {
                 return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
@@ -167,7 +166,7 @@ class InventoryController extends Controller
 
             return redirect()
                 ->route('admin.inventories.index')
-                ->with('success', 'Đã lưu và cập nhật giá Buff163.');
+                ->with('success', 'Đã lưu và cập nhật giá.');
         } catch (RuntimeException $e) {
             return redirect()
                 ->route('admin.inventories.edit', $id)

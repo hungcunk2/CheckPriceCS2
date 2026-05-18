@@ -41,7 +41,7 @@
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" name="check_now" value="1" id="check_now"
                         {{ old('check_now') ? 'checked' : '' }}>
-                    <label class="form-check-label" for="check_now">Check giá Buff163 ngay sau khi lưu</label>
+                    <label class="form-check-label" for="check_now">Check giá ngay sau khi lưu</label>
                 </div>
                 <p class="small text-muted mb-4">Kho lớn: trên VPS nên bỏ tick, lưu xong bấm sync hoặc chờ auto 10 phút.</p>
 

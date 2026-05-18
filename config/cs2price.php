@@ -6,6 +6,8 @@ return [
     'buff_session' => env('BUFF163_SESSION'),
     'buff_csrf_token' => env('BUFF163_CSRF_TOKEN'),
     'cny_to_vnd' => (float) env('CNY_TO_VND', 3750),
+    // 1 USD = N VND (bắc cầu: CNY → VND → USD).
+    'vnd_to_usd' => (float) env('VND_TO_USD', 26700),
     // Item đã có giá: chỉ gọi Buff lại sau N giây (mặc định 2 giờ).
     'price_refresh_seconds' => (int) env('BUFF_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 7200)),
     'price_cache_seconds' => (int) env('BUFF_PRICE_CACHE_SECONDS', 7200),

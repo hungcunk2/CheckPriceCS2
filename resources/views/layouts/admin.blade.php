@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    @include('partials.theme-init')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -59,7 +60,15 @@
                 <div class="header-left">
                     <h1 class="page-title mb-0">@yield('page-title', 'Dashboard')</h1>
                 </div>
-                <div class="header-right">
+                <div class="header-right d-flex align-items-center gap-3">
+                    <button
+                        type="button"
+                        class="btn btn-sm theme-toggle-btn"
+                        aria-label="Bật giao diện tối"
+                    >
+                        <i class="fas fa-moon theme-icon-dark"></i>
+                        <i class="fas fa-sun theme-icon-light d-none"></i>
+                    </button>
                     <span class="user-name">{{ session('admin_username', 'Admin') }}</span>
                 </div>
             </header>
@@ -82,11 +91,12 @@
     <div class="loading-overlay" id="admin-loading" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:3000;align-items:center;justify-content:center;">
         <div class="text-center">
             <div class="spinner-border text-primary"></div>
-            <div class="mt-2 text-muted">Đang check giá Buff163…</div>
+            <div class="mt-2 text-muted">Đang check giá…</div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/theme-toggle.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

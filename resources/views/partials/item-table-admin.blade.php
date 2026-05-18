@@ -1,8 +1,8 @@
-@props(['items' => [], 'compact' => true, 'cnyToVnd' => null])
+@props(['items' => [], 'compact' => true])
 
 @php
+    use App\Support\Currency;
     use App\Support\InventoryWeaponStats;
-    $cnyToVnd = $cnyToVnd ?? config('cs2price.cny_to_vnd');
 @endphp
 
 @if(count($items) > 0)
@@ -17,7 +17,7 @@
                     <th class="text-end">Hôm qua<br><span class="fw-normal small text-muted">(± listing)</span></th>
                     <th class="text-end">0h hôm nay</th>
                     <th class="text-end">7 ngày trước</th>
-                    <th class="text-end">VND (2h)</th>
+                    <th class="text-end">USD (2h)</th>
                 </tr>
             </thead>
             <tbody>
@@ -85,7 +85,7 @@
                         </td>
                         <td class="text-end">
                             @if($price2h !== null)
-                                {{ number_format(round($price2h * $cnyToVnd)) }} ₫
+                                {{ Currency::formatUsd(Currency::cnyToUsd($price2h)) }}
                             @else
                                 —
                             @endif

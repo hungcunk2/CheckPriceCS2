@@ -152,7 +152,7 @@ class Buff163Service
         ) ?? ($items[0] ?? null);
 
         if (! $match) {
-            return array_merge($empty, ['error' => 'Không tìm thấy trên Buff163']);
+            return array_merge($empty, ['error' => 'Không tìm thấy giá']);
         }
 
         $goodsId = (int) ($match['id'] ?? 0);
@@ -317,10 +317,11 @@ class Buff163Service
 
     public function cnyToVnd(?float $cny): ?float
     {
-        if ($cny === null) {
-            return null;
-        }
+        return \App\Support\Currency::cnyToVnd($cny);
+    }
 
-        return round($cny * config('cs2price.cny_to_vnd'), 0);
+    public function cnyToUsd(?float $cny): ?float
+    {
+        return \App\Support\Currency::cnyToUsd($cny);
     }
 }

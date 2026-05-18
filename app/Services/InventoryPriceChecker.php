@@ -60,8 +60,10 @@ class InventoryPriceChecker
                 'amount' => $amount,
                 'buff_price_cny' => $priceCny,
                 'buff_price_vnd' => $this->buff->cnyToVnd($priceCny),
+                'buff_price_usd' => $this->buff->cnyToUsd($priceCny),
                 'line_total_cny' => $lineCny,
                 'line_total_vnd' => $lineCny !== null ? $this->buff->cnyToVnd($lineCny) : null,
+                'line_total_usd' => $lineCny !== null ? $this->buff->cnyToUsd($lineCny) : null,
                 'sell_num' => $buff['sell_num'] ?? null,
                 'buff_url' => $buff['buff_url'] ?? null,
                 'buff_error' => $buff['error'] ?? null,
@@ -85,6 +87,7 @@ class InventoryPriceChecker
             'buff_configured' => (bool) config('cs2price.buff_session'),
             'total_cny' => round($totalCny, 2),
             'total_vnd' => $this->buff->cnyToVnd($totalCny) ?? 0,
+            'total_usd' => $this->buff->cnyToUsd($totalCny) ?? 0,
             'items' => $rows,
         ];
     }

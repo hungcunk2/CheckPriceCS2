@@ -1,9 +1,10 @@
-﻿@extends('layouts.public', ['cnyToVnd' => $cnyToVnd])
+﻿@extends('layouts.public')
 
 @section('title', 'Bảng giá kho CS2')
 
 @section('content')
-<h2 class="h4 mb-4">Bảng giá kho CS2 (Buff163)</h2>
+@php use App\Support\Currency; @endphp
+<h2 class="h4 mb-4">Bảng giá kho CS2</h2>
 
 @if($inventories->isEmpty())
     <div class="text-center text-muted py-5">
@@ -30,8 +31,8 @@
                         <div class="d-flex align-items-start gap-3">
                             <div class="text-end">
                                 @if(($inv->last_total_cny ?? 0) > 0)
-                                    <div class="h4 mb-0 text-primary">¥{{ number_format($inv->last_total_cny, 2) }}</div>
-                                    <div class="text-success">{{ number_format($inv->last_total_vnd ?? 0) }} ₫</div>
+                                    <div class="h4 mb-0 text-primary">{{ Currency::formatUsd(Currency::cnyToUsd($inv->last_total_cny)) }}</div>
+                                    <div class="small text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</div>
                                 @else
                                     <div class="text-warning">Chưa có giá Buff</div>
                                 @endif
@@ -62,8 +63,8 @@
                         </div>
                         <div class="text-end">
                             @if(($inv->last_total_cny ?? 0) > 0)
-                                <div class="h4 mb-0 text-primary">¥{{ number_format($inv->last_total_cny, 2) }}</div>
-                                <div class="text-success">{{ number_format($inv->last_total_vnd ?? 0) }} ₫</div>
+                                <div class="h4 mb-0 text-primary">{{ Currency::formatUsd(Currency::cnyToUsd($inv->last_total_cny)) }}</div>
+                                <div class="small text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</div>
                             @else
                                 <div class="text-warning">Chưa có giá Buff</div>
                             @endif

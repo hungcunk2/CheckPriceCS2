@@ -1,6 +1,7 @@
 @props(['items' => [], 'compact' => false])
 
 @php
+    use App\Support\Currency;
     use App\Support\InventoryWeaponStats;
 @endphp
 
@@ -13,7 +14,7 @@
                     <th>Item</th>
                     <th class="text-center">SL</th>
                     <th class="text-end">Giá Buff</th>
-                    <th class="text-end">VND</th>
+                    <th class="text-end">USD</th>
                     <th class="text-end">Tổng</th>
                 </tr>
             </thead>
@@ -47,15 +48,17 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            @if(isset($item->buff_price_vnd) && $item->buff_price_vnd !== null)
-                                {{ number_format($item->buff_price_vnd) }} ₫
+                            @php $unitUsd = $item->buff_price_usd ?? Currency::cnyToUsd($item->buff_price_cny ?? null); @endphp
+                            @if($unitUsd !== null)
+                                {{ Currency::formatUsd($unitUsd) }}
                             @else
                                 —
                             @endif
                         </td>
                         <td class="text-end fw-semibold">
-                            @if(isset($item->line_total_cny) && $item->line_total_cny !== null)
-                                ¥{{ number_format($item->line_total_cny, 2) }}
+                            @php $lineUsd = $item->line_total_usd ?? Currency::cnyToUsd($item->line_total_cny ?? null); @endphp
+                            @if($lineUsd !== null)
+                                {{ Currency::formatUsd($lineUsd) }}
                             @else
                                 —
                             @endif

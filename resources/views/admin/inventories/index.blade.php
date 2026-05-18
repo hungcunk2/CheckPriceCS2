@@ -56,8 +56,8 @@
                         </td>
                         <td>
                             @if(($inv->last_total_cny ?? 0) > 0)
-                                <span class="text-success">¥{{ number_format($inv->last_total_cny, 2) }}</span><br>
-                                <small>{{ number_format($inv->last_total_vnd ?? 0) }} ₫</small>
+                                <span class="text-success">{{ \App\Support\Currency::formatUsd(\App\Support\Currency::cnyToUsd($inv->last_total_cny)) }}</span><br>
+                                <small class="text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</small>
                             @else
                                 <span class="text-warning">Chưa có giá</span>
                             @endif
@@ -107,7 +107,6 @@
                                         'items' => $inv->display_items ?? $items,
                                         'weaponStats' => $inv->weapon_stats ?? [],
                                         'admin' => true,
-                                        'cnyToVnd' => $cnyToVnd ?? config('cs2price.cny_to_vnd'),
                                     ])
                                 </div>
                             </div>
