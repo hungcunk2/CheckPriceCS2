@@ -161,6 +161,7 @@ html[data-currency="usd"] .price-col-label-vnd {
 }
 
 .weapon-stats {
+    margin-top: 0.15rem;
     margin-bottom: 1rem;
     padding-bottom: 0.85rem;
     border-bottom: 1px solid var(--border-color);
@@ -287,8 +288,13 @@ html[data-currency="usd"] .price-col-label-vnd {
     transform: translateY(-2px);
 }
 
+.inventory-collapse-card .card-header {
+    border-bottom: none;
+}
+
 .inventory-collapse-toggle {
     color: inherit;
+    padding: 1.35rem 1.4rem 1.2rem !important;
     transition: background 0.15s ease;
 }
 
@@ -296,6 +302,19 @@ html[data-currency="usd"] .price-col-label-vnd {
 .inventory-collapse-toggle:focus {
     background: var(--surface-muted);
     color: inherit;
+}
+
+.inventory-collapse-card .inventory-collapse-body,
+.inventory-collapse-card .card-body.inventory-item-filter-root {
+    padding: 1.2rem 1.4rem 1.25rem !important;
+}
+
+.inventory-item-filter-root {
+    padding: 1.15rem 1.25rem;
+}
+
+.admin-inventory-detail-row .inventory-item-filter-root {
+    padding: 0.25rem 0.15rem;
 }
 
 [data-bs-theme="dark"] {

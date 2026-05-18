@@ -70,10 +70,44 @@ class InventoryWeaponStats
             return 'other';
         }
 
-        if (preg_match('/\b(Case|Capsule|Package|Souvenir Package)\b/i', $original)) {
+        if (preg_match('/\b(Case|Capsule|Package|Souvenir Package|Terminal)\b/i', $original)) {
             return 'case';
         }
 
+        if (self::isAgentItem($original, $prefix)) {
+            return 'agent';
+        }
+
+        return self::weaponCategoryFromPrefix($prefix) ?? 'other';
+    }
+
+    private static function isAgentItem(string $marketHashName, string $weaponPrefix): bool
+    {
+        if (preg_match('/\bAgent\b/i', $marketHashName)) {
+            return true;
+        }
+
+        if (self::weaponCategoryFromPrefix($weaponPrefix) !== null) {
+            return false;
+        }
+
+        if (str_contains($marketHashName, ' | ')) {
+            return ! self::hasSkinWearCondition($marketHashName);
+        }
+
+        return true;
+    }
+
+    private static function hasSkinWearCondition(string $marketHashName): bool
+    {
+        return (bool) preg_match(
+            '/\((?:Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)\s*$/i',
+            $marketHashName
+        );
+    }
+
+    private static function weaponCategoryFromPrefix(string $prefix): ?string
+    {
         return match (true) {
             str_starts_with($prefix, 'AK-47') => 'ak47',
             str_starts_with($prefix, 'M4A4') => 'm4',
@@ -110,8 +144,7 @@ class InventoryWeaponStats
             str_starts_with($prefix, 'M249') => 'heavy',
             str_starts_with($prefix, 'Negev') => 'heavy',
             str_starts_with($prefix, 'Zeus x27') => 'zeus',
-            ! str_contains($original, ' | ') => 'agent',
-            default => 'other',
+            default => null,
         };
     }
 
@@ -161,7 +194,7 @@ class InventoryWeaponStats
             'shotgun' => 'Shotgun',
             'heavy' => 'Máy',
             'zeus' => 'Zeus',
-            'agent' => 'Agent',
+            'agent' => 'Nhân vật',
             'sticker' => 'Sticker',
             'case' => 'Hòm / capsule',
             'other' => 'Khác',

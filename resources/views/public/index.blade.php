@@ -19,7 +19,7 @@
                 <div class="card-header p-0 border-0 bg-transparent">
                     <button
                         type="button"
-                        class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-top-3 p-3 d-flex flex-wrap justify-content-between align-items-start gap-3 {{ $loop->first ? '' : 'collapsed' }}"
+                        class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-top-3 d-flex flex-wrap justify-content-between align-items-start gap-3 {{ $loop->first ? '' : 'collapsed' }}"
                         data-bs-toggle="collapse"
                         data-bs-target="#inv-items-{{ $inv->id }}"
                         aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
@@ -48,7 +48,7 @@
                     </button>
                 </div>
                 <div id="inv-items-{{ $inv->id }}" class="collapse {{ $loop->first ? 'show' : '' }}">
-                    <div class="card-body pt-0 border-top inventory-item-filter-root">
+                    <div class="card-body border-top inventory-collapse-body inventory-item-filter-root">
                         @if(!empty($inv->weapon_stats))
                             @include('partials.weapon-stats', ['stats' => $inv->weapon_stats, 'compact' => true])
                         @endif

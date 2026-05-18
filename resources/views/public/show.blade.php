@@ -85,7 +85,7 @@
 
                 type="button"
 
-                class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-3 p-3 d-flex justify-content-between align-items-center gap-2"
+                class="inventory-collapse-toggle w-100 btn text-start border-0 rounded-3 d-flex justify-content-between align-items-center gap-2"
 
                 data-bs-toggle="collapse"
 
@@ -112,7 +112,7 @@
 
         <div id="inventory-items-list" class="collapse show">
 
-            <div class="card-body p-0 border-top">
+            <div class="card-body border-top inventory-collapse-body">
 
                 @include('partials.item-table', ['items' => $items])
 

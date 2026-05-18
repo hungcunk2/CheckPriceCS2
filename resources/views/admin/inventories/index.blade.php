@@ -101,7 +101,7 @@
                     <tr class="admin-inventory-detail-row">
                         <td colspan="7" class="p-0 border-0">
                             <div id="admin-inv-items-{{ $inv->id }}" class="collapse {{ $loop->first ? 'show' : '' }}">
-                                <div class="p-3 border-top bg-light">
+                                <div class="p-4 border-top bg-light inventory-detail-panel-wrap">
                                     @include('partials.inventory-detail-panel', [
                                         'inventory' => $inv,
                                         'items' => $inv->display_items ?? $items,
