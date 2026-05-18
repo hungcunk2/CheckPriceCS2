@@ -14,7 +14,7 @@
                     <th>Item</th>
                     <th class="text-center">SL</th>
                     <th class="text-end">Hiện tại<br><span class="fw-normal small text-muted">(2h)</span></th>
-                    <th class="text-end">Hôm qua<br><span class="fw-normal small text-muted">(± listing)</span></th>
+                    <th class="text-end">Hôm qua</th>
                     <th class="text-end">0h hôm nay</th>
                     <th class="text-end">7 ngày trước</th>
                     <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span> <span class="fw-normal small text-muted">(2h)</span></th>
@@ -30,7 +30,7 @@
                         $yesterday = is_array($hist) ? ($hist['yesterday'] ?? null) : null;
                         $todayOpen = is_array($hist) ? ($hist['today_open'] ?? null) : null;
                         $days7 = is_array($hist) ? ($hist['days_7'] ?? null) : null;
-                        $delta = is_array($hist) ? ($hist['sell_num_delta'] ?? null) : null;
+                        $priceDelta = is_array($hist) ? ($hist['price_cny_delta'] ?? null) : null;
                         $price2h = $cur['price_cny'] ?? $item->buff_price_cny ?? null;
                         $stale = ! empty($cur['stale']);
                     @endphp
@@ -50,6 +50,11 @@
                         <td class="text-end">
                             @if($price2h !== null)
                                 <span class="{{ $stale ? 'text-warning' : '' }}">¥{{ number_format($price2h, 2) }}</span>
+                                @if($priceDelta !== null)
+                                    <div class="small {{ $priceDelta > 0 ? 'text-success' : ($priceDelta < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ $priceDelta > 0 ? '+' : '' }}¥{{ number_format($priceDelta, 2) }}
+                                    </div>
+                                @endif
                                 @if($stale)
                                     <div class="small text-warning d-block">ngoài 2h</div>
                                 @endif
@@ -60,11 +65,6 @@
                         <td class="text-end">
                             @if(!empty($yesterday['price_cny']))
                                 ¥{{ number_format($yesterday['price_cny'], 2) }}
-                                @if($delta !== null)
-                                    <div class="small {{ $delta > 0 ? 'text-success' : ($delta < 0 ? 'text-danger' : 'text-muted') }}">
-                                        {{ $delta > 0 ? '+' : '' }}{{ $delta }}
-                                    </div>
-                                @endif
                             @else
                                 —
                             @endif

@@ -34,6 +34,7 @@ class PriceHistoryService
      *   today_open: array{price_cny: float|null, sell_num: int|null, recorded_at: string|null}|null,
      *   yesterday: array{price_cny: float|null, sell_num: int|null, recorded_at: string|null}|null,
      *   days_7: array{price_cny: float|null, sell_num: int|null, recorded_at: string|null}|null,
+     *   price_cny_delta: float|null,
      *   sell_num_delta: int|null
      * }
      */
@@ -51,6 +52,11 @@ class PriceHistoryService
         $todayOpen = $this->firstAfterMidnight($points, $now->copy()->startOfDay());
         $yesterday = $this->firstAfterMidnight($points, $now->copy()->subDay()->startOfDay());
         $days7 = $this->firstAfterMidnight($points, $now->copy()->subDays(7)->startOfDay());
+
+        $priceCnyDelta = null;
+        if ($current !== null && $yesterday !== null) {
+            $priceCnyDelta = round($current['price_cny'] - $yesterday['price_cny'], 2);
+        }
 
         $sellNumDelta = null;
         if ($current !== null && $yesterday !== null) {
@@ -71,6 +77,7 @@ class PriceHistoryService
             'today_open' => $todayOpen,
             'yesterday' => $yesterday,
             'days_7' => $days7,
+            'price_cny_delta' => $priceCnyDelta,
             'sell_num_delta' => $sellNumDelta,
         ];
     }
