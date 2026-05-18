@@ -64,10 +64,44 @@ class SteamInventoryService
      *   name: string,
      *   icon_url: string|null,
      *   tradable: bool,
-     *   amount: int
+     *   amount: int,
+     *   trade_unlock_at?: string
      * }>
      */
     public function fetchItems(string $steamId): array
+    {
+        return $this->fetchInventory($steamId, fn (array $desc): bool => InventoryItemFilter::isTradableDescription($desc));
+    }
+
+    /**
+     * @return list<array{
+     *   assetid: string,
+     *   market_hash_name: string,
+     *   name: string,
+     *   icon_url: string|null,
+     *   tradable: bool,
+     *   amount: int,
+     *   trade_unlock_at?: string
+     * }>
+     */
+    public function fetchHeldItems(string $steamId): array
+    {
+        return $this->fetchInventory($steamId, fn (array $desc): bool => InventoryItemFilter::isTradeHoldDescription($desc));
+    }
+
+    /**
+     * @param  callable(array<string, mixed>): bool  $acceptDescription
+     * @return list<array{
+     *   assetid: string,
+     *   market_hash_name: string,
+     *   name: string,
+     *   icon_url: string|null,
+     *   tradable: bool,
+     *   amount: int,
+     *   trade_unlock_at?: string
+     * }>
+     */
+    private function fetchInventory(string $steamId, callable $acceptDescription): array
     {
         $items = [];
         $startAssetId = null;
@@ -104,6 +138,7 @@ class SteamInventoryService
 
             if (($payload['success'] ?? 0) !== 1) {
                 $message = $payload['error'] ?? 'Kho đồ trống hoặc không truy cập được.';
+
                 throw new RuntimeException((string) $message);
             }
 
@@ -119,20 +154,11 @@ class SteamInventoryService
                     continue;
                 }
 
-                if (! InventoryItemFilter::isTradableDescription($desc)) {
+                if (! $acceptDescription($desc)) {
                     continue;
                 }
 
-                $items[] = [
-                    'assetid' => (string) ($asset['assetid'] ?? ''),
-                    'market_hash_name' => (string) $desc['market_hash_name'],
-                    'name' => (string) ($desc['name'] ?? $desc['market_hash_name']),
-                    'icon_url' => isset($desc['icon_url'])
-                        ? 'https://community.cloudflare.steamstatic.com/economy/image/'.$desc['icon_url']
-                        : null,
-                    'tradable' => (bool) ($desc['tradable'] ?? false),
-                    'amount' => (int) ($asset['amount'] ?? 1),
-                ];
+                $items[] = $this->mapAssetRow($asset, $desc);
             }
 
             $lastAsset = collect($payload['assets'] ?? [])->last();
@@ -141,6 +167,40 @@ class SteamInventoryService
         } while ($more && $startAssetId);
 
         return $items;
+    }
+
+    /**
+     * @param  array<string, mixed>  $asset
+     * @param  array<string, mixed>  $desc
+     * @return array{
+     *   assetid: string,
+     *   market_hash_name: string,
+     *   name: string,
+     *   icon_url: string|null,
+     *   tradable: bool,
+     *   amount: int,
+     *   trade_unlock_at?: string
+     * }
+     */
+    private function mapAssetRow(array $asset, array $desc): array
+    {
+        $row = [
+            'assetid' => (string) ($asset['assetid'] ?? ''),
+            'market_hash_name' => (string) $desc['market_hash_name'],
+            'name' => (string) ($desc['name'] ?? $desc['market_hash_name']),
+            'icon_url' => isset($desc['icon_url'])
+                ? 'https://community.cloudflare.steamstatic.com/economy/image/'.$desc['icon_url']
+                : null,
+            'tradable' => (bool) ($desc['tradable'] ?? false),
+            'amount' => (int) ($asset['amount'] ?? 1),
+        ];
+
+        $unlock = InventoryItemFilter::tradeUnlockAt($desc);
+        if ($unlock !== null) {
+            $row['trade_unlock_at'] = $unlock;
+        }
+
+        return $row;
     }
 
     private function resolveVanityToSteamId(string $vanity): string

@@ -13,9 +13,12 @@
     </div>
 @else
     @foreach($inventories as $inv)
-        @php $items = $inv->display_items ?? []; @endphp
+        @php
+            $items = $inv->display_items ?? [];
+            $heldItems = $inv->display_held_items ?? [];
+        @endphp
         <div class="card panel-card mb-4 inventory-collapse-card" id="kho-{{ $inv->id }}">
-            @if(count($items) > 0)
+            @if(count($items) > 0 || count($heldItems) > 0)
                 <div class="card-header p-0 border-0 bg-transparent">
                     <button
                         type="button"
@@ -44,7 +47,11 @@
                                 ])
                                 @if(!empty($inv->last_checked_at))
                                     <div class="small text-muted mt-1">
-                                        {{ count($items) }} skin ·
+                                        {{ count($items) }} skin
+                                        @if(count($heldItems) > 0)
+                                            · {{ count($heldItems) }} hold
+                                        @endif
+                                        ·
                                         {{ \Carbon\Carbon::parse($inv->last_checked_at)->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
                                     </div>
                                 @endif
@@ -59,6 +66,11 @@
                             @include('partials.weapon-stats', ['stats' => $inv->weapon_stats, 'compact' => true])
                         @endif
                         @include('partials.item-table', ['items' => $items, 'compact' => true])
+                        @include('partials.held-items-section', [
+                            'items' => $heldItems,
+                            'heldTotalCny' => $inv->held_total_cny ?? null,
+                            'compact' => true,
+                        ])
                     </div>
                 </div>
             @else

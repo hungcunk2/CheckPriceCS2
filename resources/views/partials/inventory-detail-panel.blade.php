@@ -1,6 +1,6 @@
-@props(['inventory', 'items' => [], 'weaponStats' => [], 'compact' => true, 'admin' => false])
+@props(['inventory', 'items' => [], 'heldItems' => [], 'heldTotalCny' => null, 'weaponStats' => [], 'compact' => true, 'admin' => false])
 
-@if(count($items) === 0)
+@if(count($items) === 0 && count($heldItems) === 0)
     <div class="alert alert-info mb-0 py-2 small">
         Chưa có danh sách skin. Bấm <strong>sync</strong> để lấy kho và giá.
     </div>
@@ -14,5 +14,11 @@
         @else
             @include('partials.item-table', ['items' => $items, 'compact' => $compact])
         @endif
+        @include('partials.held-items-section', [
+            'items' => $heldItems,
+            'heldTotalCny' => $heldTotalCny,
+            'admin' => $admin,
+            'compact' => $compact,
+        ])
     </div>
 @endif

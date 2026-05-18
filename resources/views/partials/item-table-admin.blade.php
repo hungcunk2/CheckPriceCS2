@@ -1,4 +1,4 @@
-@props(['items' => [], 'compact' => true])
+@props(['items' => [], 'compact' => true, 'showUnlock' => false])
 
 @php
     use App\Support\Currency;
@@ -17,6 +17,9 @@
                     <th class="text-end">Hôm qua<br><span class="fw-normal small text-muted">± so với HT</span></th>
                     <th class="text-end">0h hôm nay<br><span class="fw-normal small text-muted">± so với HT</span></th>
                     <th class="text-end">7 ngày trước<br><span class="fw-normal small text-muted">± so với HT</span></th>
+                    @if($showUnlock)
+                        <th class="text-end" style="min-width: 140px">Mở khóa</th>
+                    @endif
                     <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span> <span class="fw-normal small text-muted">(2h)</span></th>
                 </tr>
             </thead>
@@ -83,13 +86,18 @@
                                 —
                             @endif
                         </td>
+                        @if($showUnlock)
+                            <td class="text-end small">
+                                @include('partials.item-unlock-countdown', ['item' => $item])
+                            </td>
+                        @endif
                         <td class="text-end">
                             @include('partials.price-cell', ['cny' => $price2h])
                         </td>
                     </tr>
                 @endforeach
                 <tr class="weapon-filter-empty d-none">
-                    <td colspan="8" class="text-center text-muted py-4">Không có vật phẩm thuộc loại này.</td>
+                    <td colspan="{{ $showUnlock ? 9 : 8 }}" class="text-center text-muted py-4">Không có vật phẩm thuộc loại này.</td>
                 </tr>
             </tbody>
         </table>
