@@ -42,12 +42,22 @@
 <meta property="og:image" content="{{ $image }}">
 <meta property="og:image:secure_url" content="{{ $image }}">
 <meta property="og:image:alt" content="{{ $imageAlt }}">
+@php
+    $imageType = match (strtolower(pathinfo(parse_url($image, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        default => 'image/png',
+    };
+@endphp
+<meta property="og:image:type" content="{{ $imageType }}">
 @if($imageWidth > 0)
 <meta property="og:image:width" content="{{ $imageWidth }}">
 @endif
 @if($imageHeight > 0)
 <meta property="og:image:height" content="{{ $imageHeight }}">
 @endif
+<link rel="image_src" href="{{ $image }}">
 
 @if(filled($fbAppId))
 <meta property="fb:app_id" content="{{ $fbAppId }}">

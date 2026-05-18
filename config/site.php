@@ -30,11 +30,11 @@ return [
 
     'locale' => env('SITE_LOCALE', 'vi_VN'),
 
-    'og_image' => env('SITE_OG_IMAGE', '/images/logo.png'),
+    'og_image' => env('SITE_OG_IMAGE', '/images/og-share.jpg'),
 
-    'og_image_width' => (int) env('SITE_OG_IMAGE_WIDTH', 512),
+    'og_image_width' => (int) env('SITE_OG_IMAGE_WIDTH', 1200),
 
-    'og_image_height' => (int) env('SITE_OG_IMAGE_HEIGHT', 512),
+    'og_image_height' => (int) env('SITE_OG_IMAGE_HEIGHT', 630),
 
     'og_image_alt' => env('SITE_OG_IMAGE_ALT', 'CheckPrice CS2 — Tra giá kho CS2'),
 
