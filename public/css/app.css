@@ -451,6 +451,16 @@ html[data-currency="usd"] .price-col-label-vnd {
     color: #dc2626;
 }
 
+.trade-countdown-trade-now,
+.trade-countdown--trade-now .trade-countdown-value {
+    color: #16a34a;
+}
+
+[data-bs-theme='dark'] .trade-countdown-trade-now,
+[data-bs-theme='dark'] .trade-countdown--trade-now .trade-countdown-value {
+    color: #4ade80;
+}
+
 .trade-countdown-date {
     font-variant-numeric: tabular-nums;
 }

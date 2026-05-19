@@ -30,7 +30,7 @@
                     <th>Kho</th>
                     <th>Giá Buff</th>
                     <th>Skin</th>
-                    <th>Trade</th>
+                    <th>Thời gian trade</th>
                     <th>Cập nhật</th>
                     <th>Public</th>
                     <th class="text-end">Thao tác</th>
@@ -75,9 +75,6 @@
                                 'label' => 'Còn',
                                 'class' => 'trade-countdown--table',
                             ])
-                            @if(empty($inv->trade_at))
-                                <span class="text-muted">—</span>
-                            @endif
                         </td>
                         <td class="small">
                             @if(!empty($inv->last_checked_at))

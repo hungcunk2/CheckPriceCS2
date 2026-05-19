@@ -5,7 +5,7 @@
 
     function formatRemaining(ms) {
         if (ms <= 0) {
-            return { text: 'Đã đến hạn', past: true };
+            return { text: 'Trade Ngay', past: true };
         }
 
         var totalSeconds = Math.floor(ms / 1000);
@@ -47,7 +47,8 @@
 
         var result = formatRemaining(targetMs - Date.now());
         valueEl.textContent = result.text;
-        element.classList.toggle('trade-countdown--past', result.past);
+        element.classList.toggle('trade-countdown--past', false);
+        element.classList.toggle('trade-countdown--trade-now', result.past);
         element.classList.toggle('trade-countdown--active', !result.past);
     }
 
