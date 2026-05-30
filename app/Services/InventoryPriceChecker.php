@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Buff163AccountPool;
 use RuntimeException;
 
 class InventoryPriceChecker
