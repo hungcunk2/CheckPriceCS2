@@ -89,7 +89,7 @@ class PublicInventoryController extends Controller
 
     private function extendExecutionTime(): void
     {
-        $seconds = max(120, (int) config('cs2price.sync_max_execution_seconds', 600));
+        $seconds = max(120, (int) config('cs2price.check_max_execution_seconds', 600));
         @set_time_limit($seconds);
         @ini_set('max_execution_time', (string) $seconds);
     }

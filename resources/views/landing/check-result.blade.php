@@ -10,15 +10,10 @@
     </div>
 @elseif(!empty($checkResult))
     @php
-        use App\Support\Currency;
         $inv = $checkResult['inventory'];
         $items = $checkResult['items'];
     @endphp
     <div id="ket-qua-tra-gia" class="lp-check-result lp-glass-strong rounded-3 p-4 sm:p-6 mt-4 text-start">
-        <div class="lp-check-result-note small lp-muted mb-4">
-            Giá Buff163 tại thời điểm tra — <strong>không lưu</strong> vào hệ thống.
-        </div>
-
         <div class="lp-check-result-header d-flex flex-wrap justify-content-between align-items-start gap-4 mb-4 pb-4" style="border-bottom:1px solid var(--lp-border)">
             <div class="d-flex align-items-center gap-3 min-w-0">
                 @if(!empty($inv->steam_avatar_url))
