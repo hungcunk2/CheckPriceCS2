@@ -7,22 +7,25 @@
     @include('partials.theme-init')
     @include('partials.currency-init')
     @include('partials.favicon')
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/image-lightbox.css') }}">
     @stack('styles')
 </head>
-<body class="app-shell">
-    <header class="app-header">
-        <div class="container-fluid px-4 d-flex align-items-center justify-content-between py-3">
-            <a href="{{ route('public.index') }}" class="brand text-decoration-none">
-                <img src="{{ asset('images/logo.png') }}" alt="CheckPrice CS2" class="site-logo">
-            </a>
-            @include('partials.header-actions')
-        </div>
-    </header>
+<body class="app-shell has-lp-nav">
+    @include('landing.nav', ['showHeaderActions' => true])
     <main class="app-main container-fluid px-4 pb-4">
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+            </div>
+        @endif
         @yield('content')
     </main>
     @include('partials.footer')

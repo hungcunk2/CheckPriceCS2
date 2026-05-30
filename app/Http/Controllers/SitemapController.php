@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\TrackedInventoryStore;
+use App\Support\BlogPosts;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
@@ -11,11 +12,30 @@ class SitemapController extends Controller
     {
         $urls = [
             [
-                'loc' => route('public.index'),
-                'changefreq' => 'hourly',
+                'loc' => route('public.landing'),
+                'changefreq' => 'weekly',
                 'priority' => '1.0',
             ],
+            [
+                'loc' => route('public.index'),
+                'changefreq' => 'hourly',
+                'priority' => '0.9',
+            ],
+            [
+                'loc' => route('blog.index'),
+                'changefreq' => 'weekly',
+                'priority' => '0.8',
+            ],
         ];
+
+        foreach (BlogPosts::all() as $post) {
+            $urls[] = [
+                'loc' => route('blog.show', $post['slug']),
+                'changefreq' => 'monthly',
+                'priority' => '0.7',
+                'lastmod' => $post['date'] ?? null,
+            ];
+        }
 
         foreach ($store->publicInventories() as $inv) {
             $urls[] = [

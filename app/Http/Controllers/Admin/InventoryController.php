@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\InventoryPriceChecker;
 use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
+use App\Support\Buff163AccountPool;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
@@ -36,7 +37,8 @@ class InventoryController extends Controller
 
         return view('admin.inventories.index', [
             'inventories' => $inventories,
-            'buffConfigured' => filled(config('cs2price.buff_session')),
+            'buffConfigured' => Buff163AccountPool::isConfigured(),
+            'buffAccountCount' => count(Buff163AccountPool::accounts()),
         ]);
     }
 
@@ -56,7 +58,7 @@ class InventoryController extends Controller
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public', true),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
-            'trade_at' => $this->parseTradeAtInput($request->input('trade_at')),
+            'trade_at' => $this->parseTradeAtFromRequest($request),
         ]);
 
         if ($request->boolean('check_now')) {
@@ -94,7 +96,7 @@ class InventoryController extends Controller
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public'),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
-            'trade_at' => $this->parseTradeAtInput($request->input('trade_at')),
+            'trade_at' => $this->parseTradeAtFromRequest($request),
         ], $inventory);
 
         if ($request->boolean('check_now')) {
@@ -125,7 +127,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($row->url, $row->label ?? null);
+            $result = $checker->checkUrl($row->url, $row->label ?? null, refreshSteam: true);
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? true));
 
             if ($request->wantsJson()) {
@@ -153,19 +155,29 @@ class InventoryController extends Controller
             'label' => ['required', 'string', 'max:120'],
             'url' => ['required', 'url', 'max:2000'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'trade_at' => ['nullable', 'date'],
+            'trade_at_date' => ['nullable', 'date'],
+            'trade_at_hour' => ['nullable', 'integer', 'min:0', 'max:23'],
+            'trade_at_minute' => ['nullable', 'integer', 'min:0', 'max:59'],
             'is_public' => ['sometimes', 'boolean'],
             'check_now' => ['sometimes', 'boolean'],
         ]);
     }
 
-    private function parseTradeAtInput(?string $value): ?Carbon
+    private function parseTradeAtFromRequest(Request $request): ?Carbon
     {
-        if ($value === null || trim($value) === '') {
+        $date = $request->input('trade_at_date');
+        if ($date === null || trim((string) $date) === '') {
             return null;
         }
 
-        return Carbon::parse($value, 'Asia/Ho_Chi_Minh')->utc();
+        $hour = (int) $request->input('trade_at_hour', 0);
+        $minute = (int) $request->input('trade_at_minute', 0);
+
+        return Carbon::createFromFormat(
+            'Y-m-d H:i',
+            sprintf('%s %02d:%02d', $date, $hour, $minute),
+            'Asia/Ho_Chi_Minh'
+        )->utc();
     }
 
     private function runCheckAndRedirect(int $id, string $url, string $label, InventoryPriceChecker $checker): RedirectResponse
@@ -173,7 +185,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($url, $label);
+            $result = $checker->checkUrl($url, $label, refreshSteam: true);
             $row = $this->store->find($id);
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? true) : true);
 

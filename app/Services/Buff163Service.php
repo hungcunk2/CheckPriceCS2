@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\Buff163AccountPool;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -40,27 +41,58 @@ class Buff163Service
         $delayMs = (int) config('cs2price.request_delay_ms', 350);
 
         foreach (array_chunk($toFetch, $concurrency) as $chunk) {
-            $responses = Http::pool(function (Pool $pool) use ($chunk) {
-                foreach ($chunk as $hashName) {
-                    $pool->as($hashName)
-                        ->timeout(15)
-                        ->withHeaders($this->headers())
-                        ->get('https://buff.163.com/api/market/goods', [
-                            'game' => 'csgo',
-                            'page_num' => 1,
-                            'search' => $hashName,
-                            'tab' => 'selling',
-                        ]);
-                }
-            });
+            $pending = $chunk;
 
-            foreach ($chunk as $hashName) {
-                $response = $responses[$hashName] ?? null;
-                $price = $this->fetchPriceWithRetries($hashName, $response);
-                if ($this->shouldCachePrice($price)) {
-                    Cache::put($this->cacheKey($hashName), $this->withFetchedAt($price), $cacheTtl);
+            while ($pending !== []) {
+                $account = $this->nextAvailableAccount();
+                if ($account === null) {
+                    foreach ($pending as $hashName) {
+                        $results[$hashName] = $this->rateLimitedPrice('Hết acc Buff khả dụng — thử lại sau vài phút');
+                    }
+                    break;
                 }
-                $results[$hashName] = $price;
+
+                $responses = Http::pool(function (Pool $pool) use ($pending, $account) {
+                    foreach ($pending as $hashName) {
+                        $pool->as($hashName)
+                            ->timeout(15)
+                            ->withHeaders(Buff163AccountPool::headers($account))
+                            ->get('https://buff.163.com/api/market/goods', $this->queryFor($hashName));
+                    }
+                });
+
+                $rotateAccount = false;
+                $retry = [];
+
+                foreach ($pending as $hashName) {
+                    $response = $responses[$hashName] ?? null;
+                    if ($response instanceof Response && $this->shouldRotateAccount($response)) {
+                        $rotateAccount = true;
+                        $retry[] = $hashName;
+                        continue;
+                    }
+
+                    $price = $this->parsePriceResponse($response, $hashName);
+                    if ($this->shouldRotateAccount($response, $price)) {
+                        $rotateAccount = true;
+                        $retry[] = $hashName;
+                        continue;
+                    }
+
+                    if ($this->shouldCachePrice($price)) {
+                        Cache::put($this->cacheKey($hashName), $this->withFetchedAt($price), $cacheTtl);
+                    }
+                    $results[$hashName] = $price;
+                }
+
+                if ($rotateAccount) {
+                    $this->cooldownAccount($account, $responses[$retry[0] ?? $pending[0]] ?? null);
+                    $pending = $retry;
+                    usleep(500_000);
+                    continue;
+                }
+
+                $pending = [];
             }
 
             if ($delayMs > 0) {
@@ -76,20 +108,12 @@ class Buff163Service
         if ($rateLimited !== []) {
             usleep(2_000_000);
             foreach ($rateLimited as $hashName) {
-                $response = Http::timeout(15)
-                    ->withHeaders($this->headers())
-                    ->get('https://buff.163.com/api/market/goods', [
-                        'game' => 'csgo',
-                        'page_num' => 1,
-                        'search' => $hashName,
-                        'tab' => 'selling',
-                    ]);
-                $price = $this->fetchPriceWithRetries($hashName, $response, maxAttempts: 3);
+                $price = $this->requestPrice($hashName);
                 if ($this->shouldCachePrice($price)) {
                     Cache::put($this->cacheKey($hashName), $this->withFetchedAt($price), $cacheTtl);
                 }
                 $results[$hashName] = $price;
-                usleep(max($delayMs, 500) * 1000);
+                usleep(max($delayMs, 1200) * 1000);
             }
         }
 
@@ -104,6 +128,103 @@ class Buff163Service
         }
 
         return $results;
+    }
+
+    /**
+     * @return array{
+     *   goods_id: int|null,
+     *   sell_min_price: float|null,
+     *   sell_num: int|null,
+     *   buff_url: string|null,
+     *   error: string|null
+     * }
+     */
+    private function requestPrice(string $marketHashName): array
+    {
+        $tried = 0;
+        $maxTries = max(1, count(Buff163AccountPool::accounts()));
+
+        while ($tried < $maxTries) {
+            $account = $this->nextAvailableAccount();
+            if ($account === null) {
+                break;
+            }
+
+            $response = Http::timeout(15)
+                ->withHeaders(Buff163AccountPool::headers($account))
+                ->get('https://buff.163.com/api/market/goods', $this->queryFor($marketHashName));
+
+            $price = $this->parsePriceResponse($response, $marketHashName);
+            if ($this->shouldRotateAccount($response, $price)) {
+                $this->cooldownAccount($account, $response);
+                $tried++;
+                usleep(500_000);
+                continue;
+            }
+
+            return $price;
+        }
+
+        return $this->rateLimitedPrice('Hết acc Buff khả dụng — thử lại sau vài phút');
+    }
+
+    /**
+     * @return array{game: string, page_num: int, search: string, tab: string}
+     */
+    private function queryFor(string $marketHashName): array
+    {
+        return [
+            'game' => 'csgo',
+            'page_num' => 1,
+            'search' => $marketHashName,
+            'tab' => 'selling',
+        ];
+    }
+
+    /**
+     * @return array{label: string, session: string, csrf: string|null}|null
+     */
+    private function nextAvailableAccount(): ?array
+    {
+        return Buff163AccountPool::available()[0] ?? null;
+    }
+
+    private function cooldownAccount(array $account, ?Response $response): void
+    {
+        Buff163AccountPool::markCooldown(
+            $account,
+            Buff163AccountPool::cooldownSecondsForResponse($response),
+            $response instanceof Response ? $response->status() : null
+        );
+    }
+
+    private function shouldRotateAccount(?Response $response, ?array $price = null): bool
+    {
+        if ($response instanceof Response && in_array($response->status(), [403, 429], true)) {
+            return true;
+        }
+
+        return $price !== null && $this->isRateLimited($price);
+    }
+
+    /**
+     * @return array{
+     *   goods_id: int|null,
+     *   sell_min_price: float|null,
+     *   sell_num: int|null,
+     *   buff_url: string|null,
+     *   error: string|null
+     * }
+     */
+    private function rateLimitedPrice(string $message): array
+    {
+        return [
+            'goods_id' => null,
+            'sell_min_price' => null,
+            'sell_num' => null,
+            'buff_url' => null,
+            'error' => $message,
+        ];
     }
 
     /**
@@ -131,7 +252,7 @@ class Buff163Service
 
         if (! $response->successful()) {
             $error = match ($response->status()) {
-                403 => 'Buff chặn truy cập — thêm BUFF163_SESSION vào .env (cookie đăng nhập buff.163.com)',
+                403 => 'Buff chặn truy cập (403) — kiểm tra cookie session acc Buff',
                 429 => 'Buff tạm chặn (429) — gọi quá nhanh, thử đồng bộ lại sau vài phút',
                 default => 'Buff HTTP '.$response->status(),
             };
@@ -166,37 +287,6 @@ class Buff163Service
             'buff_url' => $goodsId ? "https://buff.163.com/goods/{$goodsId}" : null,
             'error' => null,
         ];
-    }
-
-    /**
-     * @return array{
-     *   goods_id: int|null,
-     *   sell_min_price: float|null,
-     *   sell_num: int|null,
-     *   buff_url: string|null,
-     *   error: string|null
-     * }
-     */
-    private function fetchPriceWithRetries(string $marketHashName, ?Response $response, int $maxAttempts = 2): array
-    {
-        $price = $this->parsePriceResponse($response, $marketHashName);
-        $attempt = 1;
-
-        while ($this->isRateLimited($price) && $attempt < $maxAttempts) {
-            usleep(500_000 * $attempt);
-            $response = Http::timeout(15)
-                ->withHeaders($this->headers())
-                ->get('https://buff.163.com/api/market/goods', [
-                    'game' => 'csgo',
-                    'page_num' => 1,
-                    'search' => $marketHashName,
-                    'tab' => 'selling',
-                ]);
-            $price = $this->parsePriceResponse($response, $marketHashName);
-            $attempt++;
-        }
-
-        return $price;
     }
 
     /** 0 = chưa có giá, 1 = có giá nhưng đã quá hạn refresh */
@@ -281,38 +371,12 @@ class Buff163Service
     {
         $error = $price['error'] ?? '';
 
-        return str_contains($error, '429');
+        return str_contains($error, '429') || str_contains($error, 'Hết acc Buff');
     }
 
     private function cacheKey(string $marketHashName): string
     {
         return 'buff_price:'.md5($marketHashName);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function headers(): array
-    {
-        $headers = [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer' => 'https://buff.163.com/',
-            'Accept' => 'application/json',
-        ];
-
-        $session = config('cs2price.buff_session');
-        if ($session) {
-            $headers['Cookie'] = str_contains($session, '=')
-                ? $session
-                : 'session='.$session;
-        }
-
-        $csrf = config('cs2price.buff_csrf_token');
-        if ($csrf) {
-            $headers['X-CSRFToken'] = $csrf;
-        }
-
-        return $headers;
     }
 
     public function cnyToVnd(?float $cny): ?float

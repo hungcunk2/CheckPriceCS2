@@ -3,7 +3,7 @@
     <div class="container-fluid px-4">
         <div class="app-footer-inner">
             <div class="app-footer-brand">
-                <a href="{{ route('public.index') }}" class="app-footer-logo-link" aria-label="CheckPrice CS2">
+                <a href="{{ route('public.landing') }}" class="app-footer-logo-link" aria-label="CheckPrice CS2">
                     <img src="{{ asset('images/logo.png') }}" alt="" class="app-footer-logo">
                 </a>
             </div>

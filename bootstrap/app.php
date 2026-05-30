@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $schedule->command('cs2price:sync-prices')
             ->cron("*/{$minutes} * * * *")
-            ->withoutOverlapping(30)
+            ->withoutOverlapping(max(60, $minutes))
             ->runInBackground();
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -16,5 +16,13 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 chown -R www-data:www-data storage bootstrap/cache
+
+APP_DIR="/var/www/checkpricecs2"
+CRON_LINE="* * * * * cd ${APP_DIR} && php artisan schedule:run >> /dev/null 2>&1"
+if ! crontab -u www-data -l 2>/dev/null | grep -qF "schedule:run"; then
+  (crontab -u www-data -l 2>/dev/null; echo "$CRON_LINE") | crontab -u www-data -
+  echo "Đã thêm cron tự chạy schedule (mỗi phút → sync kho/giá theo BUFF_PRICE_AUTO_SYNC_MINUTES)."
+fi
+
 systemctl reload php8.3-fpm nginx
 echo "Deploy xong."

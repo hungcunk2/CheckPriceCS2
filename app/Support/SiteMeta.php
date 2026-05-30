@@ -16,7 +16,7 @@ class SiteMeta
             'keywords' => config('site.keywords'),
             'url' => config('site.url'),
             'canonical' => config('site.url'),
-            'image' => self::absoluteAsset(config('site.og_image')),
+            'image' => self::absoluteAsset(self::ogImagePath()),
             'image_width' => config('site.og_image_width'),
             'image_height' => config('site.og_image_height'),
             'image_alt' => config('site.og_image_alt'),
@@ -85,7 +85,7 @@ class SiteMeta
             : sprintf('Kho đồ CS2 của %s trên CheckPrice CS2 — giá Buff163, VND/USD.', $label);
 
         $avatar = $inventory->steam_avatar_url ?? null;
-        $image = is_string($avatar) && $avatar !== '' ? $avatar : config('site.og_image');
+        $image = is_string($avatar) && $avatar !== '' ? $avatar : self::ogImagePath();
 
         return self::make([
             'title' => $label.' — '.config('site.name'),
@@ -111,17 +111,24 @@ class SiteMeta
         ]);
     }
 
-    public static function absoluteAsset(string $path): string
+    public static function absoluteAsset(?string $path): string
     {
-        $path = trim($path);
+        $path = trim((string) ($path ?? ''));
         if ($path === '') {
-            return config('site.url');
+            return (string) config('site.url');
         }
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
             return $path;
         }
 
-        return rtrim(config('site.url'), '/').'/'.ltrim($path, '/');
+        return rtrim((string) config('site.url'), '/').'/'.ltrim($path, '/');
+    }
+
+    public static function ogImagePath(): string
+    {
+        $path = config('site.og_image');
+
+        return filled($path) ? (string) $path : '/images/og-share.jpg';
     }
 }

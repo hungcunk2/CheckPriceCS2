@@ -23,12 +23,12 @@ class InventoryPriceChecker
      *   items: list<array<string, mixed>>
      * }
      */
-    public function checkUrl(string $url, ?string $label = null): array
+    public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false): array
     {
         $parsed = $this->steam->parseInventoryUrl($url);
         $steamId = $parsed['steam_id'];
         $profile = $this->steamProfile->fetchProfile($steamId);
-        $steamItems = $this->steam->fetchItems($steamId);
+        $steamItems = $this->steam->fetchItemsCached($steamId, $refreshSteam);
 
         if ($steamItems === []) {
             throw new RuntimeException('Kho không có skin tradable có thể định giá.');
@@ -84,7 +84,7 @@ class InventoryPriceChecker
             'item_count' => count($rows),
             'priced_count' => $pricedCount,
             'failed_count' => $failedCount,
-            'buff_configured' => (bool) config('cs2price.buff_session'),
+            'buff_configured' => Buff163AccountPool::isConfigured(),
             'total_cny' => round($totalCny, 2),
             'total_vnd' => $this->buff->cnyToVnd($totalCny) ?? 0,
             'total_usd' => $this->buff->cnyToUsd($totalCny) ?? 0,

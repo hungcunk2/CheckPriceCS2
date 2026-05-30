@@ -30,24 +30,73 @@
                 </div>
 
                 @php
-                    $tradeAtValue = old('trade_at');
-                    if ($tradeAtValue === null && !empty($inventory->trade_at)) {
-                        $tradeAtValue = \Carbon\Carbon::parse($inventory->trade_at)
-                            ->timezone('Asia/Ho_Chi_Minh')
-                            ->format('Y-m-d\TH:i');
+                    $hasOldTradeInput = old('trade_at_date') !== null
+                        || old('trade_at_hour') !== null
+                        || old('trade_at_minute') !== null;
+
+                    if ($hasOldTradeInput) {
+                        $tradeDate = old('trade_at_date', '');
+                        $tradeHour = old('trade_at_hour', '');
+                        $tradeMinute = old('trade_at_minute', '');
+                    } elseif (! empty($inventory->trade_at)) {
+                        $tradeAtCarbon = \Carbon\Carbon::parse($inventory->trade_at)->timezone('Asia/Ho_Chi_Minh');
+                        $tradeDate = $tradeAtCarbon->format('Y-m-d');
+                        $tradeHour = $tradeAtCarbon->format('G');
+                        $tradeMinute = $tradeAtCarbon->format('i');
+                    } else {
+                        $tradeDate = '';
+                        $tradeHour = '';
+                        $tradeMinute = '';
                     }
                 @endphp
                 <div class="mb-3">
-                    <label class="form-label" for="trade_at">Thời gian trade</label>
-                    <input
-                        type="datetime-local"
-                        name="trade_at"
-                        id="trade_at"
-                        class="form-control @error('trade_at') is-invalid @enderror"
-                        value="{{ $tradeAtValue }}"
-                    >
-                    @error('trade_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">Giờ Việt Nam (GMT+7). Để trống nếu chưa có — trang công khai sẽ hiện đếm ngược.</div>
+                    <label class="form-label">Thời gian hết hold (trade)</label>
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input
+                                type="date"
+                                name="trade_at_date"
+                                id="trade_at_date"
+                                class="form-control @error('trade_at_date') is-invalid @enderror"
+                                value="{{ $tradeDate }}"
+                            >
+                            @error('trade_at_date')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-7">
+                            <div class="input-group">
+                                <select
+                                    name="trade_at_hour"
+                                    id="trade_at_hour"
+                                    class="form-select @error('trade_at_hour') is-invalid @enderror"
+                                    aria-label="Giờ (24h)"
+                                >
+                                    <option value="" @selected($tradeHour === '')>Giờ</option>
+                                    @for($h = 0; $h < 24; $h++)
+                                        <option value="{{ $h }}" @selected((string) $tradeHour === (string) $h)>
+                                            {{ sprintf('%02d', $h) }}
+                                        </option>
+                                    @endfor
+                                </select>
+                                <span class="input-group-text">:</span>
+                                <select
+                                    name="trade_at_minute"
+                                    id="trade_at_minute"
+                                    class="form-select @error('trade_at_minute') is-invalid @enderror"
+                                    aria-label="Phút"
+                                >
+                                    <option value="" @selected($tradeMinute === '')>Phút</option>
+                                    @for($m = 0; $m < 60; $m++)
+                                        <option value="{{ $m }}" @selected((string) $tradeMinute === (string) $m)>
+                                            {{ sprintf('%02d', $m) }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+                            @error('trade_at_hour')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            @error('trade_at_minute')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+                    <div class="form-text">Giờ Việt Nam (GMT+7), định dạng 24h — VD: 14:30. Để trống ngày nếu chưa có hold.</div>
                 </div>
 
                 <div class="mb-3">
@@ -64,7 +113,7 @@
                         {{ old('check_now') ? 'checked' : '' }}>
                     <label class="form-check-label" for="check_now">Check giá ngay sau khi lưu</label>
                 </div>
-                <p class="small text-muted mb-4">Kho lớn: trên VPS nên bỏ tick, lưu xong bấm sync hoặc chờ auto 10 phút.</p>
+                <p class="small text-muted mb-4">Kho lớn: trên VPS nên bỏ tick, lưu xong bấm sync hoặc chờ auto ~4 giờ.</p>
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Lưu</button>

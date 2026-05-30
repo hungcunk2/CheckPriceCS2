@@ -4,12 +4,40 @@
 
 @section('content')
 @php use App\Support\Currency; @endphp
-<h2 class="h4 mb-4">Bảng giá kho CS2</h2>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+    <h2 class="h4 mb-0">Bảng giá kho CS2</h2>
+    <a href="{{ route('public.landing') }}" class="text-decoration-none small text-muted">
+        <i class="fas fa-arrow-left"></i> Trang chủ
+    </a>
+</div>
+
+<form action="{{ route('public.index') }}" method="get" class="row g-2 mb-4">
+    <div class="col-md-9">
+        <input
+            type="search"
+            name="q"
+            class="form-control"
+            value="{{ $searchQuery ?? '' }}"
+            placeholder="Tìm theo tên kho..."
+        >
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">Tìm kho</button>
+    </div>
+</form>
+
+@if(!empty($searchQuery))
+    <p class="text-muted small mb-3">Kết quả tìm "<strong>{{ $searchQuery }}</strong>"</p>
+@endif
 
 @if($inventories->isEmpty())
     <div class="text-center text-muted py-5">
         <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
-        <p>Chưa có kho nào được công bố.</p>
+        @if(!empty($searchQuery))
+            <p>Không tìm thấy kho phù hợp.</p>
+        @else
+            <p>Chưa có kho nào được công bố.</p>
+        @endif
     </div>
 @else
     @foreach($inventories as $inv)

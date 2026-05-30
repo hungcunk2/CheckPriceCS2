@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Support\InventoryItemFilter;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -67,11 +69,40 @@ class SteamInventoryService
      *   amount: int
      * }>
      */
+    /**
+     * Lấy list skin: dùng cache nếu còn hạn (giảm 429). $refreshSteam=true bỏ qua cache.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function fetchItemsCached(string $steamId, bool $refreshSteam = false): array
+    {
+        $cacheKey = 'steam_inventory_items:'.$steamId;
+        $ttl = max(300, (int) config('cs2price.steam_inventory_cache_seconds', 14400));
+
+        if (! $refreshSteam) {
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached) && $cached !== []) {
+                return $cached;
+            }
+        }
+
+        $items = $this->fetchItems($steamId);
+        if ($items !== []) {
+            Cache::put($cacheKey, $items, $ttl);
+        }
+
+        return $items;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function fetchItems(string $steamId): array
     {
         $items = [];
         $startAssetId = null;
         $descriptionMap = [];
+        $pageDelayMs = max(0, (int) config('cs2price.steam_request_delay_ms', 1500));
 
         do {
             $query = [
@@ -82,30 +113,7 @@ class SteamInventoryService
                 $query['start_assetid'] = $startAssetId;
             }
 
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept' => 'application/json',
-                ])
-                ->get("https://steamcommunity.com/inventory/{$steamId}/".self::APP_ID.'/'.self::CONTEXT_ID, $query);
-
-            if ($response->status() === 403) {
-                throw new RuntimeException('Kho đồ đang private hoặc Steam chặn truy cập. Hãy mở public inventory.');
-            }
-
-            if (! $response->successful()) {
-                throw new RuntimeException('Không lấy được kho đồ Steam (HTTP '.$response->status().').');
-            }
-
-            $payload = $response->json();
-            if (! is_array($payload)) {
-                throw new RuntimeException('Phản hồi Steam không hợp lệ.');
-            }
-
-            if (($payload['success'] ?? 0) !== 1) {
-                $message = $payload['error'] ?? 'Kho đồ trống hoặc không truy cập được.';
-                throw new RuntimeException((string) $message);
-            }
+            $payload = $this->requestInventoryPage($steamId, $query);
 
             foreach ($payload['descriptions'] ?? [] as $desc) {
                 $key = ($desc['classid'] ?? '').'_'.($desc['instanceid'] ?? '0');
@@ -138,9 +146,80 @@ class SteamInventoryService
             $lastAsset = collect($payload['assets'] ?? [])->last();
             $startAssetId = $lastAsset['assetid'] ?? null;
             $more = (bool) ($payload['more_items'] ?? false);
+
+            if ($more && $startAssetId && $pageDelayMs > 0) {
+                usleep($pageDelayMs * 1000);
+            }
         } while ($more && $startAssetId);
 
         return $items;
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function requestInventoryPage(string $steamId, array $query): array
+    {
+        $url = "https://steamcommunity.com/inventory/{$steamId}/".self::APP_ID.'/'.self::CONTEXT_ID;
+        $maxAttempts = 4;
+        $response = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept' => 'application/json',
+                ])
+                ->get($url, $query);
+
+            if ($response->status() !== 429) {
+                break;
+            }
+
+            if ($attempt < $maxAttempts) {
+                usleep($this->backoffMicrosFor429($response, $attempt));
+            }
+        }
+
+        if ($response->status() === 403) {
+            throw new RuntimeException('Kho đồ đang private hoặc Steam chặn truy cập. Hãy mở public inventory.');
+        }
+
+        if ($response->status() === 429) {
+            throw new RuntimeException(
+                'Steam tạm chặn (429) — gọi kho quá nhanh. Đợi 10–15 phút rồi sync lại từng kho, không bấm liên tục nhiều kho.'
+            );
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Không lấy được kho đồ Steam (HTTP '.$response->status().').');
+        }
+
+        $payload = $response->json();
+        if (! is_array($payload)) {
+            throw new RuntimeException('Phản hồi Steam không hợp lệ.');
+        }
+
+        if (($payload['success'] ?? 0) !== 1) {
+            $message = $payload['error'] ?? 'Kho đồ trống hoặc không truy cập được.';
+
+            throw new RuntimeException((string) $message);
+        }
+
+        return $payload;
+    }
+
+    private function backoffMicrosFor429(Response $response, int $attempt): int
+    {
+        $header = $response->header('Retry-After');
+        if ($header !== null && $header !== '' && ctype_digit((string) $header)) {
+            $sec = min((int) $header, 120);
+
+            return max(2_000_000, $sec * 1_000_000);
+        }
+
+        return min(10_000_000, 2_000_000 * (2 ** ($attempt - 1)));
     }
 
     private function resolveVanityToSteamId(string $vanity): string

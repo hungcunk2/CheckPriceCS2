@@ -7,7 +7,7 @@ Web theo dõi **kho đồ CS2** (Steam inventory public) và **giá Buff163**, c
 - Gắn link kho Steam, lấy danh sách skin tradable và tra giá từ Buff163.
 - Lưu snapshot giá để xem nhanh, không cần gọi Buff mỗi lần mở trang.
 - Quy đổi CNY → VND theo tỷ giá cấu hình.
-- Đồng bộ giá định kỳ: ưu tiên item chưa có giá, sau đó item có giá cũ hơn ngưỡng cache (mặc định 2 giờ).
+- Đồng bộ định kỳ (mặc định **4 giờ**): quét lại kho Steam + giá Buff; ưu tiên item chưa có giá, sau đó giá cũ hơn ngưỡng cache.
 - Bật/tắt từng kho trên trang công khai.
 
 ## Trang công khai
@@ -20,7 +20,7 @@ Web theo dõi **kho đồ CS2** (Steam inventory public) và **giá Buff163**, c
 - Đăng nhập bảo vệ; quản lý danh sách kho (thêm, sửa, xóa, sync thủ công).
 - Xem chi tiết kho ngay trong admin: thống kê theo loại vũ khí và bảng giá mở rộng.
 - **Lịch sử giá theo mốc thời gian** (múi giờ Việt Nam):
-  - **Hiện tại (2h):** giá sync gần nhất trong 2 giờ.
+  - **Hiện tại (2h):** giá sync gần nhất trong 2 giờ (cột admin, độc lập chu kỳ auto 4h).
   - **Hôm qua:** giá lần đầu sau 0h hôm qua; kèm chênh số listing Buff (+/−).
   - **0h hôm nay:** giá lần đầu sau 0h hôm nay.
   - **7 ngày trước:** giá lần đầu sau 0h cách đây 7 ngày.

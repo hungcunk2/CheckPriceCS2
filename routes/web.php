@@ -2,12 +2,17 @@
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PublicInventoryController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [PublicInventoryController::class, 'index'])->name('public.index');
+Route::get('/', [PublicInventoryController::class, 'landing'])->name('public.landing');
+Route::post('/', [PublicInventoryController::class, 'landing']);
+Route::get('/bang-gia', [PublicInventoryController::class, 'index'])->name('public.index');
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 Route::get('/kho/{inventory}', [PublicInventoryController::class, 'show'])->whereNumber('inventory')->name('public.show');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 

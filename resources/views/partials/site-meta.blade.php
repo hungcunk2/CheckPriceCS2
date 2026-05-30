@@ -9,7 +9,7 @@
     $keywords = $meta['keywords'] ?? config('site.keywords');
     $canonical = $meta['canonical'] ?? config('site.url');
     $ogUrl = $meta['url'] ?? $canonical;
-    $image = $meta['image'] ?? SiteMeta::absoluteAsset(config('site.og_image'));
+    $image = $meta['image'] ?? SiteMeta::absoluteAsset(SiteMeta::ogImagePath());
     $imageWidth = (int) ($meta['image_width'] ?? config('site.og_image_width'));
     $imageHeight = (int) ($meta['image_height'] ?? config('site.og_image_height'));
     $imageAlt = $meta['image_alt'] ?? config('site.og_image_alt');
@@ -95,7 +95,7 @@
         'name' => $siteName,
         'logo' => [
             '@type' => 'ImageObject',
-            'url' => SiteMeta::absoluteAsset(config('site.og_image')),
+            'url' => SiteMeta::absoluteAsset(SiteMeta::ogImagePath()),
         ],
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}

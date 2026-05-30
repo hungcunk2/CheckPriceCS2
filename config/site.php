@@ -30,7 +30,7 @@ return [
 
     'locale' => env('SITE_LOCALE', 'vi_VN'),
 
-    'og_image' => env('SITE_OG_IMAGE', '/images/og-share.jpg'),
+    'og_image' => env('SITE_OG_IMAGE') ?: '/images/og-share.jpg',
 
     'og_image_width' => (int) env('SITE_OG_IMAGE_WIDTH', 1200),
 
