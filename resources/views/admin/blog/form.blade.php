@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
         suffix: '.min',
         plugins: 'lists link image table code wordcount autolink',
         toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | removeformat code',
-        font_family_formats: 'Mặc định=system-ui,-apple-system,sans-serif; Arial=Arial,Helvetica,sans-serif; Georgia=Georgia,serif; Times New Roman=Times New Roman,Times,serif; Tahoma=Tahoma,Arial,sans-serif; Courier New=Courier New,Courier,monospace',
+        font_family_formats: 'Roboto Regular=Roboto Regular,sans-serif;Roboto Bold=Roboto Bold,sans-serif;Mặc định=system-ui,-apple-system,sans-serif; Arial=Arial,Helvetica,sans-serif; Georgia=Georgia,serif; Times New Roman=Times New Roman,Times,serif; Tahoma=Tahoma,Arial,sans-serif; Courier New=Courier New,Courier,monospace',
         font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px 36px',
         branding: false,
         promotion: false,
@@ -207,7 +207,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             input.click();
         },
-        content_style: 'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.6; }',
+        content_style: [
+            '@import url(\'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap\');',
+            'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.6; }',
+            '[style*="Roboto Regular"] { font-family: Roboto, sans-serif !important; font-weight: 400 !important; }',
+            '[style*="Roboto Bold"] { font-family: Roboto, sans-serif !important; font-weight: 700 !important; }',
+        ].join('\n'),
         setup: function (editor) {
             editor.on('change input', function () {
                 editor.save();

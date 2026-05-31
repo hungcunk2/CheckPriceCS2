@@ -57,11 +57,15 @@ class BlogContent
             [$property, $value] = array_map('trim', explode(':', $rule, 2));
             $property = strtolower($property);
 
-            if (! in_array($property, ['font-family', 'font-size', 'text-align', 'line-height'], true)) {
+            if (! in_array($property, ['font-family', 'font-size', 'font-weight', 'text-align', 'line-height'], true)) {
                 continue;
             }
 
             if (preg_match('/url\s*\(|expression\s*\(|javascript:/i', $value)) {
+                continue;
+            }
+
+            if ($property === 'font-weight' && ! preg_match('/^(400|700|normal|bold)$/i', $value)) {
                 continue;
             }
 

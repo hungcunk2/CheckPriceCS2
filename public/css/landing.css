@@ -1009,6 +1009,16 @@ body.has-lp-nav .app-main {
     line-height: 1.75;
 }
 
+.lp-blog-content [style*="Roboto Regular"] {
+    font-family: "Roboto", sans-serif !important;
+    font-weight: 400 !important;
+}
+
+.lp-blog-content [style*="Roboto Bold"] {
+    font-family: "Roboto", sans-serif !important;
+    font-weight: 700 !important;
+}
+
 .lp-blog-content h2 {
     font-size: 1.5rem;
     font-weight: 700;
