@@ -191,20 +191,60 @@ class Buff163Service
 
     private function cooldownAccount(array $account, ?Response $response): void
     {
-        Buff163AccountPool::markCooldown(
-            $account,
-            Buff163AccountPool::cooldownSecondsForResponse($response),
-            $response instanceof Response ? $response->status() : null
-        );
+        $seconds = Buff163AccountPool::cooldownSecondsForResponse($response);
+
+        if ($response instanceof Response && $response->successful()) {
+            $body = $response->json();
+            if (is_array($body) && ($body['code'] ?? 'OK') !== 'OK') {
+                $seconds = 600;
+            }
+        }
+
+        Buff163AccountPool::markCooldown($account, $seconds, $response instanceof Response ? $response->status() : null);
     }
 
     private function shouldRotateAccount(?Response $response, ?array $price = null): bool
     {
-        if ($response instanceof Response && in_array($response->status(), [403, 429], true)) {
+        if ($response instanceof Response) {
+            if (in_array($response->status(), [403, 429], true)) {
+                return true;
+            }
+
+            if ($response->successful()) {
+                $body = $response->json();
+                if (is_array($body) && ($body['code'] ?? 'OK') !== 'OK') {
+                    return true;
+                }
+            }
+        }
+
+        if ($price !== null && ($this->isRateLimited($price) || $this->isAuthError($price))) {
             return true;
         }
 
-        return $price !== null && $this->isRateLimited($price);
+        return false;
+    }
+
+    /**
+     * Session hết hạn / chưa đăng nhập — Buff trả HTTP 200 nhưng code != OK.
+     *
+     * @param  array{error: string|null}  $price
+     */
+    private function isAuthError(array $price): bool
+    {
+        $error = trim((string) ($price['error'] ?? ''));
+        if ($error === '') {
+            return false;
+        }
+
+        $lower = mb_strtolower($error);
+
+        return str_contains($error, '请先登录')
+            || str_contains($lower, 'login')
+            || str_contains($lower, 'session')
+            || str_contains($lower, 'csrf')
+            || str_contains($lower, 'cookie')
+            || str_contains($lower, 'từ chối');
     }
 
     /**
