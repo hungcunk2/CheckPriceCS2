@@ -2,6 +2,9 @@
 
 namespace App\Support;
 
+use App\Services\BlogPostStore;
+use Illuminate\Support\Facades\Schema;
+
 class BlogPosts
 {
     /**
@@ -9,6 +12,10 @@ class BlogPosts
      */
     public static function all(): array
     {
+        if (self::usesDatabase()) {
+            return app(BlogPostStore::class)->publishedArrays();
+        }
+
         return config('blog.posts', []);
     }
 
@@ -17,7 +24,11 @@ class BlogPosts
      */
     public static function find(string $slug): ?array
     {
-        foreach (self::all() as $post) {
+        if (self::usesDatabase()) {
+            return app(BlogPostStore::class)->findBySlug($slug);
+        }
+
+        foreach (config('blog.posts', []) as $post) {
             if (($post['slug'] ?? '') === $slug) {
                 return $post;
             }
@@ -31,9 +42,13 @@ class BlogPosts
      */
     public static function related(string $slug, int $limit = 2): array
     {
+        if (self::usesDatabase()) {
+            return app(BlogPostStore::class)->related($slug, $limit);
+        }
+
         $related = [];
 
-        foreach (self::all() as $post) {
+        foreach (config('blog.posts', []) as $post) {
             if (($post['slug'] ?? '') === $slug) {
                 continue;
             }
@@ -46,5 +61,14 @@ class BlogPosts
         }
 
         return $related;
+    }
+
+    private static function usesDatabase(): bool
+    {
+        try {
+            return Schema::hasTable('blog_posts') && \App\Models\BlogPost::query()->exists();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

@@ -33,6 +33,12 @@
                                 <span>Kho đồ Steam</span>
                             </a>
                         </li>
+                        <li class="nav-item {{ request()->routeIs('admin.blog.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.blog.index') }}" class="nav-link">
+                                <i class="fas fa-newspaper"></i>
+                                <span>Blog</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a href="{{ route('public.index') }}" class="nav-link" target="_blank">
                                 <i class="fas fa-external-link-alt"></i>
@@ -44,6 +50,12 @@
                 <div class="nav-section">
                     <div class="nav-section-title">HỆ THỐNG</div>
                     <ul class="nav-menu">
+                        <li class="nav-item {{ request()->routeIs('admin.buff-accounts.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.buff-accounts.index') }}" class="nav-link">
+                                <i class="fas fa-user-shield"></i>
+                                <span>Acc Buff163</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <form method="POST" action="{{ route('admin.logout') }}">
                                 @csrf

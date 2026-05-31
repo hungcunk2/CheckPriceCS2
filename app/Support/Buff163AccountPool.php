@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Services\BuffAccountStore;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class Buff163AccountPool
 {
@@ -13,31 +15,21 @@ class Buff163AccountPool
      */
     public static function accounts(): array
     {
-        $accounts = [];
-
-        $primarySession = trim((string) config('cs2price.buff_session', ''));
-        if ($primarySession !== '') {
-            $accounts[] = [
-                'label' => (string) config('cs2price.buff_account_label', 'acc-1'),
-                'session' => $primarySession,
-                'csrf' => self::nullableString(config('cs2price.buff_csrf_token')),
-            ];
+        if (self::usesDatabase()) {
+            return app(BuffAccountStore::class)->activeForPool();
         }
 
-        foreach (config('cs2price.buff_extra_accounts', []) as $index => $extra) {
-            $session = trim((string) ($extra['session'] ?? ''));
-            if ($session === '') {
-                continue;
-            }
+        return self::envAccounts();
+    }
 
-            $accounts[] = [
-                'label' => (string) ($extra['label'] ?? 'acc-'.($index + 2)),
-                'session' => $session,
-                'csrf' => self::nullableString($extra['csrf'] ?? null),
-            ];
+    public static function usesDatabase(): bool
+    {
+        try {
+            return Schema::hasTable('buff_accounts')
+                && app(BuffAccountStore::class)->hasAny();
+        } catch (\Throwable) {
+            return false;
         }
-
-        return $accounts;
     }
 
     public static function isConfigured(): bool
@@ -108,6 +100,50 @@ class Buff163AccountPool
         }
 
         return $headers;
+    }
+
+    public static function cooldownRemaining(string $label): ?int
+    {
+        $until = Cache::get(self::cooldownKey($label));
+        if (! is_int($until) && ! is_numeric($until)) {
+            return null;
+        }
+
+        $remaining = (int) $until - time();
+
+        return $remaining > 0 ? $remaining : null;
+    }
+
+    /**
+     * @return list<array{label: string, session: string, csrf: string|null}>
+     */
+    private static function envAccounts(): array
+    {
+        $accounts = [];
+
+        $primarySession = trim((string) config('cs2price.buff_session', ''));
+        if ($primarySession !== '') {
+            $accounts[] = [
+                'label' => (string) config('cs2price.buff_account_label', 'acc-1'),
+                'session' => $primarySession,
+                'csrf' => self::nullableString(config('cs2price.buff_csrf_token')),
+            ];
+        }
+
+        foreach (config('cs2price.buff_extra_accounts', []) as $index => $extra) {
+            $session = trim((string) ($extra['session'] ?? ''));
+            if ($session === '') {
+                continue;
+            }
+
+            $accounts[] = [
+                'label' => (string) ($extra['label'] ?? 'acc-'.($index + 2)),
+                'session' => $session,
+                'csrf' => self::nullableString($extra['csrf'] ?? null),
+            ];
+        }
+
+        return $accounts;
     }
 
     private static function cooldownKey(string $label): string
