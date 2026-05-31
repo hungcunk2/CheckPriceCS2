@@ -33,10 +33,46 @@ class BlogContent
     {
         $allowed = '<p><br><hr><h1><h2><h3><h4><h5><h6><ul><ol><li><strong><b><em><i><u><s><a><img><table><thead><tbody><tr><th><td><blockquote><pre><code><span><div>';
         $html = strip_tags($html, $allowed);
-        $html = preg_replace('/\s(on\w+|style)=("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+        $html = preg_replace_callback(
+            '/\sstyle=(["\'])(.*?)\1/i',
+            fn (array $matches) => self::sanitizeStyleAttribute($matches[2]),
+            $html
+        ) ?? $html;
+        $html = preg_replace('/\s(on\w+)=("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
         $html = preg_replace('/href\s*=\s*"\s*javascript:[^"]*"/i', 'href="#"', $html) ?? $html;
 
         return $html;
+    }
+
+    private static function sanitizeStyleAttribute(string $style): string
+    {
+        $allowed = [];
+
+        foreach (explode(';', $style) as $rule) {
+            $rule = trim($rule);
+            if ($rule === '' || ! str_contains($rule, ':')) {
+                continue;
+            }
+
+            [$property, $value] = array_map('trim', explode(':', $rule, 2));
+            $property = strtolower($property);
+
+            if (! in_array($property, ['font-family', 'font-size', 'text-align', 'line-height'], true)) {
+                continue;
+            }
+
+            if (preg_match('/url\s*\(|expression\s*\(|javascript:/i', $value)) {
+                continue;
+            }
+
+            $allowed[] = $property.': '.$value;
+        }
+
+        if ($allowed === []) {
+            return '';
+        }
+
+        return ' style="'.e(implode('; ', $allowed)).'"';
     }
 
     private static function markdownToHtml(string $content): string

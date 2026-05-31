@@ -111,6 +111,55 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const uploadUrl = @json(route('admin.blog.upload-image'));
+
+    function uploadImageFile(file, progress) {
+        return new Promise(function (resolve, reject) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', uploadUrl);
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+            xhr.setRequestHeader('Accept', 'application/json');
+
+            xhr.upload.onprogress = function (event) {
+                if (event.lengthComputable && typeof progress === 'function') {
+                    progress(event.loaded / event.total * 100);
+                }
+            };
+
+            xhr.onload = function () {
+                if (xhr.status === 422) {
+                    reject('File không hợp lệ (JPG/PNG/WebP, tối đa 4MB)');
+                    return;
+                }
+
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    reject('Upload thất bại');
+                    return;
+                }
+
+                try {
+                    const json = JSON.parse(xhr.responseText);
+                    if (json.location) {
+                        resolve(json.location);
+                    } else {
+                        reject(json.message || 'Upload thất bại');
+                    }
+                } catch (error) {
+                    reject('Upload thất bại');
+                }
+            };
+
+            xhr.onerror = function () {
+                reject('Upload thất bại');
+            };
+
+            xhr.send(formData);
+        });
+    }
 
     tinymce.init({
         selector: '#blog-content',
@@ -121,9 +170,43 @@ document.addEventListener('DOMContentLoaded', function () {
         base_url: 'https://cdn.jsdelivr.net/npm/tinymce@7.6.0',
         suffix: '.min',
         plugins: 'lists link image table code wordcount autolink',
-        toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | removeformat code',
+        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | removeformat code',
+        font_family_formats: 'Mặc định=system-ui,-apple-system,sans-serif; Arial=Arial,Helvetica,sans-serif; Georgia=Georgia,serif; Times New Roman=Times New Roman,Times,serif; Tahoma=Tahoma,Arial,sans-serif; Courier New=Courier New,Courier,monospace',
+        font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px 36px',
         branding: false,
         promotion: false,
+        automatic_uploads: true,
+        paste_data_images: true,
+        file_picker_types: 'image',
+        images_upload_handler: function (blobInfo, progress) {
+            return uploadImageFile(blobInfo.blob(), progress);
+        },
+        file_picker_callback: function (callback, value, meta) {
+            if (meta.filetype !== 'image') {
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/jpeg,image/png,image/webp,image/gif';
+
+            input.onchange = function () {
+                const file = input.files && input.files[0];
+                if (!file) {
+                    return;
+                }
+
+                uploadImageFile(file)
+                    .then(function (url) {
+                        callback(url, { alt: file.name.replace(/\.[^.]+$/, '') });
+                    })
+                    .catch(function () {
+                        alert('Không upload được ảnh. Thử lại hoặc chọn file nhỏ hơn 4MB.');
+                    });
+            };
+
+            input.click();
+        },
         content_style: 'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.6; }',
         setup: function (editor) {
             editor.on('change input', function () {
