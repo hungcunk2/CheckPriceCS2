@@ -99,6 +99,7 @@ class BlogController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:200'],
             'excerpt' => ['required', 'string', 'max:500'],
+            'meta_description' => ['nullable', 'string', 'max:320'],
             'content' => ['required', 'string'],
             'cover_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
             'remove_cover_image' => ['sometimes', 'boolean'],

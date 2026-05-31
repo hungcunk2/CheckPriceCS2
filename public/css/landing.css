@@ -1078,6 +1078,17 @@ body.has-lp-nav .app-main {
     text-decoration: underline;
 }
 
+.lp-blog-content a.lp-link-hidden {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.lp-blog-content a.lp-link-hidden:hover {
+    color: var(--lp-accent);
+    text-decoration: underline;
+}
+
 .lp-blog-content blockquote {
     margin: 1rem 0;
     padding-left: 1rem;

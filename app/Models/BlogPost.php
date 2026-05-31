@@ -11,6 +11,7 @@ class BlogPost extends Model
         'slug',
         'title',
         'excerpt',
+        'meta_description',
         'cover_image',
         'content',
         'published_at',
@@ -37,6 +38,13 @@ class BlogPost extends Model
         return Storage::disk('public')->url($this->cover_image);
     }
 
+    public function metaDescription(): string
+    {
+        $meta = trim((string) ($this->meta_description ?? ''));
+
+        return $meta !== '' ? $meta : (string) $this->excerpt;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -46,6 +54,7 @@ class BlogPost extends Model
             'id' => $this->id,
             'title' => $this->title,
             'excerpt' => $this->excerpt,
+            'meta_description' => $this->metaDescription(),
             'cover_url' => $this->coverUrl(),
             'content' => $this->content,
             'date' => $this->published_at->format('Y-m-d'),

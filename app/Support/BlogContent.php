@@ -31,6 +31,18 @@ class BlogContent
 
     private static function sanitizeHtml(string $html): string
     {
+        $anchors = [];
+        $html = preg_replace_callback(
+            '/<a\s([^>]*?)>(.*?)<\/a>/is',
+            function (array $matches) use (&$anchors) {
+                $key = '__BLOG_LINK_'.count($anchors).'__';
+                $anchors[$key] = self::buildSafeAnchor($matches[1], $matches[2]);
+
+                return $key;
+            },
+            $html
+        ) ?? $html;
+
         $allowed = '<p><br><hr><h1><h2><h3><h4><h5><h6><ul><ol><li><strong><b><em><i><u><s><a><img><table><thead><tbody><tr><th><td><blockquote><pre><code><span><div>';
         $html = strip_tags($html, $allowed);
         $html = preg_replace_callback(
@@ -39,9 +51,44 @@ class BlogContent
             $html
         ) ?? $html;
         $html = preg_replace('/\s(on\w+)=("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
-        $html = preg_replace('/href\s*=\s*"\s*javascript:[^"]*"/i', 'href="#"', $html) ?? $html;
+
+        foreach ($anchors as $key => $anchor) {
+            $html = str_replace($key, $anchor, $html);
+        }
 
         return $html;
+    }
+
+    private static function buildSafeAnchor(string $attributes, string $innerHtml): string
+    {
+        $href = self::extractAttribute($attributes, 'href');
+        if ($href === '' || preg_match('/^\s*javascript:/i', $href)) {
+            return strip_tags($innerHtml, '<strong><b><em><i><u><s><span>');
+        }
+
+        if (! preg_match('/^https?:\/\//i', $href) && ! str_starts_with($href, '/')) {
+            return strip_tags($innerHtml, '<strong><b><em><i><u><s><span>');
+        }
+
+        $class = self::extractAttribute($attributes, 'class');
+        $classAttr = str_contains($class, 'lp-link-hidden') ? ' class="lp-link-hidden"' : '';
+
+        $target = preg_match('/^https?:\/\//i', $href)
+            ? ' target="_blank" rel="noopener noreferrer"'
+            : '';
+
+        $label = strip_tags($innerHtml, '<strong><b><em><i><u><s><span>');
+
+        return '<a href="'.e($href).'"'.$classAttr.$target.'>'.$label.'</a>';
+    }
+
+    private static function extractAttribute(string $attributes, string $name): string
+    {
+        if (preg_match('/\b'.preg_quote($name, '/').'=(["\'])(.*?)\1/i', $attributes, $matches)) {
+            return trim($matches[2]);
+        }
+
+        return '';
     }
 
     private static function sanitizeStyleAttribute(string $style): string

@@ -24,6 +24,15 @@
                     <label class="form-label">Mô tả ngắn <span class="text-danger">*</span></label>
                     <textarea name="excerpt" class="form-control @error('excerpt') is-invalid @enderror" rows="2" required maxlength="500">{{ old('excerpt', $post->excerpt ?? '') }}</textarea>
                     @error('excerpt')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">Hiển thị trên thẻ bài viết ở trang Blog.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Meta Description</label>
+                    <textarea name="meta_description" class="form-control @error('meta_description') is-invalid @enderror" rows="2" maxlength="320"
+                        placeholder="Hướng dẫn định giá kho đồ CS2 chuẩn Buff163 năm 2026. Kiểm tra giá inventory CS2 nhanh chóng, chính xác theo CNY và VND chỉ trong vài giây.">{{ old('meta_description', $post->meta_description ?? '') }}</textarea>
+                    @error('meta_description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">Mô tả SEO cho Google/Facebook (tối đa 320 ký tự). Để trống sẽ dùng Mô tả ngắn.</div>
                 </div>
 
                 <div class="mb-3">
@@ -76,6 +85,7 @@
                     @endphp
                     <textarea id="blog-content" name="content" class="form-control @error('content') is-invalid @enderror" rows="18" required>{!! $editorContent !!}</textarea>
                     @error('content')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">Chèn link ẩn: bôi đen chữ (vd. CheckPriceCS2) → icon liên kết → dán URL → chọn <strong>Link ẩn</strong>.</div>
                 </div>
 
                 <div class="form-check mb-4">
@@ -173,6 +183,12 @@ document.addEventListener('DOMContentLoaded', function () {
         toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | removeformat code',
         font_family_formats: 'Roboto Regular=Roboto Regular,sans-serif;Roboto Bold=Roboto Bold,sans-serif;Mặc định=system-ui,-apple-system,sans-serif; Arial=Arial,Helvetica,sans-serif; Georgia=Georgia,serif; Times New Roman=Times New Roman,Times,serif; Tahoma=Tahoma,Arial,sans-serif; Courier New=Courier New,Courier,monospace',
         font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px 36px',
+        link_default_protocol: 'https',
+        link_class_list: [
+            { title: 'Link thường', value: '' },
+            { title: 'Link ẩn', value: 'lp-link-hidden' },
+        ],
+        default_link_target: '_blank',
         branding: false,
         promotion: false,
         automatic_uploads: true,
@@ -212,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
             'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.6; }',
             '[style*="Roboto Regular"] { font-family: Roboto, sans-serif !important; font-weight: 400 !important; }',
             '[style*="Roboto Bold"] { font-family: Roboto, sans-serif !important; font-weight: 700 !important; }',
+            'a.lp-link-hidden { color: inherit; text-decoration: none; cursor: pointer; }',
         ].join('\n'),
         setup: function (editor) {
             editor.on('change input', function () {

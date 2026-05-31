@@ -66,7 +66,7 @@
     '@context' => 'https://schema.org',
     '@type' => 'BlogPosting',
     'headline' => $post['title'],
-    'description' => $post['excerpt'],
+    'description' => $post['meta_description'],
     'datePublished' => $post['date'],
     'author' => [
         '@type' => 'Person',

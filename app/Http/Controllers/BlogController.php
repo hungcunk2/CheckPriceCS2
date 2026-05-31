@@ -32,7 +32,7 @@ class BlogController extends Controller
             'related' => BlogPosts::related($post),
             'meta' => SiteMeta::make([
                 'title' => $article['title'].' — Blog — '.config('site.name'),
-                'description' => $article['excerpt'],
+                'description' => $article['meta_description'],
                 'canonical' => route('blog.show', $article['id']),
                 'url' => route('blog.show', $article['id']),
                 'type' => 'article',
