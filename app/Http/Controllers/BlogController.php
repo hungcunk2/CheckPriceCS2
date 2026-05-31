@@ -27,16 +27,25 @@ class BlogController extends Controller
         $article = BlogPosts::find($post);
         abort_unless($article, 404);
 
+        $meta = [
+            'title' => $article['title'].' — Blog — '.config('site.name'),
+            'description' => $article['meta_description'],
+            'canonical' => route('blog.show', $article['id']),
+            'url' => route('blog.show', $article['id']),
+            'type' => 'article',
+        ];
+
+        if (! empty($article['cover_url'])) {
+            $meta['image'] = $article['cover_url'];
+            $meta['image_alt'] = $article['title'];
+            $meta['image_width'] = 0;
+            $meta['image_height'] = 0;
+        }
+
         return view('blog.show', [
             'post' => $article,
             'related' => BlogPosts::related($post),
-            'meta' => SiteMeta::make([
-                'title' => $article['title'].' — Blog — '.config('site.name'),
-                'description' => $article['meta_description'],
-                'canonical' => route('blog.show', $article['id']),
-                'url' => route('blog.show', $article['id']),
-                'type' => 'article',
-            ]),
+            'meta' => SiteMeta::make($meta),
         ]);
     }
 
