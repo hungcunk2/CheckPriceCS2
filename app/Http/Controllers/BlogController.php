@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\BlogCoverImageProcessor;
 use App\Support\BlogPosts;
 use App\Support\SiteMeta;
 use Illuminate\Http\RedirectResponse;
@@ -28,25 +27,10 @@ class BlogController extends Controller
         $article = BlogPosts::find($post);
         abort_unless($article, 404);
 
-        $meta = [
-            'title' => $article['title'].' — Blog — '.config('site.name'),
-            'description' => $article['meta_description'],
-            'canonical' => route('blog.show', $article['id']),
-            'url' => route('blog.show', $article['id']),
-            'type' => 'article',
-        ];
-
-        if (! empty($article['cover_url'])) {
-            $meta['image'] = $article['cover_url'];
-            $meta['image_alt'] = $article['title'];
-            $meta['image_width'] = BlogCoverImageProcessor::WIDTH;
-            $meta['image_height'] = BlogCoverImageProcessor::HEIGHT;
-        }
-
         return view('blog.show', [
             'post' => $article,
             'related' => BlogPosts::related($post),
-            'meta' => SiteMeta::make($meta),
+            'meta' => SiteMeta::forBlogPost($article),
         ]);
     }
 

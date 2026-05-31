@@ -23,7 +23,7 @@
                     <a href="{{ route('blog.show', $post['id']) }}" class="lp-blog-card-link">
                         <div class="lp-blog-card-cover-frame">
                             @if(!empty($post['cover_url']))
-                                <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" width="1200" height="675" loading="lazy">
+                                <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" width="1200" height="630" loading="lazy">
                             @else
                                 <span class="lp-blog-card-letter">{{ mb_substr((string) ($post['title'] ?? 'B'), 0, 1) }}</span>
                             @endif

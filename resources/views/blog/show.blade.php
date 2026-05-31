@@ -17,7 +17,7 @@
 
         @if(!empty($post['cover_url']))
             <div class="lp-blog-hero">
-                <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" class="lp-blog-hero-img" width="1200" height="675">
+                <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" class="lp-blog-hero-img" width="1200" height="630">
             </div>
         @endif
 
@@ -60,28 +60,6 @@
         @endif
     </div>
 </article>
-
-@push('meta')
-<script type="application/ld+json">
-{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'BlogPosting',
-    'headline' => $post['title'],
-    'description' => $post['meta_description'],
-    'datePublished' => $post['date'],
-    'author' => [
-        '@type' => 'Person',
-        'name' => config('site.author'),
-    ],
-    'publisher' => [
-        '@type' => 'Organization',
-        'name' => config('site.name'),
-    ],
-    'mainEntityOfPage' => route('blog.show', $post['id']),
-    'inLanguage' => 'vi',
-] + (! empty($post['cover_url']) ? ['image' => $post['cover_url']] : []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
-</script>
-@endpush
 
 @include('landing.footer')
 @endsection

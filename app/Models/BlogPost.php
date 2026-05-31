@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\SiteMeta;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class BlogPost extends Model
 {
@@ -35,7 +35,7 @@ class BlogPost extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->cover_image);
+        return SiteMeta::coverImageUrl($this->cover_image);
     }
 
     public function metaDescription(): string
@@ -61,6 +61,7 @@ class BlogPost extends Model
             'excerpt' => (string) ($this->excerpt ?? ''),
             'meta_description' => $this->metaDescription(),
             'cover_url' => $this->coverUrl(),
+            'cover_image' => $this->cover_image,
             'date' => $this->published_at?->format('Y-m-d') ?? now()->format('Y-m-d'),
             'read_time' => (string) ($this->read_time ?? '5 phút'),
             'tags' => $tags,

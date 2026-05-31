@@ -36,6 +36,8 @@ class SiteMeta
 
         if (! empty($meta['image']) && ! str_starts_with((string) $meta['image'], 'http')) {
             $meta['image'] = self::absoluteAsset((string) $meta['image']);
+        } elseif (! empty($meta['image'])) {
+            $meta['image'] = self::ensureHttps((string) $meta['image']);
         }
 
         if (! empty($overrides['canonical'])) {
@@ -119,10 +121,43 @@ class SiteMeta
         }
 
         if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
+            return self::ensureHttps((string) $path);
         }
 
-        return rtrim((string) config('site.url'), '/').'/'.ltrim($path, '/');
+        return self::ensureHttps(rtrim((string) config('site.url'), '/').'/'.ltrim($path, '/'));
+    }
+
+    public static function ensureHttps(string $url): string
+    {
+        return str_starts_with($url, 'http://')
+            ? 'https://'.substr($url, 7)
+            : $url;
+    }
+
+    /**
+     * @return array{width: int, height: int}|null
+     */
+    public static function imageDimensions(?string $relativePublicPath): ?array
+    {
+        if ($relativePublicPath === null || $relativePublicPath === '') {
+            return null;
+        }
+
+        $path = storage_path('app/public/'.ltrim($relativePublicPath, '/'));
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $size = @getimagesize($path);
+
+        if ($size === false) {
+            return null;
+        }
+
+        return [
+            'width' => (int) $size[0],
+            'height' => (int) $size[1],
+        ];
     }
 
     public static function ogImagePath(): string
@@ -130,5 +165,45 @@ class SiteMeta
         $path = config('site.og_image');
 
         return filled($path) ? (string) $path : '/images/og-share.jpg';
+    }
+
+    public static function coverImageUrl(?string $coverImagePath): ?string
+    {
+        if ($coverImagePath === null || $coverImagePath === '') {
+            return null;
+        }
+
+        return self::absoluteAsset('/storage/'.ltrim($coverImagePath, '/'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $article
+     * @return array<string, mixed>
+     */
+    public static function forBlogPost(array $article): array
+    {
+        $meta = [
+            'title' => $article['title'].' — Blog — '.config('site.name'),
+            'og_title' => $article['title'],
+            'description' => $article['meta_description'],
+            'canonical' => route('blog.show', $article['id']),
+            'url' => route('blog.show', $article['id']),
+            'type' => 'article',
+            'published_at' => ($article['date'] ?? '').'T00:00:00+07:00',
+            'blog_post' => $article,
+        ];
+
+        $coverImage = $article['cover_image'] ?? null;
+        $coverUrl = self::coverImageUrl(is_string($coverImage) ? $coverImage : null);
+
+        if ($coverUrl !== null) {
+            $meta['image'] = $coverUrl;
+            $meta['image_alt'] = $article['title'];
+            $dimensions = self::imageDimensions(is_string($coverImage) ? $coverImage : null);
+            $meta['image_width'] = $dimensions['width'] ?? BlogCoverImageProcessor::WIDTH;
+            $meta['image_height'] = $dimensions['height'] ?? BlogCoverImageProcessor::HEIGHT;
+        }
+
+        return self::make($meta);
     }
 }

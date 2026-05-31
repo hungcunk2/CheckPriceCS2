@@ -50,10 +50,10 @@
                             </div>
                             @if($coverSize)
                                 <div class="form-text mt-1">Ảnh đã lưu: {{ $coverSize[0] }}×{{ $coverSize[1] }} px
-                                    @if($coverSize[0] === 1200 && $coverSize[1] === 675)
-                                        — đúng chuẩn 16:9
+                                    @if($coverSize[0] === 1200 && $coverSize[1] === 630)
+                                        — đúng chuẩn Facebook/Messenger
                                     @else
-                                        — upload lại để crop 1200×675
+                                        — upload lại để crop 1200×630
                                     @endif
                                 </div>
                             @endif
@@ -66,7 +66,7 @@
                     <input type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/png,image/webp"
                         class="form-control @error('cover_image') is-invalid @enderror">
                     @error('cover_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Bấm <strong>Lưu bài viết</strong> để tự cắt giữa và resize 1200×675 (16:9).</div>
+                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Bấm <strong>Lưu bài viết</strong> để tự cắt giữa và resize 1200×630 (Facebook/Messenger).</div>
                     <div id="cover-image-preview-wrap" class="blog-cover-preview-frame rounded border mt-2" style="display:none">
                         <img id="cover-image-preview" src="#" alt="">
                     </div>

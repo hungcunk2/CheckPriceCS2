@@ -5,6 +5,7 @@
     $meta = $meta ?? SiteMeta::forRequest($pageTitle !== '' ? $pageTitle : null);
 
     $title = $meta['title'] ?? config('site.title');
+    $ogTitle = $meta['og_title'] ?? $title;
     $description = $meta['description'] ?? config('site.description');
     $keywords = $meta['keywords'] ?? config('site.keywords');
     $canonical = $meta['canonical'] ?? config('site.url');
@@ -23,9 +24,29 @@
     $fbAppId = $meta['facebook_app_id'] ?? config('site.facebook_app_id');
     $themeColor = $meta['theme_color'] ?? config('site.theme_color');
     $author = $meta['author'] ?? config('site.author');
+    $blogPost = $meta['blog_post'] ?? null;
+
+    $imageType = match (strtolower(pathinfo(parse_url($image, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        default => 'image/png',
+    };
 @endphp
 
 <title>{{ $title }}</title>
+<meta property="og:type" content="{{ $ogType }}">
+<meta property="og:image" content="{{ $image }}">
+<meta property="og:image:secure_url" content="{{ $image }}">
+<meta property="og:image:alt" content="{{ $imageAlt }}">
+<meta property="og:image:type" content="{{ $imageType }}">
+@if($imageWidth > 0)
+<meta property="og:image:width" content="{{ $imageWidth }}">
+@endif
+@if($imageHeight > 0)
+<meta property="og:image:height" content="{{ $imageHeight }}">
+@endif
+<link rel="image_src" href="{{ $image }}">
 <meta name="description" content="{{ $description }}">
 <meta name="keywords" content="{{ $keywords }}">
 <meta name="author" content="{{ $author }}">
@@ -36,38 +57,22 @@
 @endif
 <link rel="canonical" href="{{ $canonical }}">
 
-<meta property="og:type" content="{{ $ogType }}">
 <meta property="og:site_name" content="{{ $siteName }}">
 <meta property="og:locale" content="{{ $locale }}">
 <meta property="og:url" content="{{ $ogUrl }}">
-<meta property="og:title" content="{{ $title }}">
+<meta property="og:title" content="{{ $ogTitle }}">
 <meta property="og:description" content="{{ $description }}">
-<meta property="og:image" content="{{ $image }}">
-<meta property="og:image:secure_url" content="{{ $image }}">
-<meta property="og:image:alt" content="{{ $imageAlt }}">
-@php
-    $imageType = match (strtolower(pathinfo(parse_url($image, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION))) {
-        'jpg', 'jpeg' => 'image/jpeg',
-        'webp' => 'image/webp',
-        'gif' => 'image/gif',
-        default => 'image/png',
-    };
-@endphp
-<meta property="og:image:type" content="{{ $imageType }}">
-@if($imageWidth > 0)
-<meta property="og:image:width" content="{{ $imageWidth }}">
+@if($ogType === 'article' && ! empty($meta['published_at']))
+<meta property="article:published_time" content="{{ $meta['published_at'] }}">
+<meta property="og:updated_time" content="{{ $meta['published_at'] }}">
 @endif
-@if($imageHeight > 0)
-<meta property="og:image:height" content="{{ $imageHeight }}">
-@endif
-<link rel="image_src" href="{{ $image }}">
 
 @if(filled($fbAppId))
 <meta property="fb:app_id" content="{{ $fbAppId }}">
 @endif
 
 <meta name="twitter:card" content="{{ $twitterCard }}">
-<meta name="twitter:title" content="{{ $title }}">
+<meta name="twitter:title" content="{{ $ogTitle }}">
 <meta name="twitter:description" content="{{ $description }}">
 <meta name="twitter:image" content="{{ $image }}">
 <meta name="twitter:image:alt" content="{{ $imageAlt }}">
@@ -82,13 +87,37 @@
 <meta itemprop="description" content="{{ $description }}">
 <meta itemprop="image" content="{{ $image }}">
 
+@if(is_array($blogPost))
+<script type="application/ld+json">
+{!! json_encode(array_filter([
+    '@context' => 'https://schema.org',
+    '@type' => 'BlogPosting',
+    'headline' => $blogPost['title'],
+    'description' => $blogPost['meta_description'],
+    'datePublished' => $blogPost['date'] ?? null,
+    'author' => [
+        '@type' => 'Person',
+        'name' => config('site.author'),
+    ],
+    'publisher' => [
+        '@type' => 'Organization',
+        'name' => $siteName,
+    ],
+    'mainEntityOfPage' => route('blog.show', $blogPost['id']),
+    'inLanguage' => 'vi',
+    'image' => ! empty($blogPost['cover_image'])
+        ? SiteMeta::coverImageUrl($blogPost['cover_image'])
+        : null,
+], fn ($value) => $value !== null && $value !== ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
+</script>
+@else
 <script type="application/ld+json">
 {!! json_encode([
     '@context' => 'https://schema.org',
     '@type' => 'WebSite',
     'name' => $siteName,
     'url' => config('site.url'),
-    'description' => $description,
+    'description' => config('site.description'),
     'inLanguage' => 'vi',
     'publisher' => [
         '@type' => 'Organization',
@@ -100,5 +129,6 @@
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
 </script>
+@endif
 
 @stack('meta')

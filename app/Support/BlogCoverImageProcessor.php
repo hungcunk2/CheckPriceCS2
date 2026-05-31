@@ -12,7 +12,8 @@ class BlogCoverImageProcessor
 {
     public const WIDTH = 1200;
 
-    public const HEIGHT = 675;
+    /** Facebook/Messenger khuyến nghị 1200×630 (1.91:1) */
+    public const HEIGHT = 630;
 
     public function store(UploadedFile $file): string
     {

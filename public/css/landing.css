@@ -836,23 +836,16 @@ body.has-lp-nav .app-main {
 }
 
 .lp-blog-hero {
-    position: relative;
-    width: 100%;
-    height: clamp(9.5rem, 22vw, 12.5rem);
-    overflow: hidden;
-    border-radius: 0.75rem;
     margin-bottom: 1.25rem;
-    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    line-height: 0;
 }
 
 .lp-blog-hero-img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
     display: block;
+    width: 100%;
+    height: auto;
 }
 
 .lp-blog-back {
