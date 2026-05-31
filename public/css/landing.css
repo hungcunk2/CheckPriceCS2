@@ -842,17 +842,20 @@ body.has-lp-nav .app-main {
 .lp-blog-hero {
     position: relative;
     width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
     aspect-ratio: 16 / 9;
-    min-height: clamp(14rem, 42vw, 28rem);
     overflow: hidden;
 }
 
 .lp-blog-hero-img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    display: block;
     object-fit: cover;
     object-position: center;
+    display: block;
 }
 
 .lp-blog-hero-overlay {
@@ -913,34 +916,30 @@ body.has-lp-nav .app-main {
     text-decoration: none;
 }
 
-.lp-blog-card-cover {
-    aspect-ratio: 16 / 9;
+.lp-blog-card-cover-frame {
+    position: relative;
     width: 100%;
-    min-height: clamp(11rem, 28vw, 16rem);
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, rgba(88, 166, 255, 0.2), rgba(247, 129, 102, 0.2));
 }
 
-.lp-blog-card-cover-img {
-    aspect-ratio: 16 / 9;
+.lp-blog-card-cover-frame img {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: auto;
-    min-height: clamp(11rem, 28vw, 16rem);
-    display: block;
+    height: 100%;
     object-fit: cover;
     object-position: center;
+    display: block;
 }
 
 @media (min-width: 1024px) {
     .lp-blog-card:first-child {
         grid-column: 1 / -1;
-    }
-
-    .lp-blog-card:first-child .lp-blog-card-cover,
-    .lp-blog-card:first-child .lp-blog-card-cover-img {
-        min-height: clamp(15rem, 38vw, 24rem);
     }
 
     .lp-blog-card:first-child .lp-blog-card-body {

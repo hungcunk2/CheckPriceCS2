@@ -21,13 +21,13 @@
             @foreach($posts as $post)
                 <article class="lp-blog-card lp-glass">
                     <a href="{{ route('blog.show', $post['id']) }}" class="lp-blog-card-link">
-                        @if(!empty($post['cover_url']))
-                            <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" class="lp-blog-card-cover-img" width="1200" height="675" loading="lazy">
-                        @else
-                            <div class="lp-blog-card-cover">
+                        <div class="lp-blog-card-cover-frame">
+                            @if(!empty($post['cover_url']))
+                                <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" width="1200" height="675" loading="lazy">
+                            @else
                                 <span class="lp-blog-card-letter">{{ mb_substr($post['title'], 0, 1) }}</span>
-                            </div>
-                        @endif
+                            @endif
+                        </div>
                         <div class="lp-blog-card-body">
                             <div class="lp-blog-meta">
                                 <span><i class="far fa-calendar"></i> {{ \Carbon\Carbon::parse($post['date'])->format('d/m/Y') }}</span>

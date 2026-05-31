@@ -45,7 +45,9 @@
                             $coverSize = ($coverPath && is_file($coverPath)) ? @getimagesize($coverPath) : false;
                         @endphp
                         <div class="mb-2">
-                            <img src="{{ $post->cover_url }}" alt="Ảnh nền hiện tại" class="blog-cover-preview blog-cover-preview--saved rounded border">
+                            <div class="blog-cover-preview-frame rounded border">
+                                <img src="{{ $post->cover_url }}" alt="Ảnh nền hiện tại">
+                            </div>
                             @if($coverSize)
                                 <div class="form-text mt-1">Ảnh đã lưu: {{ $coverSize[0] }}×{{ $coverSize[1] }} px
                                     @if($coverSize[0] === 1200 && $coverSize[1] === 675)
@@ -65,7 +67,9 @@
                         class="form-control @error('cover_image') is-invalid @enderror">
                     @error('cover_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Bấm <strong>Lưu bài viết</strong> để tự cắt giữa và resize 1200×675 (16:9).</div>
-                    <img id="cover-image-preview" src="#" alt="" class="blog-cover-preview blog-cover-preview--draft rounded border mt-2" style="display:none">
+                    <div id="cover-image-preview-wrap" class="blog-cover-preview-frame rounded border mt-2" style="display:none">
+                        <img id="cover-image-preview" src="#" alt="">
+                    </div>
                     <div id="cover-image-preview-note" class="form-text mt-1" style="display:none">Xem trước khung 16:9 — ảnh thật được xử lý khi bấm Lưu.</div>
                 </div>
 
@@ -123,13 +127,23 @@
 @push('styles')
 <style>
     .tox-tinymce { border-radius: 0.375rem !important; }
-    .blog-cover-preview {
-        display: block;
+    .blog-cover-preview-frame {
         width: 100%;
         max-width: 24rem;
         aspect-ratio: 16 / 9;
+        overflow: hidden;
+        position: relative;
+        background: #111;
+    }
+
+    .blog-cover-preview-frame img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         object-position: center;
+        display: block;
     }
 </style>
 @endpush
@@ -262,18 +276,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const coverInput = document.getElementById('cover_image');
+    const coverPreviewWrap = document.getElementById('cover-image-preview-wrap');
     const coverPreview = document.getElementById('cover-image-preview');
     const coverPreviewNote = document.getElementById('cover-image-preview-note');
     if (coverInput && coverPreview) {
         coverInput.addEventListener('change', function () {
             const file = coverInput.files && coverInput.files[0];
             if (!file) {
-                coverPreview.style.display = 'none';
+                if (coverPreviewWrap) coverPreviewWrap.style.display = 'none';
                 if (coverPreviewNote) coverPreviewNote.style.display = 'none';
                 return;
             }
             coverPreview.src = URL.createObjectURL(file);
-            coverPreview.style.display = 'block';
+            if (coverPreviewWrap) coverPreviewWrap.style.display = 'block';
             if (coverPreviewNote) coverPreviewNote.style.display = 'block';
         });
     }
