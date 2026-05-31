@@ -25,18 +25,18 @@
                             @if(!empty($post['cover_url']))
                                 <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" width="1200" height="675" loading="lazy">
                             @else
-                                <span class="lp-blog-card-letter">{{ mb_substr($post['title'], 0, 1) }}</span>
+                                <span class="lp-blog-card-letter">{{ mb_substr((string) ($post['title'] ?? 'B'), 0, 1) }}</span>
                             @endif
                         </div>
                         <div class="lp-blog-card-body">
                             <div class="lp-blog-meta">
-                                <span><i class="far fa-calendar"></i> {{ \Carbon\Carbon::parse($post['date'])->format('d/m/Y') }}</span>
-                                <span><i class="far fa-clock"></i> {{ $post['read_time'] }}</span>
+                                <span><i class="far fa-calendar"></i> {{ \Carbon\Carbon::parse($post['date'] ?? now())->format('d/m/Y') }}</span>
+                                <span><i class="far fa-clock"></i> {{ $post['read_time'] ?? '5 phút' }}</span>
                             </div>
-                            <h2 class="lp-blog-card-title">{{ $post['title'] }}</h2>
-                            <p class="lp-blog-card-excerpt">{{ $post['excerpt'] }}</p>
+                            <h2 class="lp-blog-card-title">{{ $post['title'] ?? '' }}</h2>
+                            <p class="lp-blog-card-excerpt">{{ $post['excerpt'] ?? '' }}</p>
                             <div class="lp-blog-tags">
-                                @foreach($post['tags'] as $tag)
+                                @foreach(($post['tags'] ?? []) as $tag)
                                     <span class="lp-blog-tag"><i class="fas fa-tag"></i> {{ $tag }}</span>
                                 @endforeach
                             </div>

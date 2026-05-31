@@ -16,13 +16,13 @@
                 <div class="mb-3">
                     <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
                     <input type="text" name="title" class="form-control @error('title') is-invalid @enderror"
-                        value="{{ old('title', $post->title ?? '') }}" required maxlength="200">
+                        value="{{ old('title', $post?->title ?? '') }}" required maxlength="200">
                     @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Mô tả ngắn <span class="text-danger">*</span></label>
-                    <textarea name="excerpt" class="form-control @error('excerpt') is-invalid @enderror" rows="2" required maxlength="500">{{ old('excerpt', $post->excerpt ?? '') }}</textarea>
+                    <textarea name="excerpt" class="form-control @error('excerpt') is-invalid @enderror" rows="2" required maxlength="500">{{ old('excerpt', $post?->excerpt ?? '') }}</textarea>
                     @error('excerpt')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <div class="form-text">Hiển thị trên thẻ bài viết ở trang Blog.</div>
                 </div>
@@ -30,7 +30,7 @@
                 <div class="mb-3">
                     <label class="form-label">Meta Description</label>
                     <textarea name="meta_description" class="form-control @error('meta_description') is-invalid @enderror" rows="2" maxlength="320"
-                        placeholder="Hướng dẫn định giá kho đồ CS2 chuẩn Buff163 năm 2026. Kiểm tra giá inventory CS2 nhanh chóng, chính xác theo CNY và VND chỉ trong vài giây.">{{ old('meta_description', $post->meta_description ?? '') }}</textarea>
+                        placeholder="Hướng dẫn định giá kho đồ CS2 chuẩn Buff163 năm 2026. Kiểm tra giá inventory CS2 nhanh chóng, chính xác theo CNY và VND chỉ trong vài giây.">{{ old('meta_description', $post?->meta_description ?? '') }}</textarea>
                     @error('meta_description')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <div class="form-text">Mô tả SEO cho Google/Facebook (tối đa 320 ký tự). Để trống sẽ dùng Mô tả ngắn.</div>
                 </div>
@@ -77,13 +77,13 @@
                     <div class="col-md-4">
                         <label class="form-label">Ngày đăng <span class="text-danger">*</span></label>
                         <input type="date" name="published_at" class="form-control @error('published_at') is-invalid @enderror"
-                            value="{{ old('published_at', $post->published_at ?? now()->format('Y-m-d')) }}" required>
+                            value="{{ old('published_at', $post?->published_at ?? now()->format('Y-m-d')) }}" required>
                         @error('published_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Thời gian đọc</label>
                         <input type="text" name="read_time" class="form-control @error('read_time') is-invalid @enderror"
-                            value="{{ old('read_time', $post->read_time ?? '5 phút') }}" maxlength="32">
+                            value="{{ old('read_time', $post?->read_time ?? '5 phút') }}" maxlength="32">
                         @error('read_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
@@ -101,7 +101,7 @@
                         use App\Support\BlogContent;
                         $editorContent = old('content') !== null
                             ? BlogContent::forEditor(old('content'))
-                            : BlogContent::forEditor($post->content ?? '');
+                            : BlogContent::forEditor($post?->content ?? '');
                     @endphp
                     <textarea id="blog-content" name="content" class="form-control @error('content') is-invalid @enderror" rows="18" required>{!! $editorContent !!}</textarea>
                     @error('content')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -110,7 +110,7 @@
 
                 <div class="form-check mb-4">
                     <input type="checkbox" name="is_published" value="1" class="form-check-input" id="is_published"
-                        @checked(old('is_published', $post->is_published ?? true))>
+                        @checked(old('is_published', $post?->is_published ?? true))>
                     <label class="form-check-label" for="is_published">Hiển thị công khai</label>
                 </div>
 

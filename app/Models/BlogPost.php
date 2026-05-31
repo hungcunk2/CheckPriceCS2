@@ -48,18 +48,32 @@ class BlogPost extends Model
     /**
      * @return array<string, mixed>
      */
-    public function toPublicArray(): array
+    public function toListArray(): array
     {
+        $tags = $this->tags;
+        if (! is_array($tags)) {
+            $tags = [];
+        }
+
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'excerpt' => $this->excerpt,
+            'title' => (string) ($this->title ?? ''),
+            'excerpt' => (string) ($this->excerpt ?? ''),
             'meta_description' => $this->metaDescription(),
             'cover_url' => $this->coverUrl(),
-            'content' => $this->content,
-            'date' => $this->published_at->format('Y-m-d'),
-            'read_time' => $this->read_time,
-            'tags' => $this->tags ?? [],
+            'date' => $this->published_at?->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'read_time' => (string) ($this->read_time ?? '5 phút'),
+            'tags' => $tags,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toPublicArray(): array
+    {
+        return array_merge($this->toListArray(), [
+            'content' => (string) ($this->content ?? ''),
+        ]);
     }
 }

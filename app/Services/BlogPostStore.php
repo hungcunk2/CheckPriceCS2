@@ -27,13 +27,22 @@ class BlogPostStore
      */
     public function publishedArrays(): array
     {
-        return BlogPost::query()
+        $posts = [];
+
+        foreach (BlogPost::query()
+            ->select(['id', 'title', 'excerpt', 'meta_description', 'cover_image', 'published_at', 'read_time', 'tags'])
             ->where('is_published', true)
             ->orderByDesc('published_at')
             ->orderByDesc('id')
-            ->get()
-            ->map(fn (BlogPost $row) => $row->toPublicArray())
-            ->all();
+            ->get() as $row) {
+            try {
+                $posts[] = $row->toListArray();
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return $posts;
     }
 
     public function find(int $id): ?object
@@ -61,12 +70,13 @@ class BlogPostStore
     public function related(int $id, int $limit = 2): array
     {
         return BlogPost::query()
+            ->select(['id', 'title', 'excerpt', 'meta_description', 'cover_image', 'published_at', 'read_time', 'tags'])
             ->where('is_published', true)
             ->where('id', '!=', $id)
             ->orderByDesc('published_at')
             ->limit($limit)
             ->get()
-            ->map(fn (BlogPost $row) => $row->toPublicArray())
+            ->map(fn (BlogPost $row) => $row->toListArray())
             ->all();
     }
 
