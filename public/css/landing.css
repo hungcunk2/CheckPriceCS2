@@ -843,16 +843,23 @@ body.has-lp-nav .app-main {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
-    max-height: 22rem;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    min-height: clamp(14rem, 42vw, 28rem);
+    overflow: hidden;
+}
+
+.lp-blog-hero-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
 }
 
 .lp-blog-hero-overlay {
     position: absolute;
     inset: 0;
     background: linear-gradient(180deg, rgba(13, 17, 23, 0.15) 0%, rgba(13, 17, 23, 0.85) 100%);
+    pointer-events: none;
 }
 
 .lp-blog-article--has-cover .lp-blog-article-inner {
@@ -881,15 +888,15 @@ body.has-lp-nav .app-main {
 
 .lp-blog-grid {
     display: grid;
-    gap: 1.5rem;
+    gap: 1.75rem;
 }
 
 @media (min-width: 768px) {
     .lp-blog-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (min-width: 1024px) {
-    .lp-blog-grid { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 1280px) {
+    .lp-blog-grid { gap: 2rem; }
 }
 
 .lp-blog-card {
@@ -909,16 +916,40 @@ body.has-lp-nav .app-main {
 .lp-blog-card-cover {
     aspect-ratio: 16 / 9;
     width: 100%;
+    min-height: clamp(11rem, 28vw, 16rem);
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, rgba(88, 166, 255, 0.2), rgba(247, 129, 102, 0.2));
 }
 
-.lp-blog-card-cover--image {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+.lp-blog-card-cover-img {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    height: auto;
+    min-height: clamp(11rem, 28vw, 16rem);
+    display: block;
+    object-fit: cover;
+    object-position: center;
+}
+
+@media (min-width: 1024px) {
+    .lp-blog-card:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .lp-blog-card:first-child .lp-blog-card-cover,
+    .lp-blog-card:first-child .lp-blog-card-cover-img {
+        min-height: clamp(15rem, 38vw, 24rem);
+    }
+
+    .lp-blog-card:first-child .lp-blog-card-body {
+        padding: 2rem;
+    }
+
+    .lp-blog-card:first-child .lp-blog-card-title {
+        font-size: 1.375rem;
+    }
 }
 
 .lp-blog-card-letter {

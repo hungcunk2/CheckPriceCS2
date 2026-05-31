@@ -10,7 +10,8 @@
 
 <article class="lp-blog-article @if(!empty($post['cover_url'])) lp-blog-article--has-cover @endif">
     @if(!empty($post['cover_url']))
-        <div class="lp-blog-hero" style="background-image: url('{{ $post['cover_url'] }}')">
+        <div class="lp-blog-hero">
+            <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" class="lp-blog-hero-img" width="1200" height="675">
             <div class="lp-blog-hero-overlay"></div>
         </div>
     @endif

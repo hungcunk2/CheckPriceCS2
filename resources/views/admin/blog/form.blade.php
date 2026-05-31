@@ -38,8 +38,23 @@
                 <div class="mb-3">
                     <label class="form-label">Ảnh nền bài viết</label>
                     @if(!empty($post?->cover_url))
+                        @php
+                            $coverPath = ! empty($post->cover_image)
+                                ? storage_path('app/public/'.$post->cover_image)
+                                : null;
+                            $coverSize = ($coverPath && is_file($coverPath)) ? @getimagesize($coverPath) : false;
+                        @endphp
                         <div class="mb-2">
-                            <img src="{{ $post->cover_url }}" alt="Ảnh nền hiện tại" class="blog-cover-preview rounded border">
+                            <img src="{{ $post->cover_url }}" alt="Ảnh nền hiện tại" class="blog-cover-preview blog-cover-preview--saved rounded border">
+                            @if($coverSize)
+                                <div class="form-text mt-1">Ảnh đã lưu: {{ $coverSize[0] }}×{{ $coverSize[1] }} px
+                                    @if($coverSize[0] === 1200 && $coverSize[1] === 675)
+                                        — đúng chuẩn 16:9
+                                    @else
+                                        — upload lại để crop 1200×675
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                         <div class="form-check mb-2">
                             <input type="checkbox" name="remove_cover_image" value="1" class="form-check-input" id="remove_cover_image">
@@ -49,8 +64,9 @@
                     <input type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/png,image/webp"
                         class="form-control @error('cover_image') is-invalid @enderror">
                     @error('cover_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Tự cắt giữa và resize 1200×675 (16:9) khi lưu.</div>
-                    <img id="cover-image-preview" src="#" alt="" class="blog-cover-preview rounded border mt-2" style="display:none">
+                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Bấm <strong>Lưu bài viết</strong> để tự cắt giữa và resize 1200×675 (16:9).</div>
+                    <img id="cover-image-preview" src="#" alt="" class="blog-cover-preview blog-cover-preview--draft rounded border mt-2" style="display:none">
+                    <div id="cover-image-preview-note" class="form-text mt-1" style="display:none">Xem trước khung 16:9 — ảnh thật được xử lý khi bấm Lưu.</div>
                 </div>
 
                 <div class="row g-3 mb-3">
@@ -109,9 +125,11 @@
     .tox-tinymce { border-radius: 0.375rem !important; }
     .blog-cover-preview {
         display: block;
-        max-width: 100%;
-        max-height: 12rem;
+        width: 100%;
+        max-width: 24rem;
+        aspect-ratio: 16 / 9;
         object-fit: cover;
+        object-position: center;
     }
 </style>
 @endpush
@@ -245,15 +263,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const coverInput = document.getElementById('cover_image');
     const coverPreview = document.getElementById('cover-image-preview');
+    const coverPreviewNote = document.getElementById('cover-image-preview-note');
     if (coverInput && coverPreview) {
         coverInput.addEventListener('change', function () {
             const file = coverInput.files && coverInput.files[0];
             if (!file) {
                 coverPreview.style.display = 'none';
+                if (coverPreviewNote) coverPreviewNote.style.display = 'none';
                 return;
             }
             coverPreview.src = URL.createObjectURL(file);
             coverPreview.style.display = 'block';
+            if (coverPreviewNote) coverPreviewNote.style.display = 'block';
         });
     }
 });
