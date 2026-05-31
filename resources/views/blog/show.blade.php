@@ -8,18 +8,18 @@
     $formattedDate = \Carbon\Carbon::parse($post['date'])->format('d/m/Y');
 @endphp
 
-<article class="lp-blog-article @if(!empty($post['cover_url'])) lp-blog-article--has-cover @endif">
-    @if(!empty($post['cover_url']))
-        <div class="lp-blog-hero">
-            <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" class="lp-blog-hero-img" width="1200" height="675">
-            <div class="lp-blog-hero-overlay"></div>
-        </div>
-    @endif
+<article class="lp-blog-article">
     <div class="lp-container lp-blog-article-inner">
         <a href="{{ route('blog.index') }}" class="lp-blog-back">
             <i class="fas fa-arrow-left"></i>
             Quay lại blog
         </a>
+
+        @if(!empty($post['cover_url']))
+            <div class="lp-blog-hero">
+                <img src="{{ $post['cover_url'] }}" alt="{{ $post['title'] }}" class="lp-blog-hero-img" width="1200" height="675">
+            </div>
+        @endif
 
         <div class="lp-blog-meta lp-blog-meta--large">
             <span><i class="far fa-calendar"></i> {{ $formattedDate }}</span>
