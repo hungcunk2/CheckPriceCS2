@@ -50,7 +50,13 @@
 
                 <div class="mb-3">
                     <label class="form-label">Nội dung <span class="text-danger">*</span></label>
-                    <textarea name="content" class="form-control font-monospace @error('content') is-invalid @enderror" rows="18" required>{{ old('content', $post->content ?? '') }}</textarea>
+                    @php
+                        use App\Support\BlogContent;
+                        $editorContent = old('content') !== null
+                            ? BlogContent::forEditor(old('content'))
+                            : BlogContent::forEditor($post->content ?? '');
+                    @endphp
+                    <textarea id="blog-content" name="content" class="form-control @error('content') is-invalid @enderror" rows="18" required>{!! $editorContent !!}</textarea>
                     @error('content')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
@@ -69,3 +75,44 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .tox-tinymce { border-radius: 0.375rem !important; }
+</style>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7.6.0/tinymce.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
+
+    tinymce.init({
+        selector: '#blog-content',
+        height: 520,
+        menubar: 'edit view insert format table',
+        language: 'vi',
+        language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@24.12.9/langs6/vi.js',
+        base_url: 'https://cdn.jsdelivr.net/npm/tinymce@7.6.0',
+        suffix: '.min',
+        plugins: 'lists link image table code wordcount autolink',
+        toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | removeformat code',
+        branding: false,
+        promotion: false,
+        content_style: 'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.6; }',
+        setup: function (editor) {
+            editor.on('change input', function () {
+                editor.save();
+            });
+        },
+    });
+
+    form.addEventListener('submit', function () {
+        if (tinymce.get('blog-content')) {
+            tinymce.triggerSave();
+        }
+    });
+});
+</script>
+@endpush

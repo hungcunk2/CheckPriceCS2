@@ -4,7 +4,42 @@ namespace App\Support;
 
 class BlogContent
 {
+    public static function isHtml(string $content): bool
+    {
+        return preg_match('/<(?:p|h[1-6]|ul|ol|li|strong|em|br|div|table|img|a|blockquote)\b/i', $content) === 1;
+    }
+
+    public static function forEditor(string $content): string
+    {
+        if ($content === '') {
+            return '';
+        }
+
+        $html = self::isHtml($content) ? $content : self::markdownToHtml($content);
+
+        return str_replace('</textarea>', '&lt;/textarea&gt;', $html);
+    }
+
     public static function toHtml(string $content): string
+    {
+        if (self::isHtml($content)) {
+            return self::sanitizeHtml($content);
+        }
+
+        return self::markdownToHtml($content);
+    }
+
+    private static function sanitizeHtml(string $html): string
+    {
+        $allowed = '<p><br><hr><h1><h2><h3><h4><h5><h6><ul><ol><li><strong><b><em><i><u><s><a><img><table><thead><tbody><tr><th><td><blockquote><pre><code><span><div>';
+        $html = strip_tags($html, $allowed);
+        $html = preg_replace('/\s(on\w+|style)=("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+        $html = preg_replace('/href\s*=\s*"\s*javascript:[^"]*"/i', 'href="#"', $html) ?? $html;
+
+        return $html;
+    }
+
+    private static function markdownToHtml(string $content): string
     {
         $lines = preg_split('/\r\n|\r|\n/', trim($content)) ?: [];
         $parts = [];

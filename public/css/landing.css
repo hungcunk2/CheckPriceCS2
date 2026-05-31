@@ -1006,6 +1006,44 @@ body.has-lp-nav .app-main {
 
 .lp-blog-content strong { color: var(--lp-fg); }
 
+.lp-blog-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+.lp-blog-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9375rem;
+}
+
+.lp-blog-content th,
+.lp-blog-content td {
+    border: 1px solid rgba(240, 246, 252, 0.08);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.lp-blog-content th {
+    font-weight: 600;
+    color: var(--lp-fg);
+}
+
+.lp-blog-content a {
+    color: var(--lp-accent);
+    text-decoration: underline;
+}
+
+.lp-blog-content blockquote {
+    margin: 1rem 0;
+    padding-left: 1rem;
+    border-left: 3px solid var(--lp-accent);
+    color: var(--lp-muted);
+}
+
 .lp-blog-bold {
     font-weight: 700;
     color: var(--lp-fg) !important;
