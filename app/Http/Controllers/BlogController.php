@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\BlogPosts;
 use App\Support\SiteMeta;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class BlogController extends Controller
@@ -21,21 +22,29 @@ class BlogController extends Controller
         ]);
     }
 
-    public function show(string $slug): View
+    public function show(int $post): View
     {
-        $post = BlogPosts::find($slug);
-        abort_unless($post, 404);
+        $article = BlogPosts::find($post);
+        abort_unless($article, 404);
 
         return view('blog.show', [
-            'post' => $post,
-            'related' => BlogPosts::related($slug),
+            'post' => $article,
+            'related' => BlogPosts::related($post),
             'meta' => SiteMeta::make([
-                'title' => $post['title'].' — Blog — '.config('site.name'),
-                'description' => $post['excerpt'],
-                'canonical' => route('blog.show', $post['slug']),
-                'url' => route('blog.show', $post['slug']),
+                'title' => $article['title'].' — Blog — '.config('site.name'),
+                'description' => $article['excerpt'],
+                'canonical' => route('blog.show', $article['id']),
+                'url' => route('blog.show', $article['id']),
                 'type' => 'article',
             ]),
         ]);
+    }
+
+    public function redirectFromSlug(string $slug): RedirectResponse|View
+    {
+        $post = BlogPosts::findBySlug($slug);
+        abort_unless($post, 404);
+
+        return redirect()->route('blog.show', $post['id'], 301);
     }
 }

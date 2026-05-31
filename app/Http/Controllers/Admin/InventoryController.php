@@ -38,7 +38,6 @@ class InventoryController extends Controller
         return view('admin.inventories.index', [
             'inventories' => $inventories,
             'buffConfigured' => Buff163AccountPool::isConfigured(),
-            'buffAccountCount' => count(Buff163AccountPool::accounts()),
         ]);
     }
 

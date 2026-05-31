@@ -37,7 +37,7 @@
                 <h3 class="lp-blog-related-title">Bài viết liên quan</h3>
                 <div class="lp-blog-related-grid">
                     @foreach($related as $item)
-                        <a href="{{ route('blog.show', $item['slug']) }}" class="lp-blog-related-card lp-glass">
+                        <a href="{{ route('blog.show', $item['id']) }}" class="lp-blog-related-card lp-glass">
                             <div class="lp-muted" style="font-size:0.75rem;margin-bottom:0.25rem">
                                 {{ \Carbon\Carbon::parse($item['date'])->format('d/m/Y') }}
                             </div>
@@ -66,7 +66,7 @@
         '@type' => 'Organization',
         'name' => config('site.name'),
     ],
-    'mainEntityOfPage' => route('blog.show', $post['slug']),
+    'mainEntityOfPage' => route('blog.show', $post['id']),
     'inLanguage' => 'vi',
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
 </script>

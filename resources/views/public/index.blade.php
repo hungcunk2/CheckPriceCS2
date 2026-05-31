@@ -111,7 +111,7 @@
                         </div>
                     </div>
                     <div class="alert alert-info mb-0 py-2 small">
-                        Chưa có danh sách skin. Admin vào <strong>/admin/inventories</strong> → bấm <strong>sync</strong> để lưu danh sách.
+                        Chưa có danh sách skin.
                     </div>
                 </div>
             @endif

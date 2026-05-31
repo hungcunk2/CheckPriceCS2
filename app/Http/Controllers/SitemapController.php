@@ -30,7 +30,7 @@ class SitemapController extends Controller
 
         foreach (BlogPosts::all() as $post) {
             $urls[] = [
-                'loc' => route('blog.show', $post['slug']),
+                'loc' => route('blog.show', $post['id']),
                 'changefreq' => 'monthly',
                 'priority' => '0.7',
                 'lastmod' => $post['date'] ?? null,

@@ -2,7 +2,7 @@
 
 @if(count($items) === 0)
     <div class="alert alert-info mb-0 py-2 small">
-        Chưa có danh sách skin. Bấm <strong>sync</strong> để lấy kho và giá.
+        Chưa có danh sách skin.
     </div>
 @else
     <div class="inventory-item-filter-root">

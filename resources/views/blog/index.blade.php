@@ -20,7 +20,7 @@
         <div class="lp-blog-grid">
             @foreach($posts as $post)
                 <article class="lp-blog-card lp-glass">
-                    <a href="{{ route('blog.show', $post['slug']) }}" class="lp-blog-card-link">
+                    <a href="{{ route('blog.show', $post['id']) }}" class="lp-blog-card-link">
                         <div class="lp-blog-card-cover">
                             <span class="lp-blog-card-letter">{{ mb_substr($post['title'], 0, 1) }}</span>
                         </div>

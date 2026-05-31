@@ -4,48 +4,28 @@
 @section('page-title', 'Quản lý acc Buff163')
 
 @section('content')
-@if($usesDatabase)
-    <div class="alert alert-success py-2 small mb-3">
-        Acc Buff lưu trong <strong>database (mã hóa)</strong> — session hết hạn thì bấm Sửa, dán cookie mới, không cần SSH.
-    </div>
-@elseif($configured)
-    <div class="alert alert-warning py-2 small mb-3">
-        Đang dùng acc từ <code>.env</code>.
-        <form method="POST" action="{{ route('admin.buff-accounts.import-env') }}" class="d-inline">
+<div class="d-flex justify-content-end align-items-center mb-3 flex-wrap gap-2">
+    @if(!$usesDatabase && $configured)
+        <form method="POST" action="{{ route('admin.buff-accounts.import-env') }}">
             @csrf
-            <button type="submit" class="btn btn-sm btn-outline-dark ms-1">Import sang DB</button>
+            <button type="submit" class="btn btn-outline-dark">
+                <i class="fas fa-file-import me-1"></i> Import từ .env
+            </button>
         </form>
-        để quản lý trên web.
-    </div>
-@else
-    <div class="alert alert-warning">
-        Chưa có acc Buff. Thêm acc mới hoặc import từ <code>.env</code>.
-        <form method="POST" action="{{ route('admin.buff-accounts.import-env') }}" class="d-inline">
+    @endif
+    @if($usesDatabase)
+        <a href="{{ route('admin.buff-accounts.create') }}" class="btn btn-outline-primary">
+            <i class="fas fa-plus me-1"></i> Thêm acc
+        </a>
+    @endif
+    @if($configured)
+        <form method="POST" action="{{ route('admin.buff-accounts.probe-all') }}">
             @csrf
-            <button type="submit" class="btn btn-sm btn-outline-dark ms-1">Import từ .env</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-stethoscope me-1"></i> Kiểm tra tất cả
+            </button>
         </form>
-    </div>
-@endif
-
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <p class="text-muted mb-0">
-        Probe gọi API Buff kiểm tra session — không ghi cooldown sync giá.
-    </p>
-    <div class="d-flex gap-2">
-        @if($usesDatabase)
-            <a href="{{ route('admin.buff-accounts.create') }}" class="btn btn-outline-primary">
-                <i class="fas fa-plus me-1"></i> Thêm acc
-            </a>
-        @endif
-        @if($configured)
-            <form method="POST" action="{{ route('admin.buff-accounts.probe-all') }}">
-                @csrf
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-stethoscope me-1"></i> Kiểm tra tất cả
-                </button>
-            </form>
-        @endif
-    </div>
+    @endif
 </div>
 
 @if($configured)
@@ -127,7 +107,7 @@
                             </td>
                             <td class="text-end text-nowrap">
                                 @if($managed)
-                                    <a href="{{ route('admin.buff-accounts.edit', $managed->id) }}" class="btn btn-sm btn-outline-secondary" title="Cập nhật session">
+                                    <a href="{{ route('admin.buff-accounts.edit', $managed->id) }}" class="btn btn-sm btn-outline-secondary" title="Sửa">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form method="POST" action="{{ route('admin.buff-accounts.destroy', $managed->id) }}" class="d-inline" onsubmit="return confirm('Xóa acc {{ $account['label'] }}?');">
@@ -151,5 +131,7 @@
             </table>
         </div>
     </div>
+@else
+    <div class="text-muted">Chưa có acc Buff.</div>
 @endif
 @endsection

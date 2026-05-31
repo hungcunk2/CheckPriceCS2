@@ -69,9 +69,7 @@
 @if(count($items) === 0)
 
     <div class="alert alert-info">
-
-        Chưa có danh sách skin. Admin vào <strong>/admin/inventories</strong> → bấm nút <strong>sync</strong> (cập nhật giá) để lưu danh sách.
-
+        Chưa có danh sách skin.
     </div>
 
 @else

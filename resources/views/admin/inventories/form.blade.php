@@ -26,7 +26,6 @@
                     <textarea name="url" class="form-control @error('url') is-invalid @enderror" rows="3" required
                         placeholder="https://steamcommunity.com/id/.../inventory/">{{ old('url', $inventory->url ?? '') }}</textarea>
                     @error('url')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">Kho phải để public.</div>
                 </div>
 
                 @php
@@ -96,7 +95,6 @@
                             @error('trade_at_minute')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    <div class="form-text">Giờ Việt Nam (GMT+7), định dạng 24h — VD: 14:30. Để trống ngày nếu chưa có hold.</div>
                 </div>
 
                 <div class="mb-3">
@@ -105,15 +103,13 @@
                             {{ old('is_public', $inventory->is_public ?? true) ? 'checked' : '' }}>
                         <label class="form-check-label" for="is_public">Hiển thị trên trang công khai</label>
                     </div>
-                    <div class="form-text">Danh sách kho tự sắp theo tổng giá Buff từ cao xuống thấp.</div>
                 </div>
 
-                <div class="form-check mb-2">
+                <div class="form-check mb-4">
                     <input class="form-check-input" type="checkbox" name="check_now" value="1" id="check_now"
                         {{ old('check_now') ? 'checked' : '' }}>
                     <label class="form-check-label" for="check_now">Check giá ngay sau khi lưu</label>
                 </div>
-                <p class="small text-muted mb-4">Kho lớn: trên VPS nên bỏ tick, lưu xong bấm sync hoặc chờ auto ~4 giờ.</p>
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Lưu</button>

@@ -6,12 +6,6 @@
 @section('content')
 <div class="row">
     <div class="col-lg-8">
-        <div class="alert alert-info small">
-            <strong>Lấy session mới:</strong> đăng nhập <a href="https://buff.163.com" target="_blank" rel="noopener">buff.163.com</a>
-            → F12 → Application → Cookies → copy giá trị <code>session</code> và <code>csrf_token</code> (nếu có).
-            Dán vào form rồi bấm Check — không cần SSH sửa <code>.env</code>.
-        </div>
-
         <div class="panel-admin rounded border p-4">
             <form method="POST" action="{{ $account ? route('admin.buff-accounts.update', $account->id) : route('admin.buff-accounts.store') }}">
                 @csrf

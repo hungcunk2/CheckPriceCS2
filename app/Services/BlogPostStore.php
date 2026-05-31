@@ -45,6 +45,33 @@ class BlogPostStore
     /**
      * @return array<string, mixed>|null
      */
+    public function findPublished(int $id): ?array
+    {
+        $row = BlogPost::query()
+            ->where('is_published', true)
+            ->find($id);
+
+        return $row?->toPublicArray();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function related(int $id, int $limit = 2): array
+    {
+        return BlogPost::query()
+            ->where('is_published', true)
+            ->where('id', '!=', $id)
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get()
+            ->map(fn (BlogPost $row) => $row->toPublicArray())
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     public function findBySlug(string $slug, bool $publishedOnly = true): ?array
     {
         $query = BlogPost::query()->where('slug', $slug);
@@ -61,7 +88,7 @@ class BlogPostStore
     /**
      * @return list<array<string, mixed>>
      */
-    public function related(string $slug, int $limit = 2): array
+    public function relatedBySlug(string $slug, int $limit = 2): array
     {
         return BlogPost::query()
             ->where('is_published', true)
@@ -81,6 +108,10 @@ class BlogPostStore
         $model = $id ? BlogPost::query()->find($id) : null;
 
         $payload = $this->normalizeAttributes($attributes);
+
+        if ($payload['slug'] === '') {
+            $payload['slug'] = $this->slugFromTitle($payload['title']);
+        }
 
         if ($model) {
             $model->fill($payload);

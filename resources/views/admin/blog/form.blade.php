@@ -21,15 +21,6 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Slug (URL)</label>
-                    <input type="text" name="slug" class="form-control @error('slug') is-invalid @enderror"
-                        value="{{ old('slug', $post->slug ?? '') }}" maxlength="120"
-                        placeholder="Tự tạo từ tiêu đề nếu để trống">
-                    @error('slug')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">Chỉ chữ thường, số và dấu gạch ngang. VD: <code>dinh-gia-kho-do-cs2</code></div>
-                </div>
-
-                <div class="mb-3">
                     <label class="form-label">Mô tả ngắn <span class="text-danger">*</span></label>
                     <textarea name="excerpt" class="form-control @error('excerpt') is-invalid @enderror" rows="2" required maxlength="500">{{ old('excerpt', $post->excerpt ?? '') }}</textarea>
                     @error('excerpt')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -61,9 +52,6 @@
                     <label class="form-label">Nội dung <span class="text-danger">*</span></label>
                     <textarea name="content" class="form-control font-monospace @error('content') is-invalid @enderror" rows="18" required>{{ old('content', $post->content ?? '') }}</textarea>
                     @error('content')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">
-                        Hỗ trợ: <code>##</code>, <code>###</code>, list <code>-</code>, <code>**bold**</code>, bảng markdown.
-                    </div>
                 </div>
 
                 <div class="form-check mb-4">

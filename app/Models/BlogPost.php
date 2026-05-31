@@ -32,7 +32,7 @@ class BlogPost extends Model
     public function toPublicArray(): array
     {
         return [
-            'slug' => $this->slug,
+            'id' => $this->id,
             'title' => $this->title,
             'excerpt' => $this->excerpt,
             'content' => $this->content,

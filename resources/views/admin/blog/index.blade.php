@@ -4,8 +4,7 @@
 @section('page-title', 'Quản lý blog')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <p class="text-muted mb-0">Thêm, sửa, ẩn bài viết blog hiển thị trên trang công khai.</p>
+<div class="d-flex justify-content-end align-items-center mb-3">
     <a href="{{ route('admin.blog.create') }}" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> Thêm bài
     </a>
@@ -17,7 +16,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Tiêu đề</th>
-                    <th>Slug</th>
+                    <th>ID</th>
                     <th>Ngày đăng</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
@@ -30,7 +29,7 @@
                             <div class="fw-medium">{{ $post->title }}</div>
                             <div class="small text-muted text-truncate" style="max-width:24rem">{{ $post->excerpt }}</div>
                         </td>
-                        <td><code>{{ $post->slug }}</code></td>
+                        <td><code>{{ $post->id }}</code></td>
                         <td class="small">{{ $post->published_at }}</td>
                         <td>
                             @if($post->is_published)
@@ -40,7 +39,7 @@
                             @endif
                         </td>
                         <td class="text-end text-nowrap">
-                            <a href="{{ route('blog.show', $post->slug) }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                            <a href="{{ route('blog.show', $post->id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
                                 <i class="fas fa-external-link-alt"></i>
                             </a>
                             <a href="{{ route('admin.blog.edit', $post->id) }}" class="btn btn-sm btn-outline-primary">
@@ -58,7 +57,7 @@
                 @empty
                     <tr>
                         <td colspan="5" class="text-center text-muted py-4">
-                            Chưa có bài viết. Chạy <code>php artisan migrate</code> để import từ config hoặc thêm bài mới.
+                            Chưa có bài viết.
                         </td>
                     </tr>
                 @endforelse

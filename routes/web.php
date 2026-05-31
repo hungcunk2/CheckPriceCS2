@@ -14,7 +14,8 @@ Route::get('/', [PublicInventoryController::class, 'landing'])->name('public.lan
 Route::post('/', [PublicInventoryController::class, 'landing']);
 Route::get('/bang-gia', [PublicInventoryController::class, 'index'])->name('public.index');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
-Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
+Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')->name('blog.show');
+Route::get('/blog/{slug}', [BlogController::class, 'redirectFromSlug'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('blog.legacy');
 Route::get('/kho/{inventory}', [PublicInventoryController::class, 'show'])->whereNumber('inventory')->name('public.show');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 

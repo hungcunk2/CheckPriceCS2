@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\BlogPostStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class BlogController extends Controller
@@ -32,10 +31,6 @@ class BlogController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validateForm($request);
-
-        if ($validated['slug'] === '') {
-            $validated['slug'] = $this->store->slugFromTitle($validated['title']);
-        }
 
         $this->store->upsert($validated);
 
@@ -63,11 +58,7 @@ class BlogController extends Controller
             return redirect()->route('admin.blog.index')->with('error', 'Không tìm thấy bài viết.');
         }
 
-        $validated = $this->validateForm($request, $blog);
-
-        if ($validated['slug'] === '') {
-            $validated['slug'] = $this->store->slugFromTitle($validated['title']);
-        }
+        $validated = $this->validateForm($request);
 
         $this->store->upsert($validated, $blog);
 
@@ -88,19 +79,10 @@ class BlogController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateForm(Request $request, ?int $ignoreId = null): array
+    private function validateForm(Request $request): array
     {
-        $slugRule = ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'];
-
-        if ($ignoreId) {
-            $slugRule[] = 'unique:blog_posts,slug,'.$ignoreId;
-        } else {
-            $slugRule[] = 'unique:blog_posts,slug';
-        }
-
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:200'],
-            'slug' => $slugRule,
             'excerpt' => ['required', 'string', 'max:500'],
             'content' => ['required', 'string'],
             'published_at' => ['required', 'date'],
@@ -109,7 +91,7 @@ class BlogController extends Controller
             'is_published' => ['sometimes', 'boolean'],
         ]);
 
-        $validated['slug'] = Str::slug((string) ($validated['slug'] ?? ''));
+        $validated['slug'] = '';
         $validated['is_published'] = $request->boolean('is_published');
         $validated['read_time'] = trim((string) ($validated['read_time'] ?? '')) ?: '5 phút';
 

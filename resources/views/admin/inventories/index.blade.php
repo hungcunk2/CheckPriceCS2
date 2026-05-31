@@ -9,24 +9,12 @@
 
 @section('content')
 @if(empty($buffConfigured))
-    <div class="alert alert-warning">
-        Chưa cấu hình <code>BUFF163_SESSION</code> trong <code>.env</code> — không lấy được giá Buff.
-    </div>
-@else
-    <div class="alert alert-info py-2 small mb-3">
-        <i class="fas fa-clock me-1"></i>
-        Hệ thống <strong>tự quét kho Steam + giá Buff</strong> mỗi
-        <strong>{{ (int) config('cs2price.price_auto_sync_minutes', 240) }} phút</strong>
-        (~{{ round((int) config('cs2price.price_auto_sync_minutes', 240) / 60, 1) }} giờ) qua cron — không cần bấm sync.
-        Nút <i class="fas fa-sync-alt"></i> chỉ để cập nhật <strong>ngay</strong> khi cần.
-        @if(($buffAccountCount ?? 1) > 1)
-            · <strong>{{ $buffAccountCount }} acc Buff</strong> — tự chuyển acc khi bị 429/403.
-        @endif
+    <div class="alert alert-warning py-2 small mb-3">
+        Chưa có acc Buff hoạt động.
     </div>
 @endif
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <p class="text-muted mb-0">Thêm link kho public, check giá và hiển thị trang ngoài. Tự động: cron → <code>schedule:run</code> → <code>cs2price:sync-prices</code>.</p>
+<div class="d-flex justify-content-end align-items-center mb-3">
     <a href="{{ route('admin.inventories.create') }}" class="btn btn-primary">
         <i class="fas fa-plus me-1"></i> Thêm kho
     </a>
