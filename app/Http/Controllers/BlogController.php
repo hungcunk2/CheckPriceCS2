@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BlogCoverImageProcessor;
 use App\Support\BlogPosts;
 use App\Support\SiteMeta;
 use Illuminate\Http\RedirectResponse;
@@ -38,8 +39,8 @@ class BlogController extends Controller
         if (! empty($article['cover_url'])) {
             $meta['image'] = $article['cover_url'];
             $meta['image_alt'] = $article['title'];
-            $meta['image_width'] = 0;
-            $meta['image_height'] = 0;
+            $meta['image_width'] = BlogCoverImageProcessor::WIDTH;
+            $meta['image_height'] = BlogCoverImageProcessor::HEIGHT;
         }
 
         return view('blog.show', [

@@ -49,7 +49,7 @@
                     <input type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/png,image/webp"
                         class="form-control @error('cover_image') is-invalid @enderror">
                     @error('cover_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Khuyến nghị tỷ lệ 16:9.</div>
+                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Tự cắt giữa và resize 1200×675 (16:9) khi lưu.</div>
                     <img id="cover-image-preview" src="#" alt="" class="blog-cover-preview rounded border mt-2" style="display:none">
                 </div>
 

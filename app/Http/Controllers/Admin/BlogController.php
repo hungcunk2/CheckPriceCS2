@@ -4,16 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\BlogPostStore;
+use App\Support\BlogCoverImageProcessor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class BlogController extends Controller
 {
     public function __construct(
         private BlogPostStore $store,
+        private BlogCoverImageProcessor $coverImages,
     ) {}
 
     public function index(): View
@@ -118,7 +121,13 @@ class BlogController extends Controller
                 $this->store->deleteCoverFile($existing->cover_image);
             }
 
-            $validated['cover_image'] = $request->file('cover_image')->store('blog/covers', 'public');
+            try {
+                $validated['cover_image'] = $this->coverImages->store($request->file('cover_image'));
+            } catch (\Throwable) {
+                throw ValidationException::withMessages([
+                    'cover_image' => 'Không xử lý được ảnh. Thử file JPG/PNG/WebP khác.',
+                ]);
+            }
         } elseif ($request->boolean('remove_cover_image') && $existing?->cover_image) {
             $this->store->deleteCoverFile($existing->cover_image);
             $validated['cover_image'] = null;

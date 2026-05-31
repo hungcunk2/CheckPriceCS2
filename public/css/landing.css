@@ -842,7 +842,8 @@ body.has-lp-nav .app-main {
 .lp-blog-hero {
     position: relative;
     width: 100%;
-    height: clamp(14rem, 32vw, 22rem);
+    aspect-ratio: 16 / 9;
+    max-height: 22rem;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -906,7 +907,8 @@ body.has-lp-nav .app-main {
 }
 
 .lp-blog-card-cover {
-    height: 10rem;
+    aspect-ratio: 16 / 9;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
