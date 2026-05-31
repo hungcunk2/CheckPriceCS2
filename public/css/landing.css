@@ -835,6 +835,31 @@ body.has-lp-nav .app-main {
     max-width: 48rem;
 }
 
+.lp-blog-article--has-cover {
+    padding-top: 0;
+}
+
+.lp-blog-hero {
+    position: relative;
+    width: 100%;
+    height: clamp(14rem, 32vw, 22rem);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.lp-blog-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.15) 0%, rgba(13, 17, 23, 0.85) 100%);
+}
+
+.lp-blog-article--has-cover .lp-blog-article-inner {
+    margin-top: -4rem;
+    position: relative;
+    z-index: 1;
+}
+
 .lp-blog-back {
     display: inline-flex;
     align-items: center;
@@ -886,6 +911,12 @@ body.has-lp-nav .app-main {
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, rgba(88, 166, 255, 0.2), rgba(247, 129, 102, 0.2));
+}
+
+.lp-blog-card-cover--image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .lp-blog-card-letter {
@@ -1098,6 +1129,19 @@ body.has-lp-nav .app-main {
     color: inherit;
     text-decoration: none;
     transition: border-color 0.2s;
+    overflow: hidden;
+}
+
+.lp-blog-related-cover {
+    height: 6rem;
+    margin: -1rem -1rem 0.75rem;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.lp-blog-related-card-body {
+    display: block;
 }
 
 .lp-blog-related-card:hover { border-color: rgba(88, 166, 255, 0.4); }

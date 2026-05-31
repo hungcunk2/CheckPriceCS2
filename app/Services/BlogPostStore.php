@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BlogPost;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class BlogPostStore
@@ -125,7 +126,20 @@ class BlogPostStore
 
     public function delete(int $id): void
     {
-        BlogPost::query()->whereKey($id)->delete();
+        $row = BlogPost::query()->find($id);
+        if (! $row) {
+            return;
+        }
+
+        $this->deleteCoverFile($row->cover_image);
+        $row->delete();
+    }
+
+    public function deleteCoverFile(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     public function slugFromTitle(string $title): string
@@ -157,7 +171,7 @@ class BlogPostStore
             $tags = array_values(array_filter(array_map('trim', explode(',', $tags))));
         }
 
-        return [
+        $payload = [
             'slug' => (string) ($attributes['slug'] ?? ''),
             'title' => (string) ($attributes['title'] ?? ''),
             'excerpt' => (string) ($attributes['excerpt'] ?? ''),
@@ -167,6 +181,12 @@ class BlogPostStore
             'tags' => $tags,
             'is_published' => (bool) ($attributes['is_published'] ?? true),
         ];
+
+        if (array_key_exists('cover_image', $attributes)) {
+            $payload['cover_image'] = $attributes['cover_image'];
+        }
+
+        return $payload;
     }
 
     private function asObject(BlogPost $row): object
@@ -176,6 +196,8 @@ class BlogPostStore
             'slug' => $row->slug,
             'title' => $row->title,
             'excerpt' => $row->excerpt,
+            'cover_image' => $row->cover_image,
+            'cover_url' => $row->coverUrl(),
             'content' => $row->content,
             'published_at' => $row->published_at?->format('Y-m-d'),
             'read_time' => $row->read_time,

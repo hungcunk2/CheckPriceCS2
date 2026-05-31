@@ -7,7 +7,7 @@
 <div class="row">
     <div class="col-lg-9">
         <div class="panel-admin rounded border p-4">
-            <form method="POST" action="{{ $post ? route('admin.blog.update', $post->id) : route('admin.blog.store') }}">
+            <form method="POST" action="{{ $post ? route('admin.blog.update', $post->id) : route('admin.blog.store') }}" enctype="multipart/form-data">
                 @csrf
                 @if($post)
                     @method('PUT')
@@ -24,6 +24,24 @@
                     <label class="form-label">Mô tả ngắn <span class="text-danger">*</span></label>
                     <textarea name="excerpt" class="form-control @error('excerpt') is-invalid @enderror" rows="2" required maxlength="500">{{ old('excerpt', $post->excerpt ?? '') }}</textarea>
                     @error('excerpt')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ảnh nền bài viết</label>
+                    @if(!empty($post?->cover_url))
+                        <div class="mb-2">
+                            <img src="{{ $post->cover_url }}" alt="Ảnh nền hiện tại" class="blog-cover-preview rounded border">
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="remove_cover_image" value="1" class="form-check-input" id="remove_cover_image">
+                            <label class="form-check-label" for="remove_cover_image">Xóa ảnh nền hiện tại</label>
+                        </div>
+                    @endif
+                    <input type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/png,image/webp"
+                        class="form-control @error('cover_image') is-invalid @enderror">
+                    @error('cover_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">JPG, PNG hoặc WebP, tối đa 4MB. Khuyến nghị tỷ lệ 16:9.</div>
+                    <img id="cover-image-preview" src="#" alt="" class="blog-cover-preview rounded border mt-2" style="display:none">
                 </div>
 
                 <div class="row g-3 mb-3">
@@ -79,6 +97,12 @@
 @push('styles')
 <style>
     .tox-tinymce { border-radius: 0.375rem !important; }
+    .blog-cover-preview {
+        display: block;
+        max-width: 100%;
+        max-height: 12rem;
+        object-fit: cover;
+    }
 </style>
 @endpush
 
@@ -113,6 +137,20 @@ document.addEventListener('DOMContentLoaded', function () {
             tinymce.triggerSave();
         }
     });
+
+    const coverInput = document.getElementById('cover_image');
+    const coverPreview = document.getElementById('cover-image-preview');
+    if (coverInput && coverPreview) {
+        coverInput.addEventListener('change', function () {
+            const file = coverInput.files && coverInput.files[0];
+            if (!file) {
+                coverPreview.style.display = 'none';
+                return;
+            }
+            coverPreview.src = URL.createObjectURL(file);
+            coverPreview.style.display = 'block';
+        });
+    }
 });
 </script>
 @endpush

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class BlogPost extends Model
 {
@@ -10,6 +11,7 @@ class BlogPost extends Model
         'slug',
         'title',
         'excerpt',
+        'cover_image',
         'content',
         'published_at',
         'read_time',
@@ -26,6 +28,15 @@ class BlogPost extends Model
         ];
     }
 
+    public function coverUrl(): ?string
+    {
+        if (! $this->cover_image) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->cover_image);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -35,6 +46,7 @@ class BlogPost extends Model
             'id' => $this->id,
             'title' => $this->title,
             'excerpt' => $this->excerpt,
+            'cover_url' => $this->coverUrl(),
             'content' => $this->content,
             'date' => $this->published_at->format('Y-m-d'),
             'read_time' => $this->read_time,

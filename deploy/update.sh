@@ -12,6 +12,7 @@ if [ -f scripts/generate-og-share.php ] && [ ! -f public/images/og-share.jpg ]; 
   php scripts/generate-og-share.php || true
 fi
 php artisan migrate --force --no-interaction
+php artisan storage:link 2>/dev/null || true
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache

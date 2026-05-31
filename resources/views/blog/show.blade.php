@@ -8,7 +8,12 @@
     $formattedDate = \Carbon\Carbon::parse($post['date'])->format('d/m/Y');
 @endphp
 
-<article class="lp-blog-article">
+<article class="lp-blog-article @if(!empty($post['cover_url'])) lp-blog-article--has-cover @endif">
+    @if(!empty($post['cover_url']))
+        <div class="lp-blog-hero" style="background-image: url('{{ $post['cover_url'] }}')">
+            <div class="lp-blog-hero-overlay"></div>
+        </div>
+    @endif
     <div class="lp-container lp-blog-article-inner">
         <a href="{{ route('blog.index') }}" class="lp-blog-back">
             <i class="fas fa-arrow-left"></i>
@@ -38,10 +43,15 @@
                 <div class="lp-blog-related-grid">
                     @foreach($related as $item)
                         <a href="{{ route('blog.show', $item['id']) }}" class="lp-blog-related-card lp-glass">
+                            @if(!empty($item['cover_url']))
+                                <div class="lp-blog-related-cover" style="background-image: url('{{ $item['cover_url'] }}')"></div>
+                            @endif
+                            <div class="lp-blog-related-card-body">
                             <div class="lp-muted" style="font-size:0.75rem;margin-bottom:0.25rem">
                                 {{ \Carbon\Carbon::parse($item['date'])->format('d/m/Y') }}
                             </div>
                             <div class="lp-blog-related-card-title">{{ $item['title'] }}</div>
+                            </div>
                         </a>
                     @endforeach
                 </div>
@@ -68,7 +78,7 @@
     ],
     'mainEntityOfPage' => route('blog.show', $post['id']),
     'inLanguage' => 'vi',
-], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
+] + (! empty($post['cover_url']) ? ['image' => $post['cover_url']] : []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
 </script>
 @endpush
 
