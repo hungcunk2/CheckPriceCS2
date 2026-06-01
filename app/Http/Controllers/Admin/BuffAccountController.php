@@ -159,15 +159,16 @@ class BuffAccountController extends Controller
             ->with('success', "Đã import {$count} acc từ .env vào DB.");
     }
 
-    public function probeAll(): RedirectResponse
+    public function probeAll(Request $request): JsonResponse|RedirectResponse
     {
         $messages = [];
 
         $csResult = $this->csTradeHealth->probe();
         $messages[] = 'cs.trade: '.$csResult['message'];
 
+        $buffResults = [];
         if (Buff163AccountPool::isConfigured()) {
-            $this->health->probeAll();
+            $buffResults = $this->health->probeAll();
             $messages[] = 'Buff: đã kiểm tra tất cả acc.';
         } else {
             $messages[] = 'Buff: chưa có acc — bỏ qua.';
@@ -176,32 +177,54 @@ class BuffAccountController extends Controller
         $empireResult = $this->empireHealth->probe();
         $messages[] = 'Empire: '.($empireResult['message'] ?? '—');
 
+        $message = implode(' ', $messages);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+                'cstrade' => $csResult,
+                'buff' => $buffResults,
+                'empire' => $empireResult,
+            ]);
+        }
+
         return redirect()
             ->route('admin.buff-accounts.index')
-            ->with('success', implode(' ', $messages));
+            ->with('success', $message);
     }
 
-    public function probeCsTrade(): RedirectResponse
+    public function probeCsTrade(Request $request): JsonResponse|RedirectResponse
     {
         $result = $this->csTradeHealth->probe();
+        $ok = ($result['status'] ?? '') === 'ok';
+        $message = 'cs.trade: '.($result['message'] ?? '—');
 
-        $type = ($result['status'] ?? '') === 'ok' ? 'success' : 'error';
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => $ok, 'message' => $message, 'result' => $result]);
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')
-            ->with($type, 'cs.trade: '.($result['message'] ?? '—'));
+            ->with($ok ? 'success' : 'error', $message);
     }
 
-    public function probeEmpire(): RedirectResponse
+    public function probeEmpire(Request $request): JsonResponse|RedirectResponse
     {
         $result = $this->empireHealth->probe();
 
         $status = $result['status'] ?? '';
+        $ok = in_array($status, ['ok', 'warning'], true);
         $type = $status === 'ok' ? 'success' : ($status === 'warning' ? 'warning' : 'error');
+        $message = 'Empire: '.($result['message'] ?? '—');
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => $ok, 'message' => $message, 'result' => $result]);
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')
-            ->with($type, 'Empire: '.($result['message'] ?? '—'));
+            ->with($type, $message);
     }
 
     public function probe(Request $request, string $label): JsonResponse|RedirectResponse
@@ -219,7 +242,14 @@ class BuffAccountController extends Controller
         $result = $this->health->probe($label);
 
         if ($request->wantsJson()) {
-            return response()->json(['ok' => true, 'result' => $result]);
+            $ok = ($result['status'] ?? '') === 'ok';
+
+            return response()->json([
+                'ok' => $ok,
+                'message' => 'Acc '.$label.': '.($result['message'] ?? '—'),
+                'result' => $result,
+                'label' => $label,
+            ]);
         }
 
         return redirect()

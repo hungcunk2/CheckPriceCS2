@@ -8,6 +8,7 @@
 @endpush
 
 @section('content')
+<div id="admin-inv-toast" class="position-fixed top-0 end-0 p-3" style="z-index: 3100; max-width: 420px;"></div>
 @if(empty($buffConfigured))
     <div class="alert alert-warning py-2 small mb-3">
         Chưa có acc Buff hoạt động.
@@ -60,6 +61,7 @@
                         role="button"
                         tabindex="0"
                         data-bs-target="#admin-inv-items-{{ $inv->id }}"
+                        data-inventory-id="{{ $inv->id }}"
                         aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
                         aria-controls="admin-inv-items-{{ $inv->id }}"
                     >
@@ -75,7 +77,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>
+                        <td class="inv-buff-price-cell">
                             @if(($inv->last_total_cny ?? 0) > 0)
                                 <span class="text-success">@include('partials.price-converted', ['cny' => $inv->last_total_cny])</span><br>
                                 <small class="text-muted">¥{{ number_format($inv->last_total_cny, 2) }}</small>
@@ -84,7 +86,7 @@
                             @endif
                         </td>
                         @if($empireEnabled ?? false)
-                            <td>
+                            <td class="inv-empire-price-cell">
                                 @if(($empireTotalCny ?? 0) > 0)
                                     <span class="text-warning">@include('partials.price-converted', ['cny' => $empireTotalCny])</span><br>
                                     <small class="text-muted">≈ ¥{{ number_format($empireTotalCny, 2) }}</small>
@@ -93,7 +95,7 @@
                                 @endif
                             </td>
                         @endif
-                        <td>{{ count($items) ?: ($inv->item_count ?? 0) }}</td>
+                        <td class="inv-item-count-cell">{{ count($items) ?: ($inv->item_count ?? 0) }}</td>
                         <td class="small" style="min-width: 140px">
                             @include('partials.trade-countdown', [
                                 'inventory' => $inv,
@@ -102,7 +104,7 @@
                                 'class' => 'trade-countdown--table',
                             ])
                         </td>
-                        <td class="small">
+                        <td class="small inv-updated-cell">
                             @if(!empty($inv->last_checked_at))
                                 {{ \Carbon\Carbon::parse($inv->last_checked_at)->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
                             @else
@@ -199,18 +201,34 @@ function syncAdminInventoryChevron(panelId, open) {
     if (row) row.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
+function showInvToast(message, type, extraHtml) {
+    const host = document.getElementById('admin-inv-toast');
+    if (!host) return;
+    const div = document.createElement('div');
+    div.className = `alert alert-${type} alert-dismissible fade show shadow-sm mb-2`;
+    const safe = String(message ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    div.innerHTML = safe + (extraHtml || '') + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    host.appendChild(div);
+    setTimeout(() => div.remove(), 12000);
+}
+
 document.querySelectorAll('.btn-refresh').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         const id = btn.dataset.id;
+        const row = document.querySelector(`tr.admin-inventory-summary-row[data-inventory-id="${id}"]`);
         const loading = document.getElementById('admin-loading');
+        const icon = btn.querySelector('i');
         loading.style.display = 'flex';
         btn.disabled = true;
+        if (icon) icon.classList.add('fa-spin');
         try {
             const res = await fetch(@json(route('admin.inventories.refresh', ['inventory' => 0])).replace('/0/', '/' + id + '/'), {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
             });
             let json = {};
@@ -219,13 +237,31 @@ document.querySelectorAll('.btn-refresh').forEach(btn => {
             } catch (parseErr) {
                 throw new Error(res.status === 504 ? 'Timeout server (quá 60s) — thử lại hoặc chờ cron' : 'Phản hồi không hợp lệ (HTTP ' + res.status + ')');
             }
-            if (json.ok) location.reload();
-            else alert(json.message || ('Lỗi check giá (HTTP ' + res.status + ')'));
-        } catch (e) {
-            alert(e.message || 'Lỗi kết nối');
+            if (!json.ok) {
+                showInvToast(json.message || ('Lỗi check giá (HTTP ' + res.status + ')'), 'danger');
+                return;
+            }
+            if (row) {
+                const buffCell = row.querySelector('.inv-buff-price-cell');
+                const empireCell = row.querySelector('.inv-empire-price-cell');
+                const countCell = row.querySelector('.inv-item-count-cell');
+                const updatedCell = row.querySelector('.inv-updated-cell');
+                if (buffCell && json.buff_price_html) buffCell.innerHTML = json.buff_price_html;
+                if (empireCell && json.empire_price_html) empireCell.innerHTML = json.empire_price_html;
+                if (countCell && json.item_count != null) countCell.textContent = json.item_count;
+                if (updatedCell && json.last_checked_at) updatedCell.textContent = json.last_checked_at;
+            }
+            const detail = document.getElementById('admin-inv-items-' + id);
+            const hint = detail?.classList.contains('show')
+                ? '<span class="d-block small mt-1">Bảng skin bên dưới chưa tự cập nhật — thu gọn rồi mở lại hoặc F5.</span>'
+                : '';
+            showInvToast(json.message || 'Đã cập nhật giá.', 'success', hint);
+        } catch (err) {
+            showInvToast(err.message || 'Lỗi kết nối', 'danger');
         } finally {
             loading.style.display = 'none';
             btn.disabled = false;
+            if (icon) icon.classList.remove('fa-spin');
         }
     });
 });

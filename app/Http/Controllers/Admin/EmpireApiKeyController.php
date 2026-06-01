@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\CsgoEmpireHealthService;
 use App\Services\EmpireApiKeyStore;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -82,10 +83,14 @@ class EmpireApiKeyController extends Controller
             ->with('success', 'Đã xóa API key Empire.');
     }
 
-    public function probe(int $empireKey): RedirectResponse
+    public function probe(Request $request, int $empireKey): JsonResponse|RedirectResponse
     {
         $row = $this->store->find($empireKey);
         if (! $row) {
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => 'Không tìm thấy key.'], 404);
+            }
+
             return redirect()->route('admin.buff-accounts.index')->with('error', 'Không tìm thấy key.');
         }
 
@@ -94,12 +99,22 @@ class EmpireApiKeyController extends Controller
             'api_key' => (string) $row->api_key,
         ]);
 
-        $type = ($result['status'] ?? '') === 'ok' ? 'success' : 'error';
         $http = isset($result['http_status']) ? ' HTTP '.$result['http_status'] : '';
+        $message = $row->label.':'.$http.' — '.($result['message'] ?? '—');
+        $ok = ($result['status'] ?? '') === 'ok';
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => $ok,
+                'message' => $message,
+                'result' => $result,
+                'empire_key_id' => $empireKey,
+            ]);
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')
-            ->with($type, $row->label.':'.$http.' — '.($result['message'] ?? '—'));
+            ->with($ok ? 'success' : 'error', $message);
     }
 
     public function importFromEnv(): RedirectResponse

@@ -143,7 +143,23 @@ class InventoryController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'ok' => true,
-                    'message' => 'Đã cập nhật giá Buff + Empire (lần ⟳ không quét lại Steam — dùng cache kho).',
+                    'message' => sprintf(
+                        'Đã cập nhật — %d/%d skin có giá Buff%s.',
+                        (int) $result['priced_count'],
+                        (int) $result['item_count'],
+                        Cs2PriceFeatures::empireEnabled()
+                            ? ', Empire: '.(int) ($result['empire_priced_count'] ?? 0).' skin'
+                            : ''
+                    ),
+                    'inventory_id' => $inventory,
+                    'item_count' => (int) $result['item_count'],
+                    'priced_count' => (int) $result['priced_count'],
+                    'empire_priced_count' => (int) ($result['empire_priced_count'] ?? 0),
+                    'total_cny' => (float) $result['total_cny'],
+                    'total_empire_cny' => (float) ($result['total_empire_cny'] ?? 0),
+                    'last_checked_at' => Carbon::now()->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i'),
+                    'buff_price_html' => $this->renderInventoryBuffPriceCell($result),
+                    'empire_price_html' => $this->renderInventoryEmpirePriceCell($result),
                 ]);
             }
 
@@ -231,5 +247,41 @@ class InventoryController extends Controller
             @set_time_limit($seconds);
             @ini_set('max_execution_time', (string) $seconds);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function renderInventoryBuffPriceCell(array $result): string
+    {
+        $totalCny = (float) ($result['total_cny'] ?? 0);
+        if ($totalCny <= 0) {
+            return '<span class="text-warning">Chưa có giá</span>';
+        }
+
+        $converted = view('partials.price-converted', ['cny' => $totalCny])->render();
+
+        return '<span class="text-success">'.$converted.'</span><br><small class="text-muted">¥'
+            .number_format($totalCny, 2).'</small>';
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function renderInventoryEmpirePriceCell(array $result): string
+    {
+        if (! Cs2PriceFeatures::empireEnabled()) {
+            return '';
+        }
+
+        $totalCny = (float) ($result['total_empire_cny'] ?? 0);
+        if ($totalCny <= 0) {
+            return '<span class="text-muted small">Chưa có / chưa sync</span>';
+        }
+
+        $converted = view('partials.price-converted', ['cny' => $totalCny])->render();
+
+        return '<span class="text-warning">'.$converted.'</span><br><small class="text-muted">≈ ¥'
+            .number_format($totalCny, 2).'</small>';
     }
 }
