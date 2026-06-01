@@ -54,13 +54,24 @@ class BuffAccountController extends Controller
         $validated = $request->validate([
             'cny_to_vnd' => ['required', 'numeric', 'min:1', 'max:100000'],
             'vnd_to_usd' => ['required', 'numeric', 'min:1', 'max:1000000'],
-            'empire_coin_to_vnd' => ['required', 'numeric', 'min:0.01', 'max:10000000'],
+            'empire_coin_to_usd' => ['required', 'numeric', 'min:0.0001', 'max:100'],
         ]);
 
-        ExchangeRateStore::save($validated);
+        try {
+            ExchangeRateStore::save($validated);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->to(route('admin.buff-accounts.index').'#exchange-rates')
+                ->withInput()
+                ->with('error', str_contains($e->getMessage(), 'exchange_rates')
+                    ? 'Chưa có bảng tỷ giá — chạy trên VPS: php artisan migrate --force'
+                    : 'Không lưu được tỷ giá: '.$e->getMessage());
+        }
 
         return redirect()
-            ->route('admin.buff-accounts.index')
+            ->to(route('admin.buff-accounts.index').'#exchange-rates')
             ->with('success', 'Đã lưu tỷ giá quy đổi.');
     }
 

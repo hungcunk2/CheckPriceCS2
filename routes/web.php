@@ -43,16 +43,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/blog/{blog}', [AdminBlogController::class, 'destroy'])->name('blog.destroy');
 
         Route::get('/buff-accounts', [BuffAccountController::class, 'index'])->name('buff-accounts.index');
+        Route::get('/buff-accounts/exchange-rates', fn () => redirect()->route('admin.buff-accounts.index').'#exchange-rates')
+            ->name('buff-accounts.exchange-rates.show');
+        Route::put('/buff-accounts/exchange-rates', [BuffAccountController::class, 'updateExchangeRates'])->name('buff-accounts.exchange-rates');
         Route::get('/buff-accounts/create', [BuffAccountController::class, 'create'])->name('buff-accounts.create');
         Route::post('/buff-accounts', [BuffAccountController::class, 'store'])->name('buff-accounts.store');
         Route::post('/buff-accounts/import-env', [BuffAccountController::class, 'importFromEnv'])->name('buff-accounts.import-env');
-        Route::get('/buff-accounts/{buffAccount}/edit', [BuffAccountController::class, 'edit'])->name('buff-accounts.edit');
-        Route::put('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'update'])->name('buff-accounts.update');
-        Route::delete('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'destroy'])->name('buff-accounts.destroy');
         Route::post('/buff-accounts/probe-all', [BuffAccountController::class, 'probeAll'])->name('buff-accounts.probe-all');
         Route::post('/buff-accounts/cstrade-probe', [BuffAccountController::class, 'probeCsTrade'])->name('buff-accounts.cstrade-probe');
         Route::post('/buff-accounts/empire-probe', [BuffAccountController::class, 'probeEmpire'])->name('buff-accounts.empire-probe');
-        Route::put('/buff-accounts/exchange-rates', [BuffAccountController::class, 'updateExchangeRates'])->name('buff-accounts.exchange-rates');
+        Route::get('/buff-accounts/{buffAccount}/edit', [BuffAccountController::class, 'edit'])->whereNumber('buffAccount')->name('buff-accounts.edit');
+        Route::put('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'update'])->whereNumber('buffAccount')->name('buff-accounts.update');
+        Route::delete('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'destroy'])->whereNumber('buffAccount')->name('buff-accounts.destroy');
         Route::get('/buff-accounts/empire-keys/create', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'create'])->name('buff-accounts.empire-keys.create');
         Route::post('/buff-accounts/empire-keys', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'store'])->name('buff-accounts.empire-keys.store');
         Route::post('/buff-accounts/empire-keys/import-env', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'importFromEnv'])->name('buff-accounts.empire-keys.import-env');

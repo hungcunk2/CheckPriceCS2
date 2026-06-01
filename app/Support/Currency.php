@@ -82,11 +82,18 @@ class Currency
 
     public static function empireCoinsToVnd(?float $coins): ?float
     {
-        if ($coins === null) {
+        $usd = self::empireCoinsToUsd($coins);
+
+        if ($usd === null) {
             return null;
         }
 
-        return round($coins * ExchangeRateStore::empireCoinToVnd(), 0);
+        $vndPerUsd = ExchangeRateStore::vndToUsd();
+        if ($vndPerUsd <= 0) {
+            return null;
+        }
+
+        return round($usd * $vndPerUsd, 0);
     }
 
     public static function empireCoinsToCny(?float $coins): ?float

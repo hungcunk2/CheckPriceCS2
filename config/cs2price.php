@@ -93,8 +93,8 @@ return [
     'empire_bulk_parallel' => filter_var(env('EMPIRE_BULK_PARALLEL', true), FILTER_VALIDATE_BOOL),
     // 1 coin Empire ≈ bao nhiêu USD (thường ~0.614 khi nạp; chỉnh theo thực tế).
     'empire_coin_to_usd' => (float) env('EMPIRE_COIN_TO_USD', 0.6143),
-    // Mặc định = coin→USD × VND/USD; admin có thể sửa trực tiếp trong DB.
-    'empire_coin_to_vnd' => (float) env('EMPIRE_COIN_TO_VND', env('EMPIRE_COIN_TO_USD', 0.6143) * env('VND_TO_USD', 26700)),
+    // ₫/coin = empire_coin_to_usd × vnd_to_usd (admin nhập coin→USD).
+    'empire_coin_to_vnd' => (float) env('EMPIRE_COIN_TO_USD', 0.6143) * (float) env('VND_TO_USD', 26700),
     'empire_price_refresh_seconds' => (int) env('EMPIRE_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
     'empire_not_found_cache_seconds' => (int) env('EMPIRE_NOT_FOUND_CACHE_SECONDS', 3600),
     'empire_error_cache_seconds' => (int) env('EMPIRE_ERROR_CACHE_SECONDS', 300),

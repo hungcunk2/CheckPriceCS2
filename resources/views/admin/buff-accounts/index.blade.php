@@ -17,14 +17,14 @@
     $rates = $exchangeRates ?? [];
     $cnyVnd = (float) ($rates['cny_to_vnd'] ?? 3750);
     $vndUsd = (float) ($rates['vnd_to_usd'] ?? 26700);
-    $coinVnd = (float) ($rates['empire_coin_to_vnd'] ?? 16401);
     $coinUsd = (float) ($rates['empire_coin_to_usd'] ?? 0.6143);
+    $coinVnd = (float) ($rates['empire_coin_to_vnd'] ?? \App\Support\ExchangeRateStore::coinToVndFromUsd($coinUsd, $vndUsd));
 @endphp
 
-<div class="panel-admin rounded border mb-4">
+<div id="exchange-rates" class="panel-admin rounded border mb-4">
     <div class="p-3 border-bottom">
         <h2 class="h6 mb-0">Tỷ giá quy đổi</h2>
-        <p class="small text-muted mb-0 mt-1">Dùng cho Buff (¥→₫→$) và Empire (coin→₫). Lưu trong database — ưu tiên hơn .env.</p>
+        <p class="small text-muted mb-0 mt-1">Buff: ¥→₫→$. Empire: <strong>coin→USD</strong>, rồi USD→₫ theo tỷ giá <em>1 USD = ? ₫</em> bên cạnh.</p>
     </div>
     <form method="POST" action="{{ route('admin.buff-accounts.exchange-rates') }}" class="p-3">
         @csrf
@@ -49,18 +49,19 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <label class="form-label small fw-semibold" for="empire_coin_to_vnd">Empire coin → VND</label>
+                <label class="form-label small fw-semibold" for="empire_coin_to_usd">Empire coin → USD</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text">1 coin =</span>
-                    <input type="number" step="0.01" min="0.01" class="form-control" id="empire_coin_to_vnd" name="empire_coin_to_vnd"
-                           value="{{ old('empire_coin_to_vnd', $coinVnd) }}" required>
-                    <span class="input-group-text">₫</span>
+                    <input type="number" step="0.0001" min="0.0001" class="form-control" id="empire_coin_to_usd" name="empire_coin_to_usd"
+                           value="{{ old('empire_coin_to_usd', $coinUsd) }}" required>
+                    <span class="input-group-text">USD</span>
                 </div>
+                <div class="form-text">→ ₫: <strong id="empire_coin_vnd_preview">{{ number_format($coinVnd) }}</strong>/coin (× tỷ giá USD)</div>
             </div>
         </div>
         <div class="small text-muted mt-3">
             Xem trước:
-            <span class="ms-2">100 coin Empire ≈ <strong>{{ number_format($coinVnd * 100) }} ₫</strong> (≈ ${{ number_format($coinUsd * 100, 2) }})</span>
+            <span class="ms-2">100 coin ≈ <strong>${{ number_format($coinUsd * 100, 2) }}</strong> ≈ <strong id="empire_100_vnd_preview">{{ number_format($coinVnd * 100) }} ₫</strong></span>
             <span class="ms-2">· 100 ¥ ≈ <strong>{{ number_format($cnyVnd * 100) }} ₫</strong></span>
             @if(($rates['source'] ?? '') === 'config')
                 <span class="badge text-bg-secondary ms-1">đang dùng .env — chạy migrate để lưu DB</span>
@@ -73,6 +74,26 @@
         </div>
     </form>
 </div>
+@push('scripts')
+<script>
+(function () {
+    const coinUsd = document.getElementById('empire_coin_to_usd');
+    const vndUsd = document.getElementById('vnd_to_usd');
+    const perCoin = document.getElementById('empire_coin_vnd_preview');
+    const per100 = document.getElementById('empire_100_vnd_preview');
+    if (!coinUsd || !vndUsd || !perCoin) return;
+    function refresh() {
+        const usd = parseFloat(coinUsd.value) || 0;
+        const rate = parseFloat(vndUsd.value) || 0;
+        const vnd = Math.round(usd * rate);
+        perCoin.textContent = vnd.toLocaleString('vi-VN');
+        if (per100) per100.textContent = (vnd * 100).toLocaleString('vi-VN');
+    }
+    coinUsd.addEventListener('input', refresh);
+    vndUsd.addEventListener('input', refresh);
+})();
+</script>
+@endpush
 
 @php
     $csCheck = $csTrade['last_check'] ?? null;
@@ -212,8 +233,12 @@
                     <span class="text-warning">Chưa có key</span>
                 @endif
             </dd>
-            <dt class="col-sm-3">1 coin → VND</dt>
-            <dd class="col-sm-9">{{ number_format($empire['coin_to_vnd'] ?? 0) }} ₫ (≈ ${{ number_format($empire['coin_to_usd'] ?? 0, 4) }})</dd>
+            <dt class="col-sm-3">1 coin Empire</dt>
+            <dd class="col-sm-9">
+                ≈ ${{ number_format($empire['coin_to_usd'] ?? 0, 4) }}
+                → {{ number_format($empire['coin_to_vnd'] ?? 0) }} ₫
+                <span class="text-muted small">(USD × {{ number_format($rates['vnd_to_usd'] ?? 26700) }} ₫)</span>
+            </dd>
             <dt class="col-sm-3">Chế độ lấy giá</dt>
             <dd class="col-sm-9">
                 <code>{{ config('cs2price.empire_fetch_mode', 'auto') }}</code>
