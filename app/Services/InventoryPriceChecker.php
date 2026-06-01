@@ -26,6 +26,9 @@ class InventoryPriceChecker
      *   items: list<array<string, mixed>>
      * }
      */
+    /**
+     * @param  'sync'|'admin'|'http'|'guest'  $empireMode
+     */
     public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false, string $empireMode = 'guest'): array
     {
         $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);

@@ -108,4 +108,7 @@ return [
     // 0 = auto: số key × empire_http_max_searches_per_key
     'empire_http_max_searches' => (int) env('EMPIRE_HTTP_MAX_SEARCHES', 0),
     'empire_http_max_searches_per_key' => (int) env('EMPIRE_HTTP_MAX_SEARCHES_PER_KEY', 10),
+    // Nút ⟳ admin: 0 = search mọi skin còn thiếu trong kho
+    'empire_admin_max_searches' => (int) env('EMPIRE_ADMIN_MAX_SEARCHES', 0),
+    'empire_admin_max_pages' => (int) env('EMPIRE_ADMIN_MAX_PAGES', 15),
 ];

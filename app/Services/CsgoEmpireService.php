@@ -25,7 +25,7 @@ class CsgoEmpireService
      * }>
      */
     /**
-     * @param  'sync'|'http'|'guest'  $mode  sync=cron đầy đủ, http=nút ⟳ admin, guest=trang chủ
+     * @param  'sync'|'admin'|'http'|'guest'  $mode  sync=cron, admin=⟳ 1 kho, http=giới hạn, guest=trang chủ
      */
     public function getPricesForHashNames(array $marketHashNames, string $mode = 'guest'): array
     {
@@ -51,7 +51,7 @@ class CsgoEmpireService
         $toFetch = $this->resolveViaBulkIndex($toFetch, $results, $mode);
 
         $searchLimit = match ($mode) {
-            'sync' => 0,
+            'sync', 'admin' => $this->adminSearchLimit(count($toFetch)),
             'http' => $this->httpSearchLimit(count($toFetch)),
             default => (int) config('cs2price.empire_max_fetches_per_check', 15),
         };
@@ -209,6 +209,10 @@ class CsgoEmpireService
             $httpBase = max(1, (int) config('cs2price.empire_http_max_pages', 12));
             $keyCount = max(1, count($accounts));
             $maxPages = min($maxPages, $httpBase * min($keyCount, 10));
+        } elseif ($fetchMode === 'admin') {
+            $adminBase = max(1, (int) config('cs2price.empire_admin_max_pages', 15));
+            $keyCount = max(1, count($accounts));
+            $maxPages = min($maxPages, $adminBase * min($keyCount, 10));
         }
         $delayMs = max(500, (int) config('cs2price.empire_page_delay_ms', 550));
         $trackWanted = $wantedKeys !== [];
@@ -844,13 +848,26 @@ class CsgoEmpireService
     private function searchDelayMs(string $mode): int
     {
         $base = max(3200, (int) config('cs2price.empire_search_delay_ms', 3500));
-        if ($mode !== 'http') {
+        if (! in_array($mode, ['http', 'admin'], true)) {
             return $base;
         }
 
         $keys = max(1, count(CsgoEmpireApiPool::available()));
 
         return max(800, (int) floor($base / $keys));
+    }
+
+    /**
+     * ⟳ admin / cron: mặc định search hết skin còn thiếu trong kho (0 = không giới hạn).
+     */
+    private function adminSearchLimit(int $remainingCount): int
+    {
+        $cap = (int) config('cs2price.empire_admin_max_searches', 0);
+        if ($cap <= 0) {
+            return 0;
+        }
+
+        return min($remainingCount, $cap);
     }
 
     private function skippedPrice(string $message): array

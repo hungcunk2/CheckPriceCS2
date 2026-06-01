@@ -136,20 +136,27 @@ class InventoryController extends Controller
                 $row->url,
                 $row->label ?? null,
                 refreshSteam: false,
-                empireMode: 'http',
+                empireMode: 'admin',
             );
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? true));
 
             if ($request->wantsJson()) {
+                $empireNote = '';
+                if (Cs2PriceFeatures::empireEnabled()) {
+                    $empireCount = (int) ($result['empire_priced_count'] ?? 0);
+                    $empireNote = ', Empire: '.$empireCount.' skin';
+                    if ($empireCount === 0) {
+                        $empireNote .= ' (kiểm tra API key Empire / EMPIRE_ENABLED)';
+                    }
+                }
+
                 return response()->json([
                     'ok' => true,
                     'message' => sprintf(
                         'Đã cập nhật — %d/%d skin có giá Buff%s.',
                         (int) $result['priced_count'],
                         (int) $result['item_count'],
-                        Cs2PriceFeatures::empireEnabled()
-                            ? ', Empire: '.(int) ($result['empire_priced_count'] ?? 0).' skin'
-                            : ''
+                        $empireNote
                     ),
                     'inventory_id' => $inventory,
                     'item_count' => (int) $result['item_count'],
@@ -226,7 +233,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($url, $label, refreshSteam: false, empireMode: 'http');
+            $result = $checker->checkUrl($url, $label, refreshSteam: false, empireMode: 'admin');
             $row = $this->store->find($id);
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? true) : true);
 
