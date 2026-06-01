@@ -13,6 +13,11 @@
         Chưa có acc Buff hoạt động.
     </div>
 @endif
+@if($empireEnabled ?? false)
+    <div class="alert alert-info py-2 small mb-3">
+        Empire đang bật — cột <strong>Empire</strong> / <strong>Nên bán</strong> trong bảng skin. Kho chưa đồng bộ sau khi bật Empire: bấm <i class="fas fa-sync-alt"></i> trên từng kho.
+    </div>
+@endif
 
 <div class="d-flex justify-content-end align-items-center mb-3">
     <a href="{{ route('admin.inventories.create') }}" class="btn btn-primary">
@@ -28,6 +33,9 @@
                     <th>#</th>
                     <th>Kho</th>
                     <th>Giá Buff</th>
+                    @if($empireEnabled ?? false)
+                        <th>Giá Empire</th>
+                    @endif
                     <th>Skin</th>
                     <th>Thời gian trade</th>
                     <th>Cập nhật</th>
@@ -37,7 +45,16 @@
             </thead>
             <tbody>
                 @forelse($inventories as $inv)
-                    @php $items = $inv->display_items ?? []; @endphp
+                    @php
+                        $items = $inv->display_items ?? [];
+                        $snap = is_array($inv->last_snapshot ?? null)
+                            ? $inv->last_snapshot
+                            : json_decode($inv->last_snapshot ?? '[]', true);
+                        $empireTotalCny = is_array($snap) ? ($snap['total_empire_cny'] ?? null) : null;
+                        if ($empireTotalCny === null && ($empireEnabled ?? false)) {
+                            $empireTotalCny = collect($items)->sum(fn ($row) => (float) (is_array($row) ? ($row['line_total_empire_cny'] ?? 0) : ($row->line_total_empire_cny ?? 0)));
+                        }
+                    @endphp
                     <tr
                         class="admin-inventory-summary-row"
                         role="button"
@@ -66,6 +83,16 @@
                                 <span class="text-warning">Chưa có giá</span>
                             @endif
                         </td>
+                        @if($empireEnabled ?? false)
+                            <td>
+                                @if(($empireTotalCny ?? 0) > 0)
+                                    <span class="text-warning">@include('partials.price-converted', ['cny' => $empireTotalCny])</span><br>
+                                    <small class="text-muted">≈ ¥{{ number_format($empireTotalCny, 2) }}</small>
+                                @else
+                                    <span class="text-muted small">Chưa có / chưa sync</span>
+                                @endif
+                            </td>
+                        @endif
                         <td>{{ count($items) ?: ($inv->item_count ?? 0) }}</td>
                         <td class="small" style="min-width: 140px">
                             @include('partials.trade-countdown', [
@@ -111,7 +138,7 @@
                         </td>
                     </tr>
                     <tr class="admin-inventory-detail-row">
-                        <td colspan="8" class="p-0 border-0">
+                        <td colspan="{{ ($empireEnabled ?? false) ? 9 : 8 }}" class="p-0 border-0">
                             <div id="admin-inv-items-{{ $inv->id }}" class="collapse {{ $loop->first ? 'show' : '' }}">
                                 <div class="p-4 border-top bg-light inventory-detail-panel-wrap">
                                     @include('partials.inventory-detail-panel', [
@@ -126,7 +153,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">Chưa có kho nào. Bấm "Thêm kho" để bắt đầu.</td>
+                        <td colspan="{{ ($empireEnabled ?? false) ? 9 : 8 }}" class="text-center text-muted py-4">Chưa có kho nào. Bấm "Thêm kho" để bắt đầu.</td>
                     </tr>
                 @endforelse
             </tbody>
