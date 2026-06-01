@@ -490,6 +490,59 @@ class CsgoEmpireService
     }
 
     /**
+     * Kiểm tra đúng một API key (không xoay pool).
+     *
+     * @param  array{label: string, api_key: string}  $account
+     * @return array{
+     *   market_value_coins: float|null,
+     *   listing_count: int|null,
+     *   empire_url: string|null,
+     *   error: string|null,
+     *   http_status: int|null
+     * }
+     */
+    public function probeForAccount(array $account, string $marketHashName = 'AK-47 | Redline (Field-Tested)'): array
+    {
+        if (! $this->isEnabled()) {
+            return array_merge($this->errorPrice('Empire tắt (EMPIRE_ENABLED=false)'), ['http_status' => null]);
+        }
+
+        if (trim((string) ($account['api_key'] ?? '')) === '') {
+            return array_merge($this->errorPrice('API key trống'), ['http_status' => null]);
+        }
+
+        try {
+            $response = Http::timeout(20)
+                ->acceptJson()
+                ->withHeaders(CsgoEmpireApiPool::headers($account))
+                ->get(self::API_BASE, [
+                    'per_page' => 50,
+                    'page' => 1,
+                    'search' => $marketHashName,
+                    'order' => 'market_value',
+                    'sort' => 'asc',
+                    'auction' => 'no',
+                ]);
+        } catch (\Throwable $e) {
+            return array_merge($this->errorPrice('Lỗi kết nối: '.$e->getMessage()), ['http_status' => null]);
+        }
+
+        if ($response->status() === 429 || $response->status() === 403) {
+            CsgoEmpireApiPool::markCooldown(
+                $account,
+                CsgoEmpireApiPool::cooldownSecondsForResponse($response),
+                $response->status()
+            );
+        } elseif ($response->status() === 401) {
+            CsgoEmpireApiPool::markCooldown($account, 600, 401);
+        }
+
+        $price = $this->parseSearchResponse($response, $marketHashName);
+
+        return array_merge($price, ['http_status' => $response->status()]);
+    }
+
+    /**
      * @return array{
      *   market_value_coins: float|null,
      *   listing_count: int|null,

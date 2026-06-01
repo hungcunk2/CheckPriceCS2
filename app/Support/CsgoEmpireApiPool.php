@@ -84,6 +84,18 @@ class CsgoEmpireApiPool
         return $headers;
     }
 
+    public static function cooldownRemaining(string $label): ?int
+    {
+        $until = Cache::get(self::cooldownKey($label));
+        if (! is_int($until)) {
+            return null;
+        }
+
+        $remaining = $until - time();
+
+        return $remaining > 0 ? $remaining : null;
+    }
+
     public static function markCooldown(array $account, int $seconds, ?int $httpStatus = null): void
     {
         $seconds = max(60, min($seconds, 3600));

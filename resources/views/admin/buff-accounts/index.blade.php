@@ -119,8 +119,8 @@
             @endif
             <form method="POST" action="{{ route('admin.buff-accounts.empire-probe') }}">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-outline-warning">
-                    <i class="fas fa-sync-alt me-1"></i> Kiểm tra Empire
+                <button type="submit" class="btn btn-sm btn-outline-warning" title="Kiểm tra tất cả key trong bảng">
+                    <i class="fas fa-sync-alt me-1"></i> Kiểm tra tất cả key
                 </button>
             </form>
         </div>
@@ -135,11 +135,22 @@
                             <th>API key</th>
                             <th>Ưu tiên</th>
                             <th>Trạng thái</th>
+                            <th>Lần check</th>
                             <th class="text-end">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($empireKeys as $ek)
+                            @php
+                                $ekCheck = $ek->last_check ?? null;
+                                $ekStatus = is_array($ekCheck) ? ($ekCheck['status'] ?? null) : null;
+                                $ekBadge = match ($ekStatus) {
+                                    'ok' => 'text-bg-success',
+                                    'error' => 'text-bg-danger',
+                                    default => 'text-bg-secondary',
+                                };
+                                $ekCooldown = $ek->cooldown_seconds ?? null;
+                            @endphp
                             <tr>
                                 <td><code>{{ $ek->label }}</code></td>
                                 <td class="font-monospace small text-muted">{{ $ek->api_key_hint }}</td>
@@ -150,8 +161,28 @@
                                     @else
                                         <span class="badge text-bg-secondary">Tắt</span>
                                     @endif
+                                    @if($ekCooldown)
+                                        <span class="badge text-bg-warning text-dark ms-1" title="Cooldown">⏳ {{ $ekCooldown }}s</span>
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if($ekCheck)
+                                        <span class="badge {{ $ekBadge }}">{{ $ekStatus === 'ok' ? 'OK' : 'Lỗi' }}</span>
+                                        <div class="text-muted">{{ \Illuminate\Support\Str::limit($ekCheck['message'] ?? '—', 48) }}</div>
+                                        @if(!empty($ekCheck['checked_at']))
+                                            <div class="text-muted">{{ \Carbon\Carbon::parse($ekCheck['checked_at'])->timezone('Asia/Ho_Chi_Minh')->format('d/m H:i') }}</div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">Chưa check</span>
+                                    @endif
                                 </td>
                                 <td class="text-end text-nowrap">
+                                    <form method="POST" action="{{ route('admin.buff-accounts.empire-keys.probe', $ek->id) }}" class="d-inline" title="Kiểm tra key này">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </form>
                                     <a href="{{ route('admin.buff-accounts.empire-keys.edit', $ek->id) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
                                     <form method="POST" action="{{ route('admin.buff-accounts.empire-keys.destroy', $ek->id) }}" class="d-inline" onsubmit="return confirm('Xóa key {{ $ek->label }}?');">
                                         @csrf

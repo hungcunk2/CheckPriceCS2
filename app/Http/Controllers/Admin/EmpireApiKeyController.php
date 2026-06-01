@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\CsgoEmpireHealthService;
 use App\Services\EmpireApiKeyStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class EmpireApiKeyController extends Controller
 {
     public function __construct(
         private EmpireApiKeyStore $store,
+        private CsgoEmpireHealthService $empireHealth,
     ) {}
 
     public function create(): View
@@ -76,6 +78,26 @@ class EmpireApiKeyController extends Controller
         return redirect()
             ->route('admin.buff-accounts.index')
             ->with('success', 'Đã xóa API key Empire.');
+    }
+
+    public function probe(int $empireKey): RedirectResponse
+    {
+        $row = $this->store->find($empireKey);
+        if (! $row) {
+            return redirect()->route('admin.buff-accounts.index')->with('error', 'Không tìm thấy key.');
+        }
+
+        $result = $this->empireHealth->probeAccount([
+            'label' => $row->label,
+            'api_key' => (string) $row->api_key,
+        ]);
+
+        $type = ($result['status'] ?? '') === 'ok' ? 'success' : 'error';
+        $http = isset($result['http_status']) ? ' HTTP '.$result['http_status'] : '';
+
+        return redirect()
+            ->route('admin.buff-accounts.index')
+            ->with($type, $row->label.':'.$http.' — '.($result['message'] ?? '—'));
     }
 
     public function importFromEnv(): RedirectResponse

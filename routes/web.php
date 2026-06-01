@@ -59,6 +59,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/buff-accounts/empire-keys/{empireKey}/edit', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'edit'])->name('buff-accounts.empire-keys.edit');
         Route::put('/buff-accounts/empire-keys/{empireKey}', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'update'])->name('buff-accounts.empire-keys.update');
         Route::delete('/buff-accounts/empire-keys/{empireKey}', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'destroy'])->name('buff-accounts.empire-keys.destroy');
+        Route::post('/buff-accounts/empire-keys/{empireKey}/probe', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'probe'])->name('buff-accounts.empire-keys.probe');
         Route::post('/buff-accounts/{label}/probe', [BuffAccountController::class, 'probe'])
             ->where('label', '[a-zA-Z0-9\-]+')
             ->name('buff-accounts.probe');

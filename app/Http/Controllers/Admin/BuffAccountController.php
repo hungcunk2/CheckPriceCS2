@@ -38,7 +38,14 @@ class BuffAccountController extends Controller
             'empire' => $this->empireHealth->overview(),
             'exchangeRates' => ExchangeRateStore::get(),
             'empireUsesDatabase' => CsgoEmpireApiPool::usesDatabase(),
-            'empireKeys' => CsgoEmpireApiPool::usesDatabase() ? $this->empireKeyStore->all() : collect(),
+            'empireKeys' => CsgoEmpireApiPool::usesDatabase()
+                ? $this->empireKeyStore->all()->map(function (object $ek) {
+                    $ek->last_check = $this->empireHealth->lastCheckForLabel($ek->label);
+                    $ek->cooldown_seconds = CsgoEmpireApiPool::cooldownRemaining($ek->label);
+
+                    return $ek;
+                })
+                : collect(),
         ]);
     }
 
@@ -172,7 +179,8 @@ class BuffAccountController extends Controller
     {
         $result = $this->empireHealth->probe();
 
-        $type = ($result['status'] ?? '') === 'ok' ? 'success' : 'error';
+        $status = $result['status'] ?? '';
+        $type = $status === 'ok' ? 'success' : ($status === 'warning' ? 'warning' : 'error');
 
         return redirect()
             ->route('admin.buff-accounts.index')
