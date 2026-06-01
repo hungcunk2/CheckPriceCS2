@@ -42,12 +42,21 @@
                     @error('api_key')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
+                <div class="mb-3">
+                    @if($key)
                         <label class="form-label">Thứ tự ưu tiên</label>
-                        <input type="number" name="sort_order" class="form-control"
-                            value="{{ old('sort_order', $key->sort_order ?? 0) }}" min="0" max="999">
-                    </div>
+                        <input type="number" name="sort_order" class="form-control @error('sort_order') is-invalid @enderror"
+                            value="{{ old('sort_order', $key->sort_order) }}" min="0" max="999">
+                        <div class="form-text">Số nhỏ hơn = ưu tiên trước khi xoay key.</div>
+                        @error('sort_order')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    @else
+                        <label class="form-label">Thứ tự ưu tiên</label>
+                        <p class="form-control-plaintext mb-0">
+                            <strong>{{ old('sort_order', $nextSortOrder ?? 0) }}</strong>
+                            <span class="text-muted small">— tự tăng (key thứ {{ ($nextSortOrder ?? 0) + 1 }})</span>
+                        </p>
+                        <input type="hidden" name="sort_order" value="{{ old('sort_order', $nextSortOrder ?? 0) }}">
+                    @endif
                 </div>
 
                 <div class="form-check mb-4">

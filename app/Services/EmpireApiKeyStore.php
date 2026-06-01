@@ -60,6 +60,13 @@ class EmpireApiKeyStore
         }
     }
 
+    public function nextSortOrder(): int
+    {
+        $max = EmpireApiKey::query()->max('sort_order');
+
+        return ($max === null ? -1 : (int) $max) + 1;
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -80,7 +87,12 @@ class EmpireApiKeyStore
 
         $model->label = (string) $attributes['label'];
         $model->is_active = (bool) ($attributes['is_active'] ?? true);
-        $model->sort_order = (int) ($attributes['sort_order'] ?? 0);
+        if (! $model->exists) {
+            $incoming = (int) ($attributes['sort_order'] ?? 0);
+            $model->sort_order = $incoming > 0 ? $incoming : $this->nextSortOrder();
+        } else {
+            $model->sort_order = (int) ($attributes['sort_order'] ?? $model->sort_order);
+        }
         $model->save();
 
         return $this->asObject($model, includeSecret: true);

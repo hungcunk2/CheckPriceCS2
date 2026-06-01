@@ -21,6 +21,7 @@ class EmpireApiKeyController extends Controller
     {
         return view('admin.empire-keys.form', [
             'key' => null,
+            'nextSortOrder' => $this->store->nextSortOrder(),
         ]);
     }
 
@@ -48,6 +49,7 @@ class EmpireApiKeyController extends Controller
 
         return view('admin.empire-keys.form', [
             'key' => $row,
+            'nextSortOrder' => null,
         ]);
     }
 
