@@ -74,6 +74,10 @@ return [
     'empire_coin_to_vnd' => (float) env('EMPIRE_COIN_TO_VND', env('EMPIRE_COIN_TO_USD', 0.6143) * env('VND_TO_USD', 26700)),
     'empire_price_refresh_seconds' => (int) env('EMPIRE_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
     'empire_not_found_cache_seconds' => (int) env('EMPIRE_NOT_FOUND_CACHE_SECONDS', 3600),
+    'empire_error_cache_seconds' => (int) env('EMPIRE_ERROR_CACHE_SECONDS', 300),
     'empire_search_delay_ms' => (int) env('EMPIRE_SEARCH_DELAY_MS', 3500),
-    'empire_max_fetches_per_check' => (int) env('EMPIRE_MAX_FETCHES_PER_CHECK', 30),
+    // Tra nhanh trang chủ (giới hạn để không timeout).
+    'empire_max_fetches_per_check' => (int) env('EMPIRE_MAX_FETCHES_PER_CHECK', 15),
+    // Đồng bộ admin/cron: 0 = không giới hạn (78 skin ≈ vài phút).
+    'empire_max_fetches_per_sync' => (int) env('EMPIRE_MAX_FETCHES_PER_SYNC', 0),
 ];

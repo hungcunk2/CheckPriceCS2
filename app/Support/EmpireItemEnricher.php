@@ -34,18 +34,21 @@ class EmpireItemEnricher
             }
 
             $cached = Cache::get('empire_price:'.md5($hash));
-            if (is_array($cached) && ($cached['market_value_coins'] ?? null) !== null) {
+            if (is_array($cached) && self::isUsableCache($cached)) {
                 $normalized[$index] = self::mergeEmpireRow($item, $cached, $empire);
                 continue;
             }
 
             if ($fetchMissing) {
                 $toFetch[] = $hash;
+            } elseif (($item['empire_price_coins'] ?? null) === null && empty($item['empire_error'])) {
+                $item['empire_error'] = 'Chưa tra Empire — bấm đồng bộ (⟳) trên kho';
+                $normalized[$index] = $item;
             }
         }
 
         if ($fetchMissing && $toFetch !== []) {
-            $prices = $empire->getPricesForHashNames(array_values(array_unique($toFetch)));
+            $prices = $empire->getPricesForHashNames(array_values(array_unique($toFetch)), forSync: true);
             foreach ($normalized as $index => $item) {
                 $hash = (string) ($item['market_hash_name'] ?? '');
                 if ($hash === '' || ($item['empire_price_coins'] ?? null) !== null) {
@@ -104,5 +107,32 @@ class EmpireItemEnricher
         $item['line_total_empire_cny'] = $lineEmpireCny;
 
         return $item;
+    }
+
+    /**
+     * @param  array<string, mixed>  $cached
+     */
+    private static function isUsableCache(array $cached): bool
+    {
+        $fetchedAt = (int) ($cached['fetched_at'] ?? 0);
+        if ($fetchedAt <= 0) {
+            return ($cached['market_value_coins'] ?? null) !== null || ! empty($cached['error']);
+        }
+
+        $age = time() - $fetchedAt;
+        if (($cached['market_value_coins'] ?? null) !== null) {
+            return $age < max(3600, (int) config('cs2price.empire_price_refresh_seconds', 14400));
+        }
+
+        $error = (string) ($cached['error'] ?? '');
+        if (str_contains($error, 'Không có listing')) {
+            return $age < (int) config('cs2price.empire_not_found_cache_seconds', 3600);
+        }
+
+        if ($error !== '') {
+            return $age < (int) config('cs2price.empire_error_cache_seconds', 300);
+        }
+
+        return false;
     }
 }

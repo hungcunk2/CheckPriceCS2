@@ -63,7 +63,7 @@ class SyncInventoryPricesCommand extends Command
             $this->line("→ {$label}");
 
             try {
-                $result = $checker->checkUrl($row->url, $row->label ?? null);
+                $result = $checker->checkUrl($row->url, $row->label ?? null, empireSync: true);
                 $persister->persist($result, (int) $row->id, (bool) ($row->is_public ?? true));
                 $ok++;
                 $this->info("  OK — {$result['priced_count']}/{$result['item_count']} có giá");

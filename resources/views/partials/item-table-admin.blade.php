@@ -68,22 +68,7 @@
                         </td>
                         @if($empireEnabled ?? false)
                             <td class="text-end">
-                                @if(isset($item->empire_price_coins) && $item->empire_price_coins !== null)
-                                    <div>{{ number_format($item->empire_price_coins, 2) }} coin</div>
-                                    @if(isset($item->empire_price_cny) && $item->empire_price_cny !== null)
-                                        <div class="small text-muted">≈ ¥{{ number_format($item->empire_price_cny, 2) }}</div>
-                                    @endif
-                                    @if(!empty($item->empire_price_vnd))
-                                        <div class="small text-muted">≈ {{ number_format($item->empire_price_vnd) }} ₫</div>
-                                    @endif
-                                    @if(!empty($item->empire_url))
-                                        <a href="{{ $item->empire_url }}" target="_blank" rel="noopener" class="small" title="Mở Empire"><i class="fas fa-external-link-alt"></i></a>
-                                    @endif
-                                @elseif(!empty($item->empire_error))
-                                    <span class="small text-muted" title="{{ $item->empire_error }}">—</span>
-                                @else
-                                    —
-                                @endif
+                                @include('partials.empire-price-cell', ['item' => $item])
                             </td>
                             <td class="text-center">
                                 @include('partials.best-sell-venue', ['venue' => $item->best_sell_venue ?? null])

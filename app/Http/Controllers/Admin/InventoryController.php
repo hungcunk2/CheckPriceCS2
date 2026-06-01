@@ -132,7 +132,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($row->url, $row->label ?? null, refreshSteam: true);
+            $result = $checker->checkUrl($row->url, $row->label ?? null, refreshSteam: true, empireSync: true);
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? true));
 
             if ($request->wantsJson()) {
@@ -190,7 +190,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($url, $label, refreshSteam: true);
+            $result = $checker->checkUrl($url, $label, refreshSteam: true, empireSync: true);
             $row = $this->store->find($id);
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? true) : true);
 

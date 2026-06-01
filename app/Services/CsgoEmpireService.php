@@ -6,6 +6,7 @@ use App\Support\Currency;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CsgoEmpireService
 {
@@ -19,7 +20,7 @@ class CsgoEmpireService
      *   error: string|null
      * }>
      */
-    public function getPricesForHashNames(array $marketHashNames): array
+    public function getPricesForHashNames(array $marketHashNames, bool $forSync = false): array
     {
         if (! $this->isEnabled()) {
             return [];
@@ -40,7 +41,9 @@ class CsgoEmpireService
 
         usort($toFetch, fn (string $a, string $b) => $this->fetchPriority($a) <=> $this->fetchPriority($b));
 
-        $maxFetches = max(0, (int) config('cs2price.empire_max_fetches_per_check', 30));
+        $maxFetches = $forSync
+            ? (int) config('cs2price.empire_max_fetches_per_sync', 0)
+            : (int) config('cs2price.empire_max_fetches_per_check', 15);
         $fetched = 0;
         $delayMs = max(3200, (int) config('cs2price.empire_search_delay_ms', 3500));
 
@@ -67,6 +70,13 @@ class CsgoEmpireService
                     $this->withFetchedAt($price),
                     (int) config('cs2price.empire_not_found_cache_seconds', 3600)
                 );
+            } elseif ($this->isTransientError($price)) {
+                Cache::put(
+                    $this->cacheKey($hashName),
+                    $this->withFetchedAt($price),
+                    (int) config('cs2price.empire_error_cache_seconds', 300)
+                );
+                Log::warning('csgoempire.price', ['item' => $hashName, 'error' => $price['error']]);
             }
 
             $results[$hashName] = $price;
@@ -149,6 +159,7 @@ class CsgoEmpireService
     {
         $headers = [
             'Accept' => 'application/json',
+            'User-Agent' => 'CheckPriceCS2/1.0 (+https://checkpricecs2.io.vn)',
         ];
 
         $key = config('cs2price.empire_api_key');
@@ -185,19 +196,18 @@ class CsgoEmpireService
         }
 
         if (! $response->successful()) {
-            $body = $response->json();
-            $message = is_array($body) ? ($body['message'] ?? $body['error'] ?? null) : null;
-
-            return array_merge($empty, [
-                'error' => $message
-                    ? 'Empire: '.$message
-                    : 'Empire HTTP '.$response->status(),
-            ]);
+            return array_merge($empty, ['error' => $this->httpErrorMessage($response)]);
         }
 
         $body = $response->json();
         if (! is_array($body)) {
-            return array_merge($empty, ['error' => 'Empire: phản hồi không hợp lệ']);
+            $snippet = trim(strip_tags(substr($response->body(), 0, 200)));
+
+            return array_merge($empty, [
+                'error' => $this->isBlockedHtml($response->body())
+                    ? 'Empire chặn IP server (cần proxy hoặc IP khác)'
+                    : 'Empire: phản hồi không hợp lệ'.($snippet !== '' ? ' — '.$snippet : ''),
+            ]);
         }
 
         $rows = $body['data'] ?? [];
@@ -268,6 +278,41 @@ class CsgoEmpireService
     }
 
     /**
+     * @param  array{error: string|null}  $price
+     */
+    private function isTransientError(array $price): bool
+    {
+        if ($price['error'] === null || $this->isNotFound($price)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isBlockedHtml(string $body): bool
+    {
+        $lower = mb_strtolower($body);
+
+        return str_contains($lower, 'country blocked')
+            || str_contains($lower, 'ip or country blocked')
+            || str_contains($lower, 'access denied');
+    }
+
+    private function httpErrorMessage(Response $response): string
+    {
+        if ($this->isBlockedHtml($response->body())) {
+            return 'Empire chặn IP server (cần proxy hoặc IP khác)';
+        }
+
+        $body = $response->json();
+        $message = is_array($body) ? ($body['message'] ?? $body['error'] ?? null) : null;
+
+        return $message
+            ? 'Empire: '.$message
+            : 'Empire HTTP '.$response->status();
+    }
+
+    /**
      * @param  array{error: string|null, market_value_coins: float|null}  $price
      */
     private function shouldCachePrice(array $price): bool
@@ -290,20 +335,24 @@ class CsgoEmpireService
      */
     private function isCacheFresh(array $cached): bool
     {
-        if (($cached['market_value_coins'] ?? null) === null && ! $this->isNotFound($cached)) {
-            return false;
-        }
-
         $fetchedAt = (int) ($cached['fetched_at'] ?? 0);
         if ($fetchedAt <= 0) {
             return false;
         }
 
-        $ttl = $this->isNotFound($cached)
-            ? (int) config('cs2price.empire_not_found_cache_seconds', 3600)
-            : $this->refreshSeconds();
+        if (($cached['market_value_coins'] ?? null) !== null) {
+            return (time() - $fetchedAt) < $this->refreshSeconds();
+        }
 
-        return (time() - $fetchedAt) < $ttl;
+        if ($this->isNotFound($cached)) {
+            return (time() - $fetchedAt) < (int) config('cs2price.empire_not_found_cache_seconds', 3600);
+        }
+
+        if (! empty($cached['error'])) {
+            return (time() - $fetchedAt) < (int) config('cs2price.empire_error_cache_seconds', 300);
+        }
+
+        return false;
     }
 
     private function refreshSeconds(): int
