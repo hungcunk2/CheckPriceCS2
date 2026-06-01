@@ -51,10 +51,16 @@ class BuffAccountController extends Controller
 
     public function updateExchangeRates(Request $request): RedirectResponse
     {
+        if ($request->has('empire_coin_to_usd')) {
+            $request->merge([
+                'empire_coin_to_usd' => str_replace(',', '.', (string) $request->input('empire_coin_to_usd')),
+            ]);
+        }
+
         $validated = $request->validate([
             'cny_to_vnd' => ['required', 'numeric', 'min:1', 'max:100000'],
             'vnd_to_usd' => ['required', 'numeric', 'min:1', 'max:1000000'],
-            'empire_coin_to_usd' => ['required', 'numeric', 'min:0.0001', 'max:100'],
+            'empire_coin_to_usd' => ['required', 'numeric', 'min:0.000001', 'max:100', 'decimal:0,6'],
         ]);
 
         try {

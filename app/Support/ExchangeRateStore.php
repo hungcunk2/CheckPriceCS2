@@ -29,6 +29,7 @@ class ExchangeRateStore
                     if ($coinToUsd <= 0 && (float) $row->empire_coin_to_vnd > 0) {
                         $coinToUsd = self::deriveCoinToUsd((float) $row->empire_coin_to_vnd, $vndToUsd);
                     }
+                    $coinToUsd = self::roundCoinToUsd($coinToUsd);
 
                     return [
                         'cny_to_vnd' => (float) $row->cny_to_vnd,
@@ -74,7 +75,7 @@ class ExchangeRateStore
     {
         $cnyToVnd = (float) $data['cny_to_vnd'];
         $vndToUsd = (float) $data['vnd_to_usd'];
-        $coinToUsd = (float) $data['empire_coin_to_usd'];
+        $coinToUsd = self::roundCoinToUsd((float) $data['empire_coin_to_usd']);
         $coinToVnd = self::coinToVndFromUsd($coinToUsd, $vndToUsd);
 
         $row = ExchangeRate::query()->orderBy('id')->first() ?? new ExchangeRate;
@@ -97,13 +98,23 @@ class ExchangeRateStore
         Cache::forget(self::CACHE_KEY);
     }
 
+    public static function roundCoinToUsd(float $coinToUsd): float
+    {
+        return round($coinToUsd, 6);
+    }
+
+    public static function formatCoinToUsd(float $coinToUsd): string
+    {
+        return rtrim(rtrim(sprintf('%.6F', self::roundCoinToUsd($coinToUsd)), '0'), '.');
+    }
+
     public static function coinToVndFromUsd(float $coinToUsd, float $vndPerUsd): float
     {
         if ($coinToUsd <= 0 || $vndPerUsd <= 0) {
             return 0.0;
         }
 
-        return round($coinToUsd * $vndPerUsd, 4);
+        return round(self::roundCoinToUsd($coinToUsd) * $vndPerUsd, 4);
     }
 
     /**
@@ -112,7 +123,7 @@ class ExchangeRateStore
     private static function fromConfig(): array
     {
         $vndPerUsd = (float) config('cs2price.vnd_to_usd', 26700);
-        $coinToUsd = (float) config('cs2price.empire_coin_to_usd', 0.6143);
+        $coinToUsd = self::roundCoinToUsd((float) config('cs2price.empire_coin_to_usd', 0.6143));
 
         return [
             'cny_to_vnd' => (float) config('cs2price.cny_to_vnd', 3750),

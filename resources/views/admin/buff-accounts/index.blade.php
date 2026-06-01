@@ -52,11 +52,12 @@
                 <label class="form-label small fw-semibold" for="empire_coin_to_usd">Empire coin → USD</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text">1 coin =</span>
-                    <input type="number" step="0.0001" min="0.0001" class="form-control" id="empire_coin_to_usd" name="empire_coin_to_usd"
-                           value="{{ old('empire_coin_to_usd', $coinUsd) }}" required>
+                    <input type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" class="form-control font-monospace" id="empire_coin_to_usd" name="empire_coin_to_usd"
+                           value="{{ old('empire_coin_to_usd', \App\Support\ExchangeRateStore::formatCoinToUsd($coinUsd)) }}" required
+                           placeholder="0.615259" autocomplete="off">
                     <span class="input-group-text">USD</span>
                 </div>
-                <div class="form-text">→ ₫: <strong id="empire_coin_vnd_preview">{{ number_format($coinVnd) }}</strong>/coin (× tỷ giá USD)</div>
+                <div class="form-text">Tối đa 6 số lẻ (vd. 0.615259). → ₫: <strong id="empire_coin_vnd_preview">{{ number_format($coinVnd) }}</strong>/coin</div>
             </div>
         </div>
         <div class="small text-muted mt-3">
@@ -82,14 +83,25 @@
     const perCoin = document.getElementById('empire_coin_vnd_preview');
     const per100 = document.getElementById('empire_100_vnd_preview');
     if (!coinUsd || !vndUsd || !perCoin) return;
+    function roundCoinUsd(value) {
+        const n = parseFloat(String(value).replace(',', '.'));
+        if (Number.isNaN(n)) return '';
+        return (Math.round(n * 1e6) / 1e6).toFixed(6).replace(/\.?0+$/, '');
+    }
     function refresh() {
-        const usd = parseFloat(coinUsd.value) || 0;
+        const usd = parseFloat(String(coinUsd.value).replace(',', '.')) || 0;
         const rate = parseFloat(vndUsd.value) || 0;
         const vnd = Math.round(usd * rate);
         perCoin.textContent = vnd.toLocaleString('vi-VN');
         if (per100) per100.textContent = (vnd * 100).toLocaleString('vi-VN');
     }
+    function normalizeCoinUsdField() {
+        const rounded = roundCoinUsd(coinUsd.value);
+        if (rounded !== '') coinUsd.value = rounded;
+        refresh();
+    }
     coinUsd.addEventListener('input', refresh);
+    coinUsd.addEventListener('blur', normalizeCoinUsdField);
     vndUsd.addEventListener('input', refresh);
 })();
 </script>
@@ -235,7 +247,7 @@
             </dd>
             <dt class="col-sm-3">1 coin Empire</dt>
             <dd class="col-sm-9">
-                ≈ ${{ number_format($empire['coin_to_usd'] ?? 0, 4) }}
+                ≈ ${{ \App\Support\ExchangeRateStore::formatCoinToUsd((float) ($empire['coin_to_usd'] ?? 0)) }}
                 → {{ number_format($empire['coin_to_vnd'] ?? 0) }} ₫
                 <span class="text-muted small">(USD × {{ number_format($rates['vnd_to_usd'] ?? 26700) }} ₫)</span>
             </dd>
