@@ -21,16 +21,7 @@
 
 <div class="panel-admin rounded border mb-4">
     <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-            <h2 class="h6 mb-1">cs.trade — lấy danh sách kho</h2>
-            <p class="small text-muted mb-0">
-                Thử <code>cs.trade</code> trước
-                @if($csTrade['fallback_steam'] ?? true)
-                    , lỗi thì fallback Steam
-                @endif
-                · Probe: <code>{{ $csTrade['probe_steam_id'] ?? '—' }}</code>
-            </p>
-        </div>
+        <h2 class="h6 mb-0">cs.trade — lấy danh sách kho</h2>
         <form method="POST" action="{{ route('admin.buff-accounts.cstrade-probe') }}">
             @csrf
             <button type="submit" class="btn btn-sm btn-outline-primary">
