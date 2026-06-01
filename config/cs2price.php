@@ -103,4 +103,9 @@ return [
     'empire_max_fetches_per_check' => (int) env('EMPIRE_MAX_FETCHES_PER_CHECK', 15),
     // Đồng bộ admin/cron: 0 = không giới hạn (78 skin ≈ vài phút).
     'empire_max_fetches_per_sync' => (int) env('EMPIRE_MAX_FETCHES_PER_SYNC', 0),
+    // Nút ⟳ admin: quét tối đa N trang Empire mỗi key (× số key đang bật).
+    'empire_http_max_pages' => (int) env('EMPIRE_HTTP_MAX_PAGES', 12),
+    // 0 = auto: số key × empire_http_max_searches_per_key
+    'empire_http_max_searches' => (int) env('EMPIRE_HTTP_MAX_SEARCHES', 0),
+    'empire_http_max_searches_per_key' => (int) env('EMPIRE_HTTP_MAX_SEARCHES_PER_KEY', 10),
 ];

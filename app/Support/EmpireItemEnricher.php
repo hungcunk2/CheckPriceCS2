@@ -48,7 +48,7 @@ class EmpireItemEnricher
         }
 
         if ($fetchMissing && $toFetch !== []) {
-            $prices = $empire->getPricesForHashNames(array_values(array_unique($toFetch)), forSync: true);
+            $prices = $empire->getPricesForHashNames(array_values(array_unique($toFetch)), 'http');
             foreach ($normalized as $index => $item) {
                 $hash = (string) ($item['market_hash_name'] ?? '');
                 if ($hash === '' || ($item['empire_price_coins'] ?? null) !== null) {

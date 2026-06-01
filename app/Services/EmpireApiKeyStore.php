@@ -31,18 +31,24 @@ class EmpireApiKeyStore
      */
     public function activeForPool(): array
     {
-        return EmpireApiKey::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (EmpireApiKey $row) => [
-                'label' => $row->label,
-                'api_key' => trim((string) $row->api_key),
-            ])
-            ->filter(fn (array $account) => $account['api_key'] !== '')
-            ->values()
-            ->all();
+        try {
+            return EmpireApiKey::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+                ->map(fn (EmpireApiKey $row) => [
+                    'label' => $row->label,
+                    'api_key' => trim((string) $row->api_key),
+                ])
+                ->filter(fn (array $account) => $account['api_key'] !== '')
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     public function hasAny(): bool

@@ -24,7 +24,10 @@ class CsgoEmpireService
      *   error: string|null
      * }>
      */
-    public function getPricesForHashNames(array $marketHashNames, bool $forSync = false): array
+    /**
+     * @param  'sync'|'http'|'guest'  $mode  sync=cron đầy đủ, http=nút ⟳ admin, guest=trang chủ
+     */
+    public function getPricesForHashNames(array $marketHashNames, string $mode = 'guest'): array
     {
         if (! $this->isEnabled()) {
             return [];
@@ -45,18 +48,20 @@ class CsgoEmpireService
 
         usort($toFetch, fn (string $a, string $b) => $this->fetchPriority($a) <=> $this->fetchPriority($b));
 
-        $toFetch = $this->resolveViaBulkIndex($toFetch, $results, $forSync);
+        $toFetch = $this->resolveViaBulkIndex($toFetch, $results, $mode);
 
-        $maxFetches = $forSync
-            ? (int) config('cs2price.empire_max_fetches_per_sync', 0)
-            : (int) config('cs2price.empire_max_fetches_per_check', 15);
+        $searchLimit = match ($mode) {
+            'sync' => 0,
+            'http' => $this->httpSearchLimit(count($toFetch)),
+            default => (int) config('cs2price.empire_max_fetches_per_check', 15),
+        };
         $fetched = 0;
-        $delayMs = max(3200, (int) config('cs2price.empire_search_delay_ms', 3500));
+        $delayMs = $this->searchDelayMs($mode);
 
         foreach ($toFetch as $hashName) {
-            if ($maxFetches > 0 && $fetched >= $maxFetches) {
+            if ($searchLimit > 0 && $fetched >= $searchLimit) {
                 $results[$hashName] = $this->skippedPrice(
-                    'Empire: bỏ qua (giới hạn '.$maxFetches.' item mới/lần — thử lại sau hoặc đồng bộ cron)'
+                    'Empire: bỏ qua (giới hạn '.$searchLimit.' item/lần — thử lại sau)'
                 );
                 continue;
             }
@@ -82,24 +87,27 @@ class CsgoEmpireService
      * @param  array<string, array<string, mixed>>  $results
      * @return list<string>
      */
-    private function resolveViaBulkIndex(array $stillNeeded, array &$results, bool $forSync): array
+    /**
+     * @param  'sync'|'http'|'guest'  $fetchMode
+     */
+    private function resolveViaBulkIndex(array $stillNeeded, array &$results, string $fetchMode): array
     {
         if ($stillNeeded === []) {
             return [];
         }
 
-        $mode = (string) config('cs2price.empire_fetch_mode', 'auto');
-        if ($mode === 'search') {
+        $configMode = (string) config('cs2price.empire_fetch_mode', 'auto');
+        if ($configMode === 'search') {
             return $stillNeeded;
         }
-        if ($mode === 'auto' && ! $forSync) {
+        if ($configMode === 'auto' && $fetchMode === 'guest') {
             // Trang chủ: chỉ dùng bulk cache sẵn có, không quét nhiều trang.
             $index = Cache::get(self::BULK_INDEX_CACHE_KEY);
             if (! is_array($index)) {
                 return $stillNeeded;
             }
         } else {
-            $index = $this->getBulkListingIndex($stillNeeded);
+            $index = $this->getBulkListingIndex($stillNeeded, $fetchMode);
             if ($index === []) {
                 return $stillNeeded;
             }
@@ -110,7 +118,7 @@ class CsgoEmpireService
             $key = mb_strtolower($hashName);
             $hit = $index[$key] ?? null;
             if (! is_array($hit) || ($hit['market_value_coins'] ?? null) === null) {
-                if ($mode === 'paginate') {
+                if ($configMode === 'paginate') {
                     $price = array_merge($this->notFoundPrice($hashName), ['error' => 'Không có listing trên Empire']);
                     $this->storePriceCache($hashName, $price);
                     $results[$hashName] = $price;
@@ -150,7 +158,10 @@ class CsgoEmpireService
      * @param  list<string>  $wantedNames
      * @return array<string, array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
      */
-    private function getBulkListingIndex(array $wantedNames): array
+    /**
+     * @param  'sync'|'http'|'guest'  $fetchMode
+     */
+    private function getBulkListingIndex(array $wantedNames, string $fetchMode = 'guest'): array
     {
         $ttl = max(60, (int) config('cs2price.empire_bulk_cache_seconds', 600));
         $wantedKeys = array_fill_keys(array_map(mb_strtolower(...), $wantedNames), true);
@@ -162,7 +173,7 @@ class CsgoEmpireService
             return $wantedKeys === [] ? $items : $this->filterIndexForWanted($items, $wantedKeys);
         }
 
-        $built = $this->buildBulkListingIndex($wantedKeys);
+        $built = $this->buildBulkListingIndex($wantedKeys, $fetchMode);
         $merged = $built;
         if (is_array($cached) && is_array($cached['items'] ?? null)) {
             $merged = array_merge($cached['items'], $built);
@@ -179,7 +190,10 @@ class CsgoEmpireService
      * @param  array<string, true>  $wantedKeys
      * @return array<string, array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
      */
-    private function buildBulkListingIndex(array $wantedKeys): array
+    /**
+     * @param  'sync'|'http'|'guest'  $fetchMode
+     */
+    private function buildBulkListingIndex(array $wantedKeys, string $fetchMode = 'guest'): array
     {
         $index = [];
         $perPage = (int) config('cs2price.empire_bulk_per_page', 0);
@@ -190,11 +204,16 @@ class CsgoEmpireService
         $perPage = min($perPage, $hasKey ? 2500 : 200);
 
         $maxPages = max(1, (int) config('cs2price.empire_bulk_max_pages', 25));
+        $accounts = CsgoEmpireApiPool::available();
+        if ($fetchMode === 'http') {
+            $httpBase = max(1, (int) config('cs2price.empire_http_max_pages', 12));
+            $keyCount = max(1, count($accounts));
+            $maxPages = min($maxPages, $httpBase * min($keyCount, 10));
+        }
         $delayMs = max(500, (int) config('cs2price.empire_page_delay_ms', 550));
         $trackWanted = $wantedKeys !== [];
         $found = [];
         $parallel = filter_var(config('cs2price.empire_bulk_parallel', true), FILTER_VALIDATE_BOOL);
-        $accounts = CsgoEmpireApiPool::available();
 
         if ($parallel && count($accounts) > 1) {
             return $this->buildBulkListingIndexParallel(
@@ -750,6 +769,37 @@ class CsgoEmpireService
      *   error: string|null
      * }
      */
+    /**
+     * Nút ⟳ admin: mỗi key ~10 search; 5 key → tối đa ~50 skin/lần.
+     */
+    private function httpSearchLimit(int $remainingCount): int
+    {
+        if ($remainingCount === 0) {
+            return 0;
+        }
+
+        $cap = (int) config('cs2price.empire_http_max_searches', 0);
+        if ($cap <= 0) {
+            $perKey = max(1, (int) config('cs2price.empire_http_max_searches_per_key', 10));
+            $keys = max(1, count(CsgoEmpireApiPool::available()));
+            $cap = $keys * $perKey;
+        }
+
+        return min($remainingCount, $cap);
+    }
+
+    private function searchDelayMs(string $mode): int
+    {
+        $base = max(3200, (int) config('cs2price.empire_search_delay_ms', 3500));
+        if ($mode !== 'http') {
+            return $base;
+        }
+
+        $keys = max(1, count(CsgoEmpireApiPool::available()));
+
+        return max(800, (int) floor($base / $keys));
+    }
+
     private function skippedPrice(string $message): array
     {
         return [

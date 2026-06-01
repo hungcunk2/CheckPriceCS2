@@ -213,11 +213,16 @@ document.querySelectorAll('.btn-refresh').forEach(btn => {
                     'Accept': 'application/json',
                 },
             });
-            const json = await res.json();
+            let json = {};
+            try {
+                json = await res.json();
+            } catch (parseErr) {
+                throw new Error(res.status === 504 ? 'Timeout server (quá 60s) — thử lại hoặc chờ cron' : 'Phản hồi không hợp lệ (HTTP ' + res.status + ')');
+            }
             if (json.ok) location.reload();
-            else alert(json.message || 'Lỗi check giá');
+            else alert(json.message || ('Lỗi check giá (HTTP ' + res.status + ')'));
         } catch (e) {
-            alert('Lỗi: ' + e.message);
+            alert(e.message || 'Lỗi kết nối');
         } finally {
             loading.style.display = 'none';
             btn.disabled = false;

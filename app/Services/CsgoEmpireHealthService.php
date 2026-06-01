@@ -52,7 +52,7 @@ class CsgoEmpireHealthService
         if (! $empire->isConfigured()) {
             $result = [
                 'status' => 'error',
-                'message' => 'Thiếu CSGOEMPIRE_API_KEY',
+                'message' => 'Chưa có API key Empire — thêm trong Admin → Buff & Empire',
                 'checked_at' => $checkedAt,
             ];
             Cache::put(self::CACHE_KEY, $result, self::CACHE_TTL);

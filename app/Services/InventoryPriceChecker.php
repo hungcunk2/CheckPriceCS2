@@ -26,7 +26,7 @@ class InventoryPriceChecker
      *   items: list<array<string, mixed>>
      * }
      */
-    public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false, bool $empireSync = false): array
+    public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false, string $empireMode = 'guest'): array
     {
         $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);
         $steamId = $parsed['steam_id'];
@@ -45,7 +45,7 @@ class InventoryPriceChecker
         $hashNames = array_column($steamItems, 'market_hash_name');
         $buffPrices = $this->buff->getPricesForHashNames($hashNames);
         $empirePrices = $this->empire->isEnabled()
-            ? $this->empire->getPricesForHashNames($hashNames, forSync: $empireSync)
+            ? $this->empire->getPricesForHashNames($hashNames, $empireMode)
             : [];
 
         $rows = [];

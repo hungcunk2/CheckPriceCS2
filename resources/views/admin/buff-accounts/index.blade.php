@@ -184,7 +184,12 @@
             <dt class="col-sm-3">1 coin → VND</dt>
             <dd class="col-sm-9">{{ number_format($empire['coin_to_vnd'] ?? 0) }} ₫ (≈ ${{ number_format($empire['coin_to_usd'] ?? 0, 4) }})</dd>
             <dt class="col-sm-3">Chế độ lấy giá</dt>
-            <dd class="col-sm-9"><code>{{ config('cs2price.empire_fetch_mode', 'auto') }}</code> — paginate nhanh (~{{ config('cs2price.empire_page_delay_ms', 550) }}ms/trang)</dd>
+            <dd class="col-sm-9">
+                <code>{{ config('cs2price.empire_fetch_mode', 'auto') }}</code>
+                — bulk song song khi ≥2 key;
+                ⟳ admin ≈ {{ config('cs2price.empire_http_max_pages', 12) }} trang/key
+                + ~{{ config('cs2price.empire_http_max_searches_per_key', 10) }} search/key
+            </dd>
             <dt class="col-sm-3">Trạng thái</dt>
             <dd class="col-sm-9"><span class="badge {{ $empireBadgeClass }}">{{ $empireStatusLabel }}</span></dd>
             <dt class="col-sm-3">Lần check</dt>

@@ -132,11 +132,19 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($row->url, $row->label ?? null, refreshSteam: true, empireSync: true);
+            $result = $checker->checkUrl(
+                $row->url,
+                $row->label ?? null,
+                refreshSteam: false,
+                empireMode: 'http',
+            );
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? true));
 
             if ($request->wantsJson()) {
-                return response()->json(['ok' => true, 'message' => 'Đã cập nhật giá.']);
+                return response()->json([
+                    'ok' => true,
+                    'message' => 'Đã cập nhật giá Buff + Empire (lần ⟳ không quét lại Steam — dùng cache kho).',
+                ]);
             }
 
             return redirect()
@@ -148,6 +156,18 @@ class InventoryController extends Controller
             }
 
             return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+
+            $message = config('app.debug')
+                ? $e->getMessage()
+                : 'Lỗi server khi check giá — xem storage/logs/laravel.log';
+
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => $message], 500);
+            }
+
+            return back()->with('error', $message);
         }
     }
 
@@ -190,7 +210,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($url, $label, refreshSteam: true, empireSync: true);
+            $result = $checker->checkUrl($url, $label, refreshSteam: false, empireMode: 'http');
             $row = $this->store->find($id);
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? true) : true);
 
