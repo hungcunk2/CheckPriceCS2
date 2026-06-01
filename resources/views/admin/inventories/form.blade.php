@@ -24,7 +24,7 @@
                 <div class="mb-3">
                     <label class="form-label">Link kho Steam <span class="text-danger">*</span></label>
                     <textarea name="url" class="form-control @error('url') is-invalid @enderror" rows="3" required
-                        placeholder="https://steamcommunity.com/id/.../inventory/">{{ old('url', $inventory->url ?? '') }}</textarea>
+                        placeholder="steamcommunity.com/... hoặc cs.trade/...?steam_id=7656...">{{ old('url', $inventory->url ?? '') }}</textarea>
                     @error('url')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 

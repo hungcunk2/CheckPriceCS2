@@ -50,6 +50,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'update'])->name('buff-accounts.update');
         Route::delete('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'destroy'])->name('buff-accounts.destroy');
         Route::post('/buff-accounts/probe-all', [BuffAccountController::class, 'probeAll'])->name('buff-accounts.probe-all');
+        Route::post('/buff-accounts/cstrade-probe', [BuffAccountController::class, 'probeCsTrade'])->name('buff-accounts.cstrade-probe');
         Route::post('/buff-accounts/{label}/probe', [BuffAccountController::class, 'probe'])
             ->where('label', '[a-zA-Z0-9\-]+')
             ->name('buff-accounts.probe');

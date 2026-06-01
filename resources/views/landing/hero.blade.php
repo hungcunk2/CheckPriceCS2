@@ -30,7 +30,7 @@
                     name="steam_url"
                     class="lp-hero-input"
                     value="{{ $submittedUrl ?? '' }}"
-                    placeholder="https://steamcommunity.com/id/.../inventory"
+                    placeholder="Link Steam hoặc cs.trade (?steam_id=...)"
                     aria-label="Link kho Steam"
                     required
                 >

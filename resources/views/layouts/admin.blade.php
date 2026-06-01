@@ -53,7 +53,7 @@
                         <li class="nav-item {{ request()->routeIs('admin.buff-accounts.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.buff-accounts.index') }}" class="nav-link">
                                 <i class="fas fa-user-shield"></i>
-                                <span>Acc Buff163</span>
+                                <span>Buff & cs.trade</span>
                             </a>
                         </li>
                         <li class="nav-item">

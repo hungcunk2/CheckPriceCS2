@@ -8,9 +8,8 @@ use RuntimeException;
 class InventoryPriceChecker
 {
     public function __construct(
-        private SteamInventoryService $steam,
+        private InventoryFetchService $inventoryFetch,
         private Buff163Service $buff,
-        private SteamProfileService $steamProfile,
     ) {}
 
     /**
@@ -26,10 +25,15 @@ class InventoryPriceChecker
      */
     public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false): array
     {
-        $parsed = $this->steam->parseInventoryUrl($url);
+        $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);
         $steamId = $parsed['steam_id'];
-        $profile = $this->steamProfile->fetchProfile($steamId);
-        $steamItems = $this->steam->fetchItemsCached($steamId, $refreshSteam);
+
+        $bundle = $this->inventoryFetch->fetchBundle($steamId, $refreshSteam);
+        $steamItems = $bundle['items'];
+        $profile = [
+            'steam_persona_name' => $bundle['steam_persona_name'],
+            'steam_avatar_url' => $bundle['steam_avatar_url'],
+        ];
 
         if ($steamItems === []) {
             throw new RuntimeException('Kho không có skin tradable có thể định giá.');
@@ -86,6 +90,8 @@ class InventoryPriceChecker
             'priced_count' => $pricedCount,
             'failed_count' => $failedCount,
             'buff_configured' => Buff163AccountPool::isConfigured(),
+            'inventory_source' => $bundle['inventory_source'],
+            'inventory_fallback_message' => $bundle['inventory_fallback_message'],
             'total_cny' => round($totalCny, 2),
             'total_vnd' => $this->buff->cnyToVnd($totalCny) ?? 0,
             'total_usd' => $this->buff->cnyToUsd($totalCny) ?? 0,

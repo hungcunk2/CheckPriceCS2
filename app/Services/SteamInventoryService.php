@@ -29,6 +29,11 @@ class SteamInventoryService
             throw new RuntimeException("Link không hợp lệ: {$url}");
         }
 
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (str_ends_with($host, 'cs.trade')) {
+            return $this->parseCsTradeUrl($url);
+        }
+
         $path = parse_url($url, PHP_URL_PATH) ?? '';
         $label = $url;
 
@@ -57,6 +62,29 @@ class SteamInventoryService
         }
 
         throw new RuntimeException('Không nhận diện được link Steam. Dùng dạng steamcommunity.com/profiles/... hoặc /id/...');
+    }
+
+    /**
+     * Link cs.trade (vd. .../cs2-inventory-value?steam_id=7656...) — chỉ lấy SteamID64, không gọi cs.trade.
+     *
+     * @return array{steam_id: string, label: string, url: string}
+     */
+    private function parseCsTradeUrl(string $url): array
+    {
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $steamId = preg_replace('/\D/', '', (string) ($query['steam_id'] ?? $query['steamid'] ?? ''));
+
+        if (! preg_match('/^\d{17}$/', $steamId)) {
+            throw new RuntimeException(
+                'Link cs.trade cần có tham số steam_id (17 chữ số). Ví dụ: https://cs.trade/vi/cs2-inventory-value?steam_id=76561198959660892'
+            );
+        }
+
+        return [
+            'steam_id' => $steamId,
+            'label' => $url,
+            'url' => 'https://steamcommunity.com/profiles/'.$steamId.'/inventory',
+        ];
     }
 
     /**

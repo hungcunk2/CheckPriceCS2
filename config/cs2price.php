@@ -1,6 +1,14 @@
 <?php
 
 return [
+
+    /*
+    | Kho đồ: mặc định cs.trade trước, lỗi thì Steam. INVENTORY_SOURCE=steam = chỉ Steam.
+    */
+    'inventory_source' => env('INVENTORY_SOURCE', 'cstrade'),
+    'inventory_fallback_steam' => filter_var(env('INVENTORY_FALLBACK_STEAM', true), FILTER_VALIDATE_BOOL),
+    'cstrade_probe_steam_id' => env('CSTRADE_PROBE_STEAM_ID', '76561198959660892'),
+
     'steam_api_key' => env('STEAM_API_KEY'),
     'steam_profile_cache_seconds' => (int) env('STEAM_PROFILE_CACHE_SECONDS', 3600),
     'buff_session' => env('BUFF163_SESSION'),

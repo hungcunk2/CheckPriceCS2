@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Buff163HealthService;
 use App\Services\BuffAccountStore;
+use App\Services\CsTradeHealthService;
 use App\Support\Buff163AccountPool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ class BuffAccountController extends Controller
 {
     public function __construct(
         private Buff163HealthService $health,
+        private CsTradeHealthService $csTradeHealth,
         private BuffAccountStore $store,
     ) {}
 
@@ -26,6 +28,7 @@ class BuffAccountController extends Controller
             'configured' => Buff163AccountPool::isConfigured(),
             'accounts' => $this->health->accountsOverview(),
             'managedAccounts' => Buff163AccountPool::usesDatabase() ? $this->store->all() : collect(),
+            'csTrade' => $this->csTradeHealth->overview(),
         ]);
     }
 
@@ -109,17 +112,32 @@ class BuffAccountController extends Controller
 
     public function probeAll(): RedirectResponse
     {
-        if (! Buff163AccountPool::isConfigured()) {
-            return redirect()
-                ->route('admin.buff-accounts.index')
-                ->with('error', 'Chưa có acc Buff nào.');
-        }
+        $messages = [];
 
-        $this->health->probeAll();
+        $csResult = $this->csTradeHealth->probe();
+        $messages[] = 'cs.trade: '.$csResult['message'];
+
+        if (Buff163AccountPool::isConfigured()) {
+            $this->health->probeAll();
+            $messages[] = 'Buff: đã kiểm tra tất cả acc.';
+        } else {
+            $messages[] = 'Buff: chưa có acc — bỏ qua.';
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')
-            ->with('success', 'Đã kiểm tra tất cả acc Buff.');
+            ->with('success', implode(' ', $messages));
+    }
+
+    public function probeCsTrade(): RedirectResponse
+    {
+        $result = $this->csTradeHealth->probe();
+
+        $type = ($result['status'] ?? '') === 'ok' ? 'success' : 'error';
+
+        return redirect()
+            ->route('admin.buff-accounts.index')
+            ->with($type, 'cs.trade: '.($result['message'] ?? '—'));
     }
 
     public function probe(Request $request, string $label): JsonResponse|RedirectResponse
