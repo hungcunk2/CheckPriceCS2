@@ -64,10 +64,33 @@ return [
 
     /*
     | CSGOEmpire — giá tham chiếu từ withdraw market (listing thấp nhất).
-    | API: GET /api/v2/trading/items?search=... — cần API key, rate limit search ~3/10s.
+    | empire_fetch_mode=paginate: quét theo trang (nhanh, ~20 req/10s).
+    | empire_fetch_mode=search: từng skin (chậm, ~3 req/10s khi có search).
+    | empire_fetch_mode=auto: paginate trước, còn thiếu mới search.
     */
+    'empire_fetch_mode' => env('EMPIRE_FETCH_MODE', 'auto'),
+    'empire_bulk_cache_seconds' => (int) env('EMPIRE_BULK_CACHE_SECONDS', 600),
+    'empire_bulk_max_pages' => (int) env('EMPIRE_BULK_MAX_PAGES', 25),
+    'empire_page_delay_ms' => (int) env('EMPIRE_PAGE_DELAY_MS', 550),
+    'empire_bulk_per_page' => (int) env('EMPIRE_BULK_PER_PAGE', 0),
     'empire_enabled' => filter_var(env('EMPIRE_ENABLED', false), FILTER_VALIDATE_BOOL),
     'empire_api_key' => env('CSGOEMPIRE_API_KEY'),
+    'empire_account_label' => env('CSGOEMPIRE_ACCOUNT_LABEL', 'empire-1'),
+    'empire_extra_api_keys' => array_values(array_filter(array_map(
+        static function (int $index): ?array {
+            $key = env('CSGOEMPIRE_API_KEY_'.$index);
+            if (! filled($key)) {
+                return null;
+            }
+
+            return [
+                'label' => env('CSGOEMPIRE_ACCOUNT_LABEL_'.$index, 'empire-'.$index),
+                'api_key' => $key,
+            ];
+        },
+        range(2, 6)
+    ))),
+    'empire_bulk_parallel' => filter_var(env('EMPIRE_BULK_PARALLEL', true), FILTER_VALIDATE_BOOL),
     // 1 coin Empire ≈ bao nhiêu USD (thường ~0.614 khi nạp; chỉnh theo thực tế).
     'empire_coin_to_usd' => (float) env('EMPIRE_COIN_TO_USD', 0.6143),
     // Mặc định = coin→USD × VND/USD; admin có thể sửa trực tiếp trong DB.

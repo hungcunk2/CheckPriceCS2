@@ -53,6 +53,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/buff-accounts/cstrade-probe', [BuffAccountController::class, 'probeCsTrade'])->name('buff-accounts.cstrade-probe');
         Route::post('/buff-accounts/empire-probe', [BuffAccountController::class, 'probeEmpire'])->name('buff-accounts.empire-probe');
         Route::put('/buff-accounts/exchange-rates', [BuffAccountController::class, 'updateExchangeRates'])->name('buff-accounts.exchange-rates');
+        Route::get('/buff-accounts/empire-keys/create', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'create'])->name('buff-accounts.empire-keys.create');
+        Route::post('/buff-accounts/empire-keys', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'store'])->name('buff-accounts.empire-keys.store');
+        Route::post('/buff-accounts/empire-keys/import-env', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'importFromEnv'])->name('buff-accounts.empire-keys.import-env');
+        Route::get('/buff-accounts/empire-keys/{empireKey}/edit', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'edit'])->name('buff-accounts.empire-keys.edit');
+        Route::put('/buff-accounts/empire-keys/{empireKey}', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'update'])->name('buff-accounts.empire-keys.update');
+        Route::delete('/buff-accounts/empire-keys/{empireKey}', [\App\Http\Controllers\Admin\EmpireApiKeyController::class, 'destroy'])->name('buff-accounts.empire-keys.destroy');
         Route::post('/buff-accounts/{label}/probe', [BuffAccountController::class, 'probe'])
             ->where('label', '[a-zA-Z0-9\-]+')
             ->name('buff-accounts.probe');

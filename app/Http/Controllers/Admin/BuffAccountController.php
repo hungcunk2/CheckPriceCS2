@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Buff163HealthService;
 use App\Services\BuffAccountStore;
+use App\Services\EmpireApiKeyStore;
+use App\Support\CsgoEmpireApiPool;
 use App\Services\CsgoEmpireHealthService;
 use App\Services\CsTradeHealthService;
 use App\Support\Buff163AccountPool;
@@ -22,6 +24,7 @@ class BuffAccountController extends Controller
         private CsTradeHealthService $csTradeHealth,
         private CsgoEmpireHealthService $empireHealth,
         private BuffAccountStore $store,
+        private EmpireApiKeyStore $empireKeyStore,
     ) {}
 
     public function index(): View
@@ -34,6 +37,8 @@ class BuffAccountController extends Controller
             'csTrade' => $this->csTradeHealth->overview(),
             'empire' => $this->empireHealth->overview(),
             'exchangeRates' => ExchangeRateStore::get(),
+            'empireUsesDatabase' => CsgoEmpireApiPool::usesDatabase(),
+            'empireKeys' => CsgoEmpireApiPool::usesDatabase() ? $this->empireKeyStore->all() : collect(),
         ]);
     }
 

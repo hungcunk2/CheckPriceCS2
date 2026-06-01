@@ -106,24 +106,85 @@
 
 <div class="panel-admin rounded border mb-4">
     <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <h2 class="h6 mb-0">CSGOEmpire — giá withdraw market</h2>
-        <form method="POST" action="{{ route('admin.buff-accounts.empire-probe') }}">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-outline-warning">
-                <i class="fas fa-sync-alt me-1"></i> Kiểm tra Empire
-            </button>
-        </form>
+        <h2 class="h6 mb-0">CSGOEmpire — API key & giá withdraw</h2>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.buff-accounts.empire-keys.create') }}" class="btn btn-sm btn-outline-warning">
+                <i class="fas fa-plus me-1"></i> Thêm API key
+            </a>
+            @if(!$empireUsesDatabase && filled(config('cs2price.empire_api_key')))
+                <form method="POST" action="{{ route('admin.buff-accounts.empire-keys.import-env') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Import key từ .env</button>
+                </form>
+            @endif
+            <form method="POST" action="{{ route('admin.buff-accounts.empire-probe') }}">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-sync-alt me-1"></i> Kiểm tra Empire
+                </button>
+            </form>
+        </div>
     </div>
     <div class="p-3">
+        @if($empireUsesDatabase && $empireKeys->isNotEmpty())
+            <div class="table-responsive mb-3">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Label</th>
+                            <th>API key</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($empireKeys as $ek)
+                            <tr>
+                                <td><code>{{ $ek->label }}</code></td>
+                                <td class="font-monospace small text-muted">{{ $ek->api_key_hint }}</td>
+                                <td>{{ $ek->sort_order }}</td>
+                                <td>
+                                    @if($ek->is_active)
+                                        <span class="badge text-bg-success">Bật</span>
+                                    @else
+                                        <span class="badge text-bg-secondary">Tắt</span>
+                                    @endif
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{{ route('admin.buff-accounts.empire-keys.edit', $ek->id) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+                                    <form method="POST" action="{{ route('admin.buff-accounts.empire-keys.destroy', $ek->id) }}" class="d-inline" onsubmit="return confirm('Xóa key {{ $ek->label }}?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @elseif($empireUsesDatabase)
+            <p class="small text-muted mb-3">Chưa có API key — bấm <strong>Thêm API key</strong>.</p>
+        @else
+            <p class="small text-muted mb-3">Key đang lấy từ <code>.env</code> — chạy <code>php artisan migrate</code> rồi <strong>Import key từ .env</strong> để quản lý trong admin.</p>
+        @endif
+
         <dl class="row mb-0 small">
-            <dt class="col-sm-3">Bật</dt>
-            <dd class="col-sm-9">{{ ($empire['enabled'] ?? false) ? 'EMPIRE_ENABLED=true' : 'Tắt — bật trong .env' }}</dd>
-            <dt class="col-sm-3">API key</dt>
-            <dd class="col-sm-9">{{ ($empire['configured'] ?? false) ? 'Đã cấu hình' : 'Thiếu CSGOEMPIRE_API_KEY' }}</dd>
+            <dt class="col-sm-3">Bật giá Empire</dt>
+            <dd class="col-sm-9">{{ ($empire['enabled'] ?? false) ? 'EMPIRE_ENABLED=true' : 'Tắt — bật EMPIRE_ENABLED trong .env' }}</dd>
+            <dt class="col-sm-3">Key hoạt động</dt>
+            <dd class="col-sm-9">
+                @if(($empire['configured'] ?? false))
+                    {{ $empire['api_keys_available'] ?? 0 }}/{{ $empire['api_key_count'] ?? 0 }} sẵn sàng
+                @else
+                    <span class="text-warning">Chưa có key</span>
+                @endif
+            </dd>
             <dt class="col-sm-3">1 coin → VND</dt>
             <dd class="col-sm-9">{{ number_format($empire['coin_to_vnd'] ?? 0) }} ₫ (≈ ${{ number_format($empire['coin_to_usd'] ?? 0, 4) }})</dd>
-            <dt class="col-sm-3">Giới hạn/lần tra</dt>
-            <dd class="col-sm-9">{{ $empire['max_fetches'] ?? '—' }} item mới (cache giảm gọi API)</dd>
+            <dt class="col-sm-3">Chế độ lấy giá</dt>
+            <dd class="col-sm-9"><code>{{ config('cs2price.empire_fetch_mode', 'auto') }}</code> — paginate nhanh (~{{ config('cs2price.empire_page_delay_ms', 550) }}ms/trang)</dd>
             <dt class="col-sm-3">Trạng thái</dt>
             <dd class="col-sm-9"><span class="badge {{ $empireBadgeClass }}">{{ $empireStatusLabel }}</span></dd>
             <dt class="col-sm-3">Lần check</dt>

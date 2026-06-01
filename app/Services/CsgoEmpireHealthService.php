@@ -20,6 +20,8 @@ class CsgoEmpireHealthService
         return [
             'enabled' => (bool) config('cs2price.empire_enabled', false),
             'configured' => app(CsgoEmpireService::class)->isConfigured(),
+            'api_key_count' => count(\App\Support\CsgoEmpireApiPool::accounts()),
+            'api_keys_available' => count(\App\Support\CsgoEmpireApiPool::available()),
             'coin_to_usd' => \App\Support\ExchangeRateStore::empireCoinToUsd(),
             'coin_to_vnd' => \App\Support\ExchangeRateStore::empireCoinToVnd(),
             'max_fetches' => (int) config('cs2price.empire_max_fetches_per_check', 30),

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Support\Currency;
+use App\Support\CsgoEmpireApiPool;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -11,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 class CsgoEmpireService
 {
     private const API_BASE = 'https://csgoempire.com/api/v2/trading/items';
+
+    private const BULK_INDEX_CACHE_KEY = 'empire_bulk_index:v1';
 
     /**
      * @return array<string, array{
@@ -41,6 +45,8 @@ class CsgoEmpireService
 
         usort($toFetch, fn (string $a, string $b) => $this->fetchPriority($a) <=> $this->fetchPriority($b));
 
+        $toFetch = $this->resolveViaBulkIndex($toFetch, $results, $forSync);
+
         $maxFetches = $forSync
             ? (int) config('cs2price.empire_max_fetches_per_sync', 0)
             : (int) config('cs2price.empire_max_fetches_per_check', 15);
@@ -62,27 +68,364 @@ class CsgoEmpireService
             $price = $this->fetchPrice($hashName);
             $fetched++;
 
-            if ($this->shouldCachePrice($price)) {
-                Cache::put($this->cacheKey($hashName), $this->withFetchedAt($price), $this->cacheStorageTtl());
-            } elseif ($this->isNotFound($price)) {
-                Cache::put(
-                    $this->cacheKey($hashName),
-                    $this->withFetchedAt($price),
-                    (int) config('cs2price.empire_not_found_cache_seconds', 3600)
-                );
-            } elseif ($this->isTransientError($price)) {
-                Cache::put(
-                    $this->cacheKey($hashName),
-                    $this->withFetchedAt($price),
-                    (int) config('cs2price.empire_error_cache_seconds', 300)
-                );
-                Log::warning('csgoempire.price', ['item' => $hashName, 'error' => $price['error']]);
-            }
-
+            $this->storePriceCache($hashName, $price);
             $results[$hashName] = $price;
         }
 
         return $results;
+    }
+
+    /**
+     * Quét listing theo trang (không search) — nhanh hơn nhiều so với từng skin.
+     *
+     * @param  list<string>  $stillNeeded
+     * @param  array<string, array<string, mixed>>  $results
+     * @return list<string>
+     */
+    private function resolveViaBulkIndex(array $stillNeeded, array &$results, bool $forSync): array
+    {
+        if ($stillNeeded === []) {
+            return [];
+        }
+
+        $mode = (string) config('cs2price.empire_fetch_mode', 'auto');
+        if ($mode === 'search') {
+            return $stillNeeded;
+        }
+        if ($mode === 'auto' && ! $forSync) {
+            // Trang chủ: chỉ dùng bulk cache sẵn có, không quét nhiều trang.
+            $index = Cache::get(self::BULK_INDEX_CACHE_KEY);
+            if (! is_array($index)) {
+                return $stillNeeded;
+            }
+        } else {
+            $index = $this->getBulkListingIndex($stillNeeded);
+            if ($index === []) {
+                return $stillNeeded;
+            }
+        }
+
+        $remaining = [];
+        foreach ($stillNeeded as $hashName) {
+            $key = mb_strtolower($hashName);
+            $hit = $index[$key] ?? null;
+            if (! is_array($hit) || ($hit['market_value_coins'] ?? null) === null) {
+                if ($mode === 'paginate') {
+                    $price = array_merge($this->notFoundPrice($hashName), ['error' => 'Không có listing trên Empire']);
+                    $this->storePriceCache($hashName, $price);
+                    $results[$hashName] = $price;
+                } else {
+                    $remaining[] = $hashName;
+                }
+                continue;
+            }
+
+            $price = [
+                'market_value_coins' => $hit['market_value_coins'],
+                'listing_count' => $hit['listing_count'] ?? null,
+                'empire_url' => $hit['empire_url'] ?? $this->marketUrl($hashName),
+                'error' => null,
+            ];
+            $this->storePriceCache($hashName, $price);
+            $results[$hashName] = $price;
+        }
+
+        return $remaining;
+    }
+
+    /**
+     * @return array{market_value_coins: null, listing_count: null, empire_url: string, error: null}
+     */
+    private function notFoundPrice(string $marketHashName): array
+    {
+        return [
+            'market_value_coins' => null,
+            'listing_count' => null,
+            'empire_url' => $this->marketUrl($marketHashName),
+            'error' => null,
+        ];
+    }
+
+    /**
+     * @param  list<string>  $wantedNames
+     * @return array<string, array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
+     */
+    private function getBulkListingIndex(array $wantedNames): array
+    {
+        $ttl = max(60, (int) config('cs2price.empire_bulk_cache_seconds', 600));
+        $wantedKeys = array_fill_keys(array_map(mb_strtolower(...), $wantedNames), true);
+
+        $cached = Cache::get(self::BULK_INDEX_CACHE_KEY);
+        if (is_array($cached) && ($cached['fetched_at'] ?? 0) > time() - $ttl) {
+            $items = is_array($cached['items'] ?? null) ? $cached['items'] : [];
+
+            return $wantedKeys === [] ? $items : $this->filterIndexForWanted($items, $wantedKeys);
+        }
+
+        $built = $this->buildBulkListingIndex($wantedKeys);
+        $merged = $built;
+        if (is_array($cached) && is_array($cached['items'] ?? null)) {
+            $merged = array_merge($cached['items'], $built);
+        }
+        Cache::put(self::BULK_INDEX_CACHE_KEY, [
+            'fetched_at' => time(),
+            'items' => $merged,
+        ], $ttl);
+
+        return $wantedKeys === [] ? $merged : $this->filterIndexForWanted($merged, $wantedKeys);
+    }
+
+    /**
+     * @param  array<string, true>  $wantedKeys
+     * @return array<string, array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
+     */
+    private function buildBulkListingIndex(array $wantedKeys): array
+    {
+        $index = [];
+        $perPage = (int) config('cs2price.empire_bulk_per_page', 0);
+        $hasKey = CsgoEmpireApiPool::isConfigured();
+        if ($perPage <= 0) {
+            $perPage = $hasKey ? 2500 : 200;
+        }
+        $perPage = min($perPage, $hasKey ? 2500 : 200);
+
+        $maxPages = max(1, (int) config('cs2price.empire_bulk_max_pages', 25));
+        $delayMs = max(500, (int) config('cs2price.empire_page_delay_ms', 550));
+        $trackWanted = $wantedKeys !== [];
+        $found = [];
+        $parallel = filter_var(config('cs2price.empire_bulk_parallel', true), FILTER_VALIDATE_BOOL);
+        $accounts = CsgoEmpireApiPool::available();
+
+        if ($parallel && count($accounts) > 1) {
+            return $this->buildBulkListingIndexParallel(
+                $index,
+                $wantedKeys,
+                $found,
+                $trackWanted,
+                $perPage,
+                $maxPages,
+                $delayMs,
+                $accounts
+            );
+        }
+
+        for ($page = 1; $page <= $maxPages; $page++) {
+            if ($page > 1) {
+                usleep($delayMs * 1000);
+            }
+
+            $account = CsgoEmpireApiPool::next();
+            if ($account === null) {
+                break;
+            }
+
+            $response = Http::timeout(45)
+                ->acceptJson()
+                ->withHeaders(CsgoEmpireApiPool::headers($account))
+                ->get(self::API_BASE, [
+                    'per_page' => $perPage,
+                    'page' => $page,
+                    'order' => 'market_value',
+                    'sort' => 'asc',
+                    'auction' => 'no',
+                ]);
+
+            if ($response->status() === 429 || $response->status() === 403) {
+                CsgoEmpireApiPool::markCooldown(
+                    $account,
+                    CsgoEmpireApiPool::cooldownSecondsForResponse($response),
+                    $response->status()
+                );
+                continue;
+            }
+
+            if (! $this->ingestBulkPage($response, $index, $wantedKeys, $found, $trackWanted)) {
+                break;
+            }
+
+            if ($trackWanted && count($found) >= count($wantedKeys)) {
+                break;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $index
+     * @param  array<string, true>  $wantedKeys
+     * @param  array<string, true>  $found
+     * @param  list<array{label: string, api_key: string}>  $accounts
+     * @return array<string, array<string, mixed>>
+     */
+    private function buildBulkListingIndexParallel(
+        array $index,
+        array $wantedKeys,
+        array &$found,
+        bool $trackWanted,
+        int $perPage,
+        int $maxPages,
+        int $delayMs,
+        array $accounts,
+    ): array {
+        $keyCount = count($accounts);
+        $pages = range(1, $maxPages);
+
+        foreach (array_chunk($pages, $keyCount) as $chunkIndex => $pageChunk) {
+            if ($chunkIndex > 0) {
+                usleep($delayMs * 1000);
+            }
+
+            $responses = Http::pool(function (Pool $pool) use ($pageChunk, $accounts, $perPage) {
+                foreach ($pageChunk as $i => $page) {
+                    $account = $accounts[$i % count($accounts)];
+                    $pool->as((string) $page)
+                        ->timeout(45)
+                        ->acceptJson()
+                        ->withHeaders(CsgoEmpireApiPool::headers($account))
+                        ->get(self::API_BASE, [
+                            'per_page' => $perPage,
+                            'page' => $page,
+                            'order' => 'market_value',
+                            'sort' => 'asc',
+                            'auction' => 'no',
+                        ]);
+                }
+            });
+
+            $stop = false;
+            foreach ($pageChunk as $i => $page) {
+                $response = $responses[(string) $page] ?? null;
+                $account = $accounts[$i % count($accounts)];
+
+                if ($response instanceof Response && in_array($response->status(), [429, 403], true)) {
+                    CsgoEmpireApiPool::markCooldown(
+                        $account,
+                        CsgoEmpireApiPool::cooldownSecondsForResponse($response),
+                        $response->status()
+                    );
+                    continue;
+                }
+
+                if (! $this->ingestBulkPage($response, $index, $wantedKeys, $found, $trackWanted)) {
+                    $stop = true;
+                }
+            }
+
+            if ($trackWanted && count($found) >= count($wantedKeys)) {
+                break;
+            }
+            if ($stop) {
+                break;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $index
+     * @param  array<string, true>  $wantedKeys
+     * @param  array<string, true>  $found
+     */
+    private function ingestBulkPage(
+        mixed $response,
+        array &$index,
+        array $wantedKeys,
+        array &$found,
+        bool $trackWanted,
+    ): bool {
+        if (! $response instanceof Response) {
+            return false;
+        }
+
+        if (! $response->successful()) {
+            Log::warning('csgoempire.bulk', [
+                'status' => $response->status(),
+                'error' => $this->httpErrorMessage($response),
+            ]);
+
+            return false;
+        }
+
+        $body = $response->json();
+        if (! is_array($body)) {
+            return false;
+        }
+
+        $rows = $body['data'] ?? [];
+        if (! is_array($rows) || $rows === []) {
+            return false;
+        }
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $name = trim((string) ($row['market_name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $key = mb_strtolower($name);
+            $coins = $this->marketValueToCoins((float) ($row['market_value'] ?? 0));
+            if ($coins <= 0) {
+                continue;
+            }
+
+            if (! isset($index[$key]) || $coins < (float) $index[$key]['market_value_coins']) {
+                $index[$key] = [
+                    'market_value_coins' => round($coins, 2),
+                    'listing_count' => 1,
+                    'empire_url' => $this->marketUrl($name),
+                    'error' => null,
+                ];
+            } else {
+                $index[$key]['listing_count'] = (int) ($index[$key]['listing_count'] ?? 0) + 1;
+            }
+
+            if ($trackWanted && isset($wantedKeys[$key])) {
+                $found[$key] = true;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $index
+     * @param  array<string, true>  $wantedKeys
+     * @return array<string, array<string, mixed>>
+     */
+    private function filterIndexForWanted(array $index, array $wantedKeys): array
+    {
+        if ($wantedKeys === []) {
+            return $index;
+        }
+
+        return array_intersect_key($index, $wantedKeys);
+    }
+
+    /**
+     * @param  array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}  $price
+     */
+    private function storePriceCache(string $hashName, array $price): void
+    {
+        if ($this->shouldCachePrice($price)) {
+            Cache::put($this->cacheKey($hashName), $this->withFetchedAt($price), $this->cacheStorageTtl());
+        } elseif ($this->isNotFound($price)) {
+            Cache::put(
+                $this->cacheKey($hashName),
+                $this->withFetchedAt($price),
+                (int) config('cs2price.empire_not_found_cache_seconds', 3600)
+            );
+        } elseif ($this->isTransientError($price)) {
+            Cache::put(
+                $this->cacheKey($hashName),
+                $this->withFetchedAt($price),
+                (int) config('cs2price.empire_error_cache_seconds', 300)
+            );
+            Log::warning('csgoempire.price', ['item' => $hashName, 'error' => $price['error']]);
+        }
     }
 
     public function isEnabled(): bool
@@ -92,7 +435,7 @@ class CsgoEmpireService
 
     public function isConfigured(): bool
     {
-        return $this->isEnabled() && filled(config('cs2price.empire_api_key'));
+        return $this->isEnabled() && CsgoEmpireApiPool::isConfigured();
     }
 
     public function coinsToUsd(?float $coins): ?float
@@ -137,37 +480,41 @@ class CsgoEmpireService
      */
     private function fetchPrice(string $marketHashName): array
     {
-        $response = Http::timeout(20)
-            ->acceptJson()
-            ->withHeaders($this->headers())
-            ->get(self::API_BASE, [
-                'per_page' => 50,
-                'page' => 1,
-                'search' => $marketHashName,
-                'order' => 'market_value',
-                'sort' => 'asc',
-                'auction' => 'no',
-            ]);
+        $tried = 0;
+        $maxTries = max(1, count(CsgoEmpireApiPool::accounts()));
 
-        return $this->parseSearchResponse($response, $marketHashName);
-    }
+        while ($tried < $maxTries) {
+            $account = CsgoEmpireApiPool::next();
+            if ($account === null) {
+                break;
+            }
 
-    /**
-     * @return array<string, string>
-     */
-    private function headers(): array
-    {
-        $headers = [
-            'Accept' => 'application/json',
-            'User-Agent' => 'CheckPriceCS2/1.0 (+https://checkpricecs2.io.vn)',
-        ];
+            $response = Http::timeout(20)
+                ->acceptJson()
+                ->withHeaders(CsgoEmpireApiPool::headers($account))
+                ->get(self::API_BASE, [
+                    'per_page' => 50,
+                    'page' => 1,
+                    'search' => $marketHashName,
+                    'order' => 'market_value',
+                    'sort' => 'asc',
+                    'auction' => 'no',
+                ]);
 
-        $key = config('cs2price.empire_api_key');
-        if (filled($key)) {
-            $headers['Authorization'] = 'Bearer '.$key;
+            if ($response->status() === 429 || $response->status() === 403) {
+                CsgoEmpireApiPool::markCooldown(
+                    $account,
+                    CsgoEmpireApiPool::cooldownSecondsForResponse($response, $tried + 1),
+                    $response->status()
+                );
+                $tried++;
+                continue;
+            }
+
+            return $this->parseSearchResponse($response, $marketHashName);
         }
 
-        return $headers;
+        return $this->errorPrice('Hết API key Empire khả dụng — thử lại sau');
     }
 
     /**
