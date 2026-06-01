@@ -38,7 +38,7 @@
                 @else
                     <div style="color:var(--lp-accent)">Chưa có giá Buff</div>
                 @endif
-                @if(config('cs2price.empire_enabled') && ($checkResult['total_empire_cny'] ?? 0) > 0)
+                @if(($empireEnabled ?? false) && ($checkResult['total_empire_cny'] ?? 0) > 0)
                     <div class="small lp-muted mt-3 mb-1">Tổng Empire (ước tính)</div>
                     <div class="fw-semibold">@include('partials.price-converted', ['cny' => $checkResult['total_empire_cny']])</div>
                     <div class="small lp-muted">¥{{ number_format($checkResult['total_empire_cny'], 2) }}</div>
@@ -50,7 +50,7 @@
                 @endif
                 <div class="small lp-muted mt-1">
                     {{ $checkResult['item_count'] }} skin · Buff {{ $checkResult['priced_count'] }} có giá
-                    @if(config('cs2price.empire_enabled'))
+                    @if($empireEnabled ?? false)
                         · Empire {{ $checkResult['empire_priced_count'] ?? 0 }}
                     @endif
                 </div>
@@ -66,7 +66,7 @@
                             <th>Item</th>
                             <th class="text-center">SL</th>
                             <th class="text-end">Buff</th>
-                            @if(config('cs2price.empire_enabled'))
+                            @if($empireEnabled ?? false)
                                 <th class="text-end">Empire</th>
                                 <th class="text-center">Nên bán</th>
                             @endif
@@ -97,7 +97,7 @@
                                         —
                                     @endif
                                 </td>
-                                @if(config('cs2price.empire_enabled'))
+                                @if($empireEnabled ?? false)
                                     <td class="text-end small">
                                         @if(isset($item->empire_price_coins) && $item->empire_price_coins !== null)
                                             {{ number_format($item->empire_price_coins, 2) }}c

@@ -14,7 +14,7 @@
                     <th>Item</th>
                     <th class="text-center">SL</th>
                     <th class="text-end">Buff</th>
-                    @if(config('cs2price.empire_enabled'))
+                    @if($empireEnabled ?? false)
                         <th class="text-end">Empire</th>
                         <th class="text-center">Nên bán</th>
                     @endif
@@ -42,7 +42,7 @@
                             @if(!empty($item->buff_error))
                                 <div class="small text-danger">{{ $item->buff_error }}</div>
                             @endif
-                            @if(!empty($item->empire_error) && config('cs2price.empire_enabled'))
+                            @if(!empty($item->empire_error) && ($empireEnabled ?? false))
                                 <div class="small text-muted">{{ $item->empire_error }}</div>
                             @endif
                         </td>
@@ -57,7 +57,7 @@
                                 —
                             @endif
                         </td>
-                        @if(config('cs2price.empire_enabled'))
+                        @if($empireEnabled ?? false)
                             <td class="text-end">
                                 @if(isset($item->empire_price_coins) && $item->empire_price_coins !== null)
                                     <div>{{ number_format($item->empire_price_coins, 2) }} coin</div>
@@ -67,6 +67,8 @@
                                     @if(!empty($item->empire_url))
                                         <a href="{{ $item->empire_url }}" target="_blank" rel="noopener" class="small" title="Mở Empire market"><i class="fas fa-external-link-alt"></i></a>
                                     @endif
+                                @elseif(!empty($item->empire_error))
+                                    <span class="small text-muted" title="{{ $item->empire_error }}">—</span>
                                 @else
                                     —
                                 @endif
@@ -84,7 +86,7 @@
                     </tr>
                 @endforeach
                 <tr class="weapon-filter-empty d-none">
-                    <td colspan="{{ config('cs2price.empire_enabled') ? 8 : 6 }}" class="text-center text-muted py-4">Không có vật phẩm thuộc loại này.</td>
+                    <td colspan="{{ ($empireEnabled ?? false) ? 8 : 6 }}" class="text-center text-muted py-4">Không có vật phẩm thuộc loại này.</td>
                 </tr>
             </tbody>
         </table>

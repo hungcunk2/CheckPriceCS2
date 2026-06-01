@@ -102,6 +102,7 @@ class InventoryPriceChecker
                 'empire_price_coins' => $empireCoins,
                 'empire_price_usd' => $empireUsd,
                 'empire_price_cny' => $empireCny,
+                'empire_price_vnd' => $this->empire->coinsToVnd($empireCoins),
                 'empire_listing_count' => $empireRow['listing_count'] ?? null,
                 'empire_url' => $empireRow['empire_url'] ?? null,
                 'empire_error' => $empireRow['error'] ?? null,

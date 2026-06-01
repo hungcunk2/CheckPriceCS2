@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\InventoryPriceChecker;
 use App\Services\SteamInventoryService;
 use App\Services\TrackedInventoryStore;
+use App\Support\EmpireItemEnricher;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
 use App\Support\SiteMeta;
@@ -54,6 +55,11 @@ class PublicInventoryController extends Controller
 
                     try {
                         $result = $checker->checkUrl($submittedUrl);
+                        $result['items'] = EmpireItemEnricher::enrich($result['items'], fetchMissing: true);
+                        $result['empire_priced_count'] = collect($result['items'])
+                            ->whereNotNull('empire_price_coins')->count();
+                        $result['total_empire_cny'] = round((float) collect($result['items'])
+                            ->sum(fn ($row) => (float) ($row['line_total_empire_cny'] ?? 0)), 2);
                         $checkResult = [
                             'inventory' => (object) [
                                 'label' => $result['steam_persona_name'] ?? $result['label'],
@@ -130,7 +136,10 @@ class PublicInventoryController extends Controller
         }
 
         $inventories = $inventories->map(function (object $inv) {
-            $inv->display_items = InventorySnapshotReader::itemsFromInventory($inv);
+            $inv->display_items = EmpireItemEnricher::enrich(
+                InventorySnapshotReader::itemsFromInventory($inv),
+                fetchMissing: false,
+            );
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
             return $inv;
@@ -148,7 +157,10 @@ class PublicInventoryController extends Controller
         $row = $this->store->findPublic($inventory);
         abort_unless($row, 404);
 
-        $items = InventorySnapshotReader::itemsFromInventory($row);
+        $items = EmpireItemEnricher::enrich(
+            InventorySnapshotReader::itemsFromInventory($row),
+            fetchMissing: true,
+        );
 
         return view('public.show', [
             'inventory' => $row,

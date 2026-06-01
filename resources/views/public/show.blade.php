@@ -47,7 +47,7 @@
 
             @endif
 
-            @if(config('cs2price.empire_enabled') && ($empireTotalCny ?? 0) > 0)
+            @if(($empireEnabled ?? false) && ($empireTotalCny ?? 0) > 0)
                 <div class="small text-muted mt-3">Tổng Empire (ước tính)</div>
                 <div class="h5 mb-0">@include('partials.price-converted', ['cny' => $empireTotalCny])</div>
                 <div class="small text-muted">¥{{ number_format($empireTotalCny, 2) }}</div>

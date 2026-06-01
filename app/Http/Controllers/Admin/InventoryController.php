@@ -7,6 +7,8 @@ use App\Services\InventoryPriceChecker;
 use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
 use App\Support\Buff163AccountPool;
+use App\Support\Cs2PriceFeatures;
+use App\Support\EmpireItemEnricher;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
@@ -28,7 +30,10 @@ class InventoryController extends Controller
     public function index(): View
     {
         $inventories = $this->store->all()->map(function (object $inv) {
-            $items = InventorySnapshotReader::itemsFromInventory($inv);
+            $items = EmpireItemEnricher::enrich(
+                InventorySnapshotReader::itemsFromInventory($inv),
+                fetchMissing: false,
+            );
             $inv->display_items = $this->priceHistory->enrichItems($items);
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
@@ -38,6 +43,7 @@ class InventoryController extends Controller
         return view('admin.inventories.index', [
             'inventories' => $inventories,
             'buffConfigured' => Buff163AccountPool::isConfigured(),
+            'empireEnabled' => Cs2PriceFeatures::empireEnabled(),
         ]);
     }
 

@@ -4,6 +4,15 @@
 @section('page-title', 'Buff163 & nguồn kho cs.trade')
 
 @section('content')
+@if($empireEnabled ?? false)
+    <div class="alert alert-info py-2 small mb-3">
+        Empire đang <strong>bật</strong> trên site. Kho đồngng bộ trước đó có thể chưa có cột giá Empire — chạy lại <strong>Đồng bộ giá</strong> từng kho hoặc cron.
+    </div>
+@else
+    <div class="alert alert-warning py-2 small mb-3">
+        Empire đang <strong>tắt</strong> — thêm <code>EMPIRE_ENABLED=true</code> và <code>CSGOEMPIRE_API_KEY</code> vào <code>.env</code>, rồi <code>php artisan config:clear</code> (hoặc deploy lại).
+    </div>
+@endif
 @php
     $rates = $exchangeRates ?? [];
     $cnyVnd = (float) ($rates['cny_to_vnd'] ?? 3750);

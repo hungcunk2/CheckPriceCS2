@@ -13,6 +13,8 @@ if [ -f scripts/generate-og-share.php ] && [ ! -f public/images/og-share.jpg ]; 
 fi
 php artisan migrate --force --no-interaction
 php artisan storage:link 2>/dev/null || true
+# Đọc lại .env (sau khi sửa EMPIRE_ENABLED, API key, …)
+php artisan config:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
