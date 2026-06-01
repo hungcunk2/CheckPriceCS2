@@ -60,7 +60,7 @@ class BuffAccountController extends Controller
         $validated = $request->validate([
             'cny_to_vnd' => ['required', 'numeric', 'min:1', 'max:100000'],
             'vnd_to_usd' => ['required', 'numeric', 'min:1', 'max:1000000'],
-            'empire_coin_to_usd' => ['required', 'numeric', 'min:0.000001', 'max:100', 'decimal:0,6'],
+            'empire_coin_to_usd' => ['required', 'numeric', 'min:0.000001', 'max:100'],
         ]);
 
         try {

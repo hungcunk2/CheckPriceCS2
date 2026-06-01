@@ -28,7 +28,6 @@
     </div>
     <form method="POST" action="{{ route('admin.buff-accounts.exchange-rates') }}" class="p-3">
         @csrf
-        @method('PUT')
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label small fw-semibold" for="cny_to_vnd">CNY → VND</label>

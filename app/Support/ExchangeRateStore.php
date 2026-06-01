@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\ExchangeRate;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 class ExchangeRateStore
 {
@@ -73,6 +74,10 @@ class ExchangeRateStore
      */
     public static function save(array $data): ExchangeRate
     {
+        if (! Schema::hasTable('exchange_rates')) {
+            throw new \RuntimeException('Bảng exchange_rates chưa tồn tại — chạy: php artisan migrate --force');
+        }
+
         $cnyToVnd = (float) $data['cny_to_vnd'];
         $vndToUsd = (float) $data['vnd_to_usd'];
         $coinToUsd = self::roundCoinToUsd((float) $data['empire_coin_to_usd']);

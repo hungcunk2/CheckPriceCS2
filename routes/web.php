@@ -45,7 +45,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/buff-accounts', [BuffAccountController::class, 'index'])->name('buff-accounts.index');
         Route::get('/buff-accounts/exchange-rates', fn () => redirect()->route('admin.buff-accounts.index').'#exchange-rates')
             ->name('buff-accounts.exchange-rates.show');
-        Route::put('/buff-accounts/exchange-rates', [BuffAccountController::class, 'updateExchangeRates'])->name('buff-accounts.exchange-rates');
+        Route::post('/buff-accounts/exchange-rates', [BuffAccountController::class, 'updateExchangeRates'])->name('buff-accounts.exchange-rates');
         Route::get('/buff-accounts/create', [BuffAccountController::class, 'create'])->name('buff-accounts.create');
         Route::post('/buff-accounts', [BuffAccountController::class, 'store'])->name('buff-accounts.store');
         Route::post('/buff-accounts/import-env', [BuffAccountController::class, 'importFromEnv'])->name('buff-accounts.import-env');
