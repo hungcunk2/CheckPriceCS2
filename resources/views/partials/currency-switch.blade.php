@@ -3,7 +3,7 @@
         type="button"
         class="currency-btn"
         data-currency="vnd"
-        title="Hiển thị VND (¥ × {{ number_format(config('cs2price.cny_to_vnd')) }})"
+        title="Hiển thị VND (¥ × {{ number_format(\App\Support\ExchangeRateStore::cnyToVnd()) }})"
         aria-label="Giá VND"
         aria-pressed="false"
     >
@@ -13,7 +13,7 @@
         type="button"
         class="currency-btn"
         data-currency="usd"
-        title="Hiển thị USD (¥ → ₫ ÷ {{ number_format(config('cs2price.vnd_to_usd')) }})"
+        title="Hiển thị USD (¥ → ₫ ÷ {{ number_format(\App\Support\ExchangeRateStore::vndToUsd()) }})"
         aria-label="Giá USD"
         aria-pressed="false"
     >

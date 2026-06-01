@@ -32,13 +32,27 @@
             </div>
             <div class="text-md-end">
                 @if(($inv->last_total_cny ?? 0) > 0)
+                    <div class="small lp-muted mb-1">Tổng Buff</div>
                     <div class="lp-check-total lp-text-gradient-primary">@include('partials.price-converted', ['cny' => $inv->last_total_cny])</div>
                     <div class="small lp-muted">¥{{ number_format($inv->last_total_cny, 2) }}</div>
                 @else
                     <div style="color:var(--lp-accent)">Chưa có giá Buff</div>
                 @endif
+                @if(config('cs2price.empire_enabled') && ($checkResult['total_empire_cny'] ?? 0) > 0)
+                    <div class="small lp-muted mt-3 mb-1">Tổng Empire (ước tính)</div>
+                    <div class="fw-semibold">@include('partials.price-converted', ['cny' => $checkResult['total_empire_cny']])</div>
+                    <div class="small lp-muted">¥{{ number_format($checkResult['total_empire_cny'], 2) }}</div>
+                    @if(($checkResult['sell_compare_buff_wins'] ?? 0) + ($checkResult['sell_compare_empire_wins'] ?? 0) > 0)
+                        <div class="small lp-muted mt-1">
+                            Buff tốt hơn: {{ $checkResult['sell_compare_buff_wins'] }} · Empire: {{ $checkResult['sell_compare_empire_wins'] }}
+                        </div>
+                    @endif
+                @endif
                 <div class="small lp-muted mt-1">
-                    {{ $checkResult['item_count'] }} skin · {{ $checkResult['priced_count'] }} có giá
+                    {{ $checkResult['item_count'] }} skin · Buff {{ $checkResult['priced_count'] }} có giá
+                    @if(config('cs2price.empire_enabled'))
+                        · Empire {{ $checkResult['empire_priced_count'] ?? 0 }}
+                    @endif
                 </div>
             </div>
         </div>
@@ -52,6 +66,10 @@
                             <th>Item</th>
                             <th class="text-center">SL</th>
                             <th class="text-end">Buff</th>
+                            @if(config('cs2price.empire_enabled'))
+                                <th class="text-end">Empire</th>
+                                <th class="text-center">Nên bán</th>
+                            @endif
                             <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span></th>
                             <th class="text-end">Tổng</th>
                         </tr>
@@ -79,6 +97,21 @@
                                         —
                                     @endif
                                 </td>
+                                @if(config('cs2price.empire_enabled'))
+                                    <td class="text-end small">
+                                        @if(isset($item->empire_price_coins) && $item->empire_price_coins !== null)
+                                            {{ number_format($item->empire_price_coins, 2) }}c
+                                            @if(isset($item->empire_price_cny))
+                                                <div class="lp-muted">≈¥{{ number_format($item->empire_price_cny, 2) }}</div>
+                                            @endif
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                    <td class="text-center small">
+                                        @include('partials.best-sell-venue', ['venue' => $item->best_sell_venue ?? null])
+                                    </td>
+                                @endif
                                 <td class="text-end small">
                                     @include('partials.price-cell', ['cny' => $item->buff_price_cny ?? null])
                                 </td>

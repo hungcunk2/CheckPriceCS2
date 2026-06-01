@@ -61,4 +61,19 @@ return [
     'price_current_window_hours' => (int) env('BUFF_PRICE_CURRENT_WINDOW_HOURS', 2),
     'price_history_days' => (int) env('PRICE_HISTORY_DAYS', 90),
     'price_history_max_points' => (int) env('PRICE_HISTORY_MAX_POINTS', 3000),
+
+    /*
+    | CSGOEmpire — giá tham chiếu từ withdraw market (listing thấp nhất).
+    | API: GET /api/v2/trading/items?search=... — cần API key, rate limit search ~3/10s.
+    */
+    'empire_enabled' => filter_var(env('EMPIRE_ENABLED', false), FILTER_VALIDATE_BOOL),
+    'empire_api_key' => env('CSGOEMPIRE_API_KEY'),
+    // 1 coin Empire ≈ bao nhiêu USD (thường ~0.614 khi nạp; chỉnh theo thực tế).
+    'empire_coin_to_usd' => (float) env('EMPIRE_COIN_TO_USD', 0.6143),
+    // Mặc định = coin→USD × VND/USD; admin có thể sửa trực tiếp trong DB.
+    'empire_coin_to_vnd' => (float) env('EMPIRE_COIN_TO_VND', env('EMPIRE_COIN_TO_USD', 0.6143) * env('VND_TO_USD', 26700)),
+    'empire_price_refresh_seconds' => (int) env('EMPIRE_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
+    'empire_not_found_cache_seconds' => (int) env('EMPIRE_NOT_FOUND_CACHE_SECONDS', 3600),
+    'empire_search_delay_ms' => (int) env('EMPIRE_SEARCH_DELAY_MS', 3500),
+    'empire_max_fetches_per_check' => (int) env('EMPIRE_MAX_FETCHES_PER_CHECK', 30),
 ];

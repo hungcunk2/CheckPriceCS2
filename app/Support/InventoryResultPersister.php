@@ -37,6 +37,11 @@ class InventoryResultPersister
             'last_snapshot' => [
                 'total_cny' => $result['total_cny'],
                 'total_vnd' => $result['total_vnd'],
+                'total_empire_cny' => $result['total_empire_cny'] ?? null,
+                'total_empire_vnd' => $result['total_empire_vnd'] ?? null,
+                'empire_priced_count' => $result['empire_priced_count'] ?? 0,
+                'sell_compare_buff_wins' => $result['sell_compare_buff_wins'] ?? 0,
+                'sell_compare_empire_wins' => $result['sell_compare_empire_wins'] ?? 0,
                 'items' => $result['items'] ?? [],
             ],
         ];

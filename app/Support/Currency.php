@@ -10,7 +10,7 @@ class Currency
             return null;
         }
 
-        return round($cny * (float) config('cs2price.cny_to_vnd'), 0);
+        return round($cny * ExchangeRateStore::cnyToVnd(), 0);
     }
 
     public static function vndToUsd(?float $vnd): ?float
@@ -19,7 +19,7 @@ class Currency
             return null;
         }
 
-        $rate = (float) config('cs2price.vnd_to_usd');
+        $rate = ExchangeRateStore::vndToUsd();
 
         if ($rate <= 0) {
             return null;
@@ -36,15 +36,30 @@ class Currency
         return self::vndToUsd($vnd);
     }
 
+    /** USD → CNY (qua tỷ giá VND cấu hình). */
+    public static function usdToCny(?float $usd): ?float
+    {
+        if ($usd === null) {
+            return null;
+        }
+
+        $cnyPerUsd = self::cnyToUsdRate();
+        if ($cnyPerUsd <= 0) {
+            return null;
+        }
+
+        return round($usd / $cnyPerUsd, 2);
+    }
+
     public static function cnyToUsdRate(): float
     {
-        $vndPerUsd = (float) config('cs2price.vnd_to_usd');
+        $vndPerUsd = ExchangeRateStore::vndToUsd();
 
         if ($vndPerUsd <= 0) {
             return 0;
         }
 
-        return (float) config('cs2price.cny_to_vnd') / $vndPerUsd;
+        return ExchangeRateStore::cnyToVnd() / $vndPerUsd;
     }
 
     public static function formatUsd(?float $usd): string
@@ -63,5 +78,35 @@ class Currency
         }
 
         return number_format($vnd).' ₫';
+    }
+
+    public static function empireCoinsToVnd(?float $coins): ?float
+    {
+        if ($coins === null) {
+            return null;
+        }
+
+        return round($coins * ExchangeRateStore::empireCoinToVnd(), 0);
+    }
+
+    public static function empireCoinsToCny(?float $coins): ?float
+    {
+        $vnd = self::empireCoinsToVnd($coins);
+        $rate = ExchangeRateStore::cnyToVnd();
+
+        if ($vnd === null || $rate <= 0) {
+            return null;
+        }
+
+        return round($vnd / $rate, 2);
+    }
+
+    public static function empireCoinsToUsd(?float $coins): ?float
+    {
+        if ($coins === null) {
+            return null;
+        }
+
+        return round($coins * ExchangeRateStore::empireCoinToUsd(), 2);
     }
 }

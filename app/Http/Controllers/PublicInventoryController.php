@@ -68,6 +68,10 @@ class PublicInventoryController extends Controller
                             'item_count' => $result['item_count'],
                             'priced_count' => $result['priced_count'],
                             'failed_count' => $result['failed_count'],
+                            'empire_priced_count' => $result['empire_priced_count'] ?? 0,
+                            'total_empire_cny' => $result['total_empire_cny'] ?? 0,
+                            'sell_compare_buff_wins' => $result['sell_compare_buff_wins'] ?? 0,
+                            'sell_compare_empire_wins' => $result['sell_compare_empire_wins'] ?? 0,
                         ];
                     } catch (RuntimeException $e) {
                         $checkError = $e->getMessage();

@@ -27,8 +27,16 @@
 
         <div class="text-end">
 
+            @php
+                $snap = is_array($inventory->last_snapshot ?? null)
+                    ? $inventory->last_snapshot
+                    : json_decode($inventory->last_snapshot ?? '[]', true);
+                $empireTotalCny = is_array($snap) ? ($snap['total_empire_cny'] ?? null) : null;
+            @endphp
+
             @if(($inventory->last_total_cny ?? 0) > 0)
 
+                <div class="small text-muted">Tổng Buff</div>
                 <div class="h3 mb-0 text-primary">@include('partials.price-converted', ['cny' => $inventory->last_total_cny])</div>
 
                 <div class="small text-muted mb-0">¥{{ number_format($inventory->last_total_cny, 2) }}</div>
@@ -37,6 +45,12 @@
 
                 <div class="text-warning">Chưa có dữ liệu giá</div>
 
+            @endif
+
+            @if(config('cs2price.empire_enabled') && ($empireTotalCny ?? 0) > 0)
+                <div class="small text-muted mt-3">Tổng Empire (ước tính)</div>
+                <div class="h5 mb-0">@include('partials.price-converted', ['cny' => $empireTotalCny])</div>
+                <div class="small text-muted">¥{{ number_format($empireTotalCny, 2) }}</div>
             @endif
 
             @include('partials.trade-countdown', [

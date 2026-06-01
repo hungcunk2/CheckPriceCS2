@@ -5,6 +5,67 @@
 
 @section('content')
 @php
+    $rates = $exchangeRates ?? [];
+    $cnyVnd = (float) ($rates['cny_to_vnd'] ?? 3750);
+    $vndUsd = (float) ($rates['vnd_to_usd'] ?? 26700);
+    $coinVnd = (float) ($rates['empire_coin_to_vnd'] ?? 16401);
+    $coinUsd = (float) ($rates['empire_coin_to_usd'] ?? 0.6143);
+@endphp
+
+<div class="panel-admin rounded border mb-4">
+    <div class="p-3 border-bottom">
+        <h2 class="h6 mb-0">Tỷ giá quy đổi</h2>
+        <p class="small text-muted mb-0 mt-1">Dùng cho Buff (¥→₫→$) và Empire (coin→₫). Lưu trong database — ưu tiên hơn .env.</p>
+    </div>
+    <form method="POST" action="{{ route('admin.buff-accounts.exchange-rates') }}" class="p-3">
+        @csrf
+        @method('PUT')
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="cny_to_vnd">CNY → VND</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">1 ¥ =</span>
+                    <input type="number" step="0.01" min="1" class="form-control" id="cny_to_vnd" name="cny_to_vnd"
+                           value="{{ old('cny_to_vnd', $cnyVnd) }}" required>
+                    <span class="input-group-text">₫</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="vnd_to_usd">VND → USD</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">1 USD =</span>
+                    <input type="number" step="0.01" min="1" class="form-control" id="vnd_to_usd" name="vnd_to_usd"
+                           value="{{ old('vnd_to_usd', $vndUsd) }}" required>
+                    <span class="input-group-text">₫</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="empire_coin_to_vnd">Empire coin → VND</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">1 coin =</span>
+                    <input type="number" step="0.01" min="0.01" class="form-control" id="empire_coin_to_vnd" name="empire_coin_to_vnd"
+                           value="{{ old('empire_coin_to_vnd', $coinVnd) }}" required>
+                    <span class="input-group-text">₫</span>
+                </div>
+            </div>
+        </div>
+        <div class="small text-muted mt-3">
+            Xem trước:
+            <span class="ms-2">100 coin Empire ≈ <strong>{{ number_format($coinVnd * 100) }} ₫</strong> (≈ ${{ number_format($coinUsd * 100, 2) }})</span>
+            <span class="ms-2">· 100 ¥ ≈ <strong>{{ number_format($cnyVnd * 100) }} ₫</strong></span>
+            @if(($rates['source'] ?? '') === 'config')
+                <span class="badge text-bg-secondary ms-1">đang dùng .env — chạy migrate để lưu DB</span>
+            @endif
+        </div>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fas fa-save me-1"></i> Lưu tỷ giá
+            </button>
+        </div>
+    </form>
+</div>
+
+@php
     $csCheck = $csTrade['last_check'] ?? null;
     $csStatus = $csCheck['status'] ?? null;
     $csBadgeClass = match ($csStatus) {
@@ -18,6 +79,61 @@
         default => 'Chưa check',
     };
 @endphp
+
+@php
+    $empireCheck = $empire['last_check'] ?? null;
+    $empireStatus = $empireCheck['status'] ?? null;
+    $empireBadgeClass = match ($empireStatus) {
+        'ok' => 'text-bg-success',
+        'error' => 'text-bg-danger',
+        default => 'text-bg-secondary',
+    };
+    $empireStatusLabel = match ($empireStatus) {
+        'ok' => 'Hoạt động',
+        'error' => 'Lỗi',
+        default => 'Chưa check',
+    };
+@endphp
+
+<div class="panel-admin rounded border mb-4">
+    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="h6 mb-0">CSGOEmpire — giá withdraw market</h2>
+        <form method="POST" action="{{ route('admin.buff-accounts.empire-probe') }}">
+            @csrf
+            <button type="submit" class="btn btn-sm btn-outline-warning">
+                <i class="fas fa-sync-alt me-1"></i> Kiểm tra Empire
+            </button>
+        </form>
+    </div>
+    <div class="p-3">
+        <dl class="row mb-0 small">
+            <dt class="col-sm-3">Bật</dt>
+            <dd class="col-sm-9">{{ ($empire['enabled'] ?? false) ? 'EMPIRE_ENABLED=true' : 'Tắt — bật trong .env' }}</dd>
+            <dt class="col-sm-3">API key</dt>
+            <dd class="col-sm-9">{{ ($empire['configured'] ?? false) ? 'Đã cấu hình' : 'Thiếu CSGOEMPIRE_API_KEY' }}</dd>
+            <dt class="col-sm-3">1 coin → VND</dt>
+            <dd class="col-sm-9">{{ number_format($empire['coin_to_vnd'] ?? 0) }} ₫ (≈ ${{ number_format($empire['coin_to_usd'] ?? 0, 4) }})</dd>
+            <dt class="col-sm-3">Giới hạn/lần tra</dt>
+            <dd class="col-sm-9">{{ $empire['max_fetches'] ?? '—' }} item mới (cache giảm gọi API)</dd>
+            <dt class="col-sm-3">Trạng thái</dt>
+            <dd class="col-sm-9"><span class="badge {{ $empireBadgeClass }}">{{ $empireStatusLabel }}</span></dd>
+            <dt class="col-sm-3">Lần check</dt>
+            <dd class="col-sm-9">
+                @if($empireCheck)
+                    <div>{{ $empireCheck['message'] ?? '—' }}</div>
+                    <div class="text-muted">
+                        {{ \Carbon\Carbon::parse($empireCheck['checked_at'])->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
+                        @if(!empty($empireCheck['latency_ms']))
+                            · {{ $empireCheck['latency_ms'] }} ms
+                        @endif
+                    </div>
+                @else
+                    <span class="text-muted">—</span>
+                @endif
+            </dd>
+        </dl>
+    </div>
+</div>
 
 <div class="panel-admin rounded border mb-4">
     <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">

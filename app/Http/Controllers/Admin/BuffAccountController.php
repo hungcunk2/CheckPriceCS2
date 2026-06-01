@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Buff163HealthService;
 use App\Services\BuffAccountStore;
+use App\Services\CsgoEmpireHealthService;
 use App\Services\CsTradeHealthService;
 use App\Support\Buff163AccountPool;
+use App\Support\ExchangeRateStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ class BuffAccountController extends Controller
     public function __construct(
         private Buff163HealthService $health,
         private CsTradeHealthService $csTradeHealth,
+        private CsgoEmpireHealthService $empireHealth,
         private BuffAccountStore $store,
     ) {}
 
@@ -29,7 +32,24 @@ class BuffAccountController extends Controller
             'accounts' => $this->health->accountsOverview(),
             'managedAccounts' => Buff163AccountPool::usesDatabase() ? $this->store->all() : collect(),
             'csTrade' => $this->csTradeHealth->overview(),
+            'empire' => $this->empireHealth->overview(),
+            'exchangeRates' => ExchangeRateStore::get(),
         ]);
+    }
+
+    public function updateExchangeRates(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'cny_to_vnd' => ['required', 'numeric', 'min:1', 'max:100000'],
+            'vnd_to_usd' => ['required', 'numeric', 'min:1', 'max:1000000'],
+            'empire_coin_to_vnd' => ['required', 'numeric', 'min:0.01', 'max:10000000'],
+        ]);
+
+        ExchangeRateStore::save($validated);
+
+        return redirect()
+            ->route('admin.buff-accounts.index')
+            ->with('success', 'Đã lưu tỷ giá quy đổi.');
     }
 
     public function create(): View
@@ -124,6 +144,9 @@ class BuffAccountController extends Controller
             $messages[] = 'Buff: chưa có acc — bỏ qua.';
         }
 
+        $empireResult = $this->empireHealth->probe();
+        $messages[] = 'Empire: '.($empireResult['message'] ?? '—');
+
         return redirect()
             ->route('admin.buff-accounts.index')
             ->with('success', implode(' ', $messages));
@@ -138,6 +161,17 @@ class BuffAccountController extends Controller
         return redirect()
             ->route('admin.buff-accounts.index')
             ->with($type, 'cs.trade: '.($result['message'] ?? '—'));
+    }
+
+    public function probeEmpire(): RedirectResponse
+    {
+        $result = $this->empireHealth->probe();
+
+        $type = ($result['status'] ?? '') === 'ok' ? 'success' : 'error';
+
+        return redirect()
+            ->route('admin.buff-accounts.index')
+            ->with($type, 'Empire: '.($result['message'] ?? '—'));
     }
 
     public function probe(Request $request, string $label): JsonResponse|RedirectResponse

@@ -13,9 +13,13 @@
                     <th></th>
                     <th>Item</th>
                     <th class="text-center">SL</th>
-                    <th class="text-end">Giá Buff</th>
+                    <th class="text-end">Buff</th>
+                    @if(config('cs2price.empire_enabled'))
+                        <th class="text-end">Empire</th>
+                        <th class="text-center">Nên bán</th>
+                    @endif
                     <th class="text-end"><span class="price-col-label-vnd">VND</span><span class="price-col-label-usd">USD</span></th>
-                    <th class="text-end">Tổng</th>
+                    <th class="text-end">Tổng Buff</th>
                 </tr>
             </thead>
             <tbody>
@@ -38,15 +42,39 @@
                             @if(!empty($item->buff_error))
                                 <div class="small text-danger">{{ $item->buff_error }}</div>
                             @endif
+                            @if(!empty($item->empire_error) && config('cs2price.empire_enabled'))
+                                <div class="small text-muted">{{ $item->empire_error }}</div>
+                            @endif
                         </td>
                         <td class="text-center">{{ $item->amount ?? 1 }}</td>
                         <td class="text-end">
                             @if(isset($item->buff_price_cny) && $item->buff_price_cny !== null)
                                 ¥{{ number_format($item->buff_price_cny, 2) }}
+                                @if(!empty($item->buff_url))
+                                    <a href="{{ $item->buff_url }}" target="_blank" rel="noopener" class="small ms-1" title="Mở Buff163"><i class="fas fa-external-link-alt"></i></a>
+                                @endif
                             @else
                                 —
                             @endif
                         </td>
+                        @if(config('cs2price.empire_enabled'))
+                            <td class="text-end">
+                                @if(isset($item->empire_price_coins) && $item->empire_price_coins !== null)
+                                    <div>{{ number_format($item->empire_price_coins, 2) }} coin</div>
+                                    @if(isset($item->empire_price_cny) && $item->empire_price_cny !== null)
+                                        <div class="small text-muted">≈ ¥{{ number_format($item->empire_price_cny, 2) }}</div>
+                                    @endif
+                                    @if(!empty($item->empire_url))
+                                        <a href="{{ $item->empire_url }}" target="_blank" rel="noopener" class="small" title="Mở Empire market"><i class="fas fa-external-link-alt"></i></a>
+                                    @endif
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @include('partials.best-sell-venue', ['venue' => $item->best_sell_venue ?? null])
+                            </td>
+                        @endif
                         <td class="text-end">
                             @include('partials.price-cell', ['cny' => $item->buff_price_cny ?? null])
                         </td>
@@ -56,7 +84,7 @@
                     </tr>
                 @endforeach
                 <tr class="weapon-filter-empty d-none">
-                    <td colspan="6" class="text-center text-muted py-4">Không có vật phẩm thuộc loại này.</td>
+                    <td colspan="{{ config('cs2price.empire_enabled') ? 8 : 6 }}" class="text-center text-muted py-4">Không có vật phẩm thuộc loại này.</td>
                 </tr>
             </tbody>
         </table>

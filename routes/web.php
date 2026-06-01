@@ -51,6 +51,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'destroy'])->name('buff-accounts.destroy');
         Route::post('/buff-accounts/probe-all', [BuffAccountController::class, 'probeAll'])->name('buff-accounts.probe-all');
         Route::post('/buff-accounts/cstrade-probe', [BuffAccountController::class, 'probeCsTrade'])->name('buff-accounts.cstrade-probe');
+        Route::post('/buff-accounts/empire-probe', [BuffAccountController::class, 'probeEmpire'])->name('buff-accounts.empire-probe');
+        Route::put('/buff-accounts/exchange-rates', [BuffAccountController::class, 'updateExchangeRates'])->name('buff-accounts.exchange-rates');
         Route::post('/buff-accounts/{label}/probe', [BuffAccountController::class, 'probe'])
             ->where('label', '[a-zA-Z0-9\-]+')
             ->name('buff-accounts.probe');

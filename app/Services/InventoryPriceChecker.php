@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\Buff163AccountPool;
+use App\Support\SellVenueCompare;
 use RuntimeException;
 
 class InventoryPriceChecker
@@ -10,6 +11,7 @@ class InventoryPriceChecker
     public function __construct(
         private InventoryFetchService $inventoryFetch,
         private Buff163Service $buff,
+        private CsgoEmpireService $empire,
     ) {}
 
     /**
@@ -20,6 +22,7 @@ class InventoryPriceChecker
      *   item_count: int,
      *   total_cny: float,
      *   total_vnd: float,
+     *   total_empire_cny: float,
      *   items: list<array<string, mixed>>
      * }
      */
@@ -41,19 +44,43 @@ class InventoryPriceChecker
 
         $hashNames = array_column($steamItems, 'market_hash_name');
         $buffPrices = $this->buff->getPricesForHashNames($hashNames);
+        $empirePrices = $this->empire->isEnabled()
+            ? $this->empire->getPricesForHashNames($hashNames)
+            : [];
 
         $rows = [];
         $totalCny = 0.0;
+        $totalEmpireCny = 0.0;
+        $empirePricedCount = 0;
+        $buffWins = 0;
+        $empireWins = 0;
 
         foreach ($steamItems as $item) {
             $hash = $item['market_hash_name'];
             $buff = $buffPrices[$hash] ?? null;
+            $empireRow = $empirePrices[$hash] ?? null;
             $priceCny = $buff['sell_min_price'] ?? null;
             $amount = $item['amount'];
             $lineCny = $priceCny !== null ? $priceCny * $amount : null;
 
+            $empireCoins = $empireRow['market_value_coins'] ?? null;
+            $empireCny = $this->empire->coinsToCny($empireCoins);
+            $empireUsd = $this->empire->coinsToUsd($empireCoins);
+            $lineEmpireCny = $empireCny !== null ? $empireCny * $amount : null;
+
             if ($lineCny !== null) {
                 $totalCny += $lineCny;
+            }
+            if ($lineEmpireCny !== null) {
+                $totalEmpireCny += $lineEmpireCny;
+                $empirePricedCount++;
+            }
+
+            $bestVenue = SellVenueCompare::bestVenue($priceCny, $empireCny);
+            if ($bestVenue === 'buff') {
+                $buffWins++;
+            } elseif ($bestVenue === 'empire') {
+                $empireWins++;
             }
 
             $rows[] = [
@@ -72,6 +99,14 @@ class InventoryPriceChecker
                 'sell_num' => $buff['sell_num'] ?? null,
                 'buff_url' => $buff['buff_url'] ?? null,
                 'buff_error' => $buff['error'] ?? null,
+                'empire_price_coins' => $empireCoins,
+                'empire_price_usd' => $empireUsd,
+                'empire_price_cny' => $empireCny,
+                'empire_listing_count' => $empireRow['listing_count'] ?? null,
+                'empire_url' => $empireRow['empire_url'] ?? null,
+                'empire_error' => $empireRow['error'] ?? null,
+                'line_total_empire_cny' => $lineEmpireCny,
+                'best_sell_venue' => $bestVenue,
             ];
         }
 
@@ -89,12 +124,20 @@ class InventoryPriceChecker
             'item_count' => count($rows),
             'priced_count' => $pricedCount,
             'failed_count' => $failedCount,
+            'empire_priced_count' => $empirePricedCount,
+            'empire_configured' => $this->empire->isConfigured(),
+            'empire_enabled' => $this->empire->isEnabled(),
             'buff_configured' => Buff163AccountPool::isConfigured(),
+            'sell_compare_buff_wins' => $buffWins,
+            'sell_compare_empire_wins' => $empireWins,
             'inventory_source' => $bundle['inventory_source'],
             'inventory_fallback_message' => $bundle['inventory_fallback_message'],
             'total_cny' => round($totalCny, 2),
             'total_vnd' => $this->buff->cnyToVnd($totalCny) ?? 0,
             'total_usd' => $this->buff->cnyToUsd($totalCny) ?? 0,
+            'total_empire_cny' => round($totalEmpireCny, 2),
+            'total_empire_vnd' => $this->buff->cnyToVnd($totalEmpireCny) ?? 0,
+            'total_empire_usd' => $this->buff->cnyToUsd($totalEmpireCny) ?? 0,
             'items' => $rows,
         ];
     }
