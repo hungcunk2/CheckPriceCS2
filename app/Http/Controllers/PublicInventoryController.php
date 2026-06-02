@@ -164,6 +164,28 @@ class PublicInventoryController extends Controller
         ]);
     }
 
+    public function guestItemImage(Request $request, \App\Services\Cs2CapCatalogService $catalog): JsonResponse
+    {
+        $request->validate([
+            'market_hash_name' => ['required', 'string', 'max:500'],
+        ]);
+
+        $cooldownKey = 'guest-item-image:'.$request->ip();
+        // tránh abuse: max 60 req / phút / IP
+        if (RateLimiter::tooManyAttempts($cooldownKey, 60)) {
+            return response()->json(['ok' => false, 'error' => 'Rate limited'], 429);
+        }
+        RateLimiter::hit($cooldownKey, 60);
+
+        $name = trim((string) $request->input('market_hash_name'));
+        $url = $catalog->imageUrlForHash($name);
+
+        return response()->json([
+            'ok' => $url !== null,
+            'image_url' => $url,
+        ]);
+    }
+
     private function guestCheckCacheKey(string $token): string
     {
         return 'guest_check:'.$token;

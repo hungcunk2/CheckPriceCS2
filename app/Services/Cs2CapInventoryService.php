@@ -96,7 +96,7 @@ class Cs2CapInventoryService
                 'assetid' => (string) ($row['assetid'] ?? ('cs2cap-'.$steamIdOrVanity.'-'.$i)),
                 'market_hash_name' => $hash,
                 'name' => (string) ($row['name'] ?? $hash),
-                'icon_url' => $row['icon_url'] ?? null,
+                'icon_url' => $this->normalizeIconUrl($row['icon_url'] ?? null),
                 'tradable' => (bool) ($row['tradable'] ?? false),
                 'amount' => (int) ($row['quantity'] ?? 1),
                 // quan trọng: phase để tra giá doppler/gamma
@@ -126,6 +126,33 @@ class Cs2CapInventoryService
         $retryAfter = (int) ($response->header('Retry-After') ?? 0);
         $cooldown = $retryAfter > 0 ? $retryAfter : (int) config('cs2price.cs2cap_cooldown_seconds', 30);
         Cs2CapApiPool::setCooldown($label, $cooldown);
+    }
+
+    private function normalizeIconUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return null;
+        }
+
+        // CS2Cap/Steam sometimes returns icon_url as a hash-only string (no scheme/host).
+        if (! str_contains($url, '://') && ! str_starts_with($url, '//') && ! str_starts_with($url, '/')) {
+            $url = 'https://community.cloudflare.steamstatic.com/economy/image/'.$url;
+        }
+
+        // Một số response có icon_url bị cụt kiểu ".../economy/image/" -> 404.
+        if (preg_match('#/economy/image/?$#', $url)) {
+            return null;
+        }
+
+        // Chuẩn hóa về steamstatic cloudflare (ổn định).
+        $url = str_replace('https://steamcommunity-a.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('https://steamcommunity.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('https://steamcommunity.com/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('http://steamcommunity-a.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('http://steamcommunity.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+
+        return $url;
     }
 }
 

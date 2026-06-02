@@ -10,6 +10,7 @@
     var submitBtn = document.getElementById('lp-check-submit');
     var startUrl = form.getAttribute('data-start-url') || '';
     var pricesUrl = form.getAttribute('data-prices-url') || '';
+    var itemImageUrl = form.getAttribute('data-item-image-url') || '';
     var empireEnabled = form.getAttribute('data-empire-enabled') === '1';
     var batchSize = parseInt(form.getAttribute('data-batch-size') || '12', 10) || 12;
 
@@ -232,7 +233,7 @@
 
     function rowHtml(row, rates) {
         var icon = row.icon_url
-            ? '<img src="' + escapeHtml(row.icon_url) + '" alt="" class="lp-check-item-thumb">'
+            ? '<img src="' + escapeHtml(row.icon_url) + '" alt="" class="lp-check-item-thumb" loading="lazy" referrerpolicy="no-referrer" onerror="window.__cpcs2_onItemImgError && window.__cpcs2_onItemImgError(this)">'
             : '';
         var buffCell = row.buff_price_cny != null ? fmtCny(row.buff_price_cny) : '<span class="lp-price-pending lp-muted">…</span>';
         var buffErr = row.buff_error ? '<div class="small" style="color:var(--lp-accent)">' + escapeHtml(row.buff_error) + '</div>' : '';
@@ -263,6 +264,36 @@
             '<td class="text-end small fw-semibold">' + (row.line_total_cny != null ? priceCell(row.line_total_cny, rates) : '<span class="lp-muted">…</span>') + '</td>' +
             '</tr>';
     }
+
+    // Fallback ảnh: nếu steamstatic icon lỗi, gọi API lấy image_url từ CS2Cap catalog.
+    window.__cpcs2_onItemImgError = function (imgEl) {
+        try {
+            if (!itemImageUrl || !imgEl) return;
+            if (imgEl.dataset.fallbackTried === '1') {
+                imgEl.style.display = 'none';
+                return;
+            }
+            var tr = imgEl.closest('tr');
+            var hash = tr ? tr.getAttribute('data-hash') : null;
+            if (!hash) {
+                imgEl.style.display = 'none';
+                return;
+            }
+            imgEl.dataset.fallbackTried = '1';
+            fetch(itemImageUrl + '?market_hash_name=' + encodeURIComponent(hash), {
+                method: 'GET',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            }).then(function (r) { return r.json(); })
+              .then(function (j) {
+                  if (j && j.ok && j.image_url) {
+                      imgEl.src = j.image_url;
+                      imgEl.style.display = '';
+                  } else {
+                      imgEl.style.display = 'none';
+                  }
+              }).catch(function () { imgEl.style.display = 'none'; });
+        } catch (e) {}
+    };
 
     function renderTableBody(state) {
         var tbody = document.getElementById('lp-check-tbody');
