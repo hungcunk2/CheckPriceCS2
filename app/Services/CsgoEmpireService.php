@@ -436,10 +436,16 @@ class CsgoEmpireService
         if ($this->shouldCachePrice($price)) {
             Cache::put($this->cacheKey($hashName), $this->withFetchedAt($price), $this->cacheStorageTtl());
         } elseif ($this->isNotFound($price)) {
+            // Với Doppler/Gamma Doppler (có phase/gem), listing thay đổi nhanh và search dễ sai.
+            // Cache "không có listing" ngắn hơn để tự hồi nhanh khi phase mapping vừa được sửa.
+            $ttl = (int) config('cs2price.empire_not_found_cache_seconds', 3600);
+            if (str_contains($hashName, ' - Phase ') || preg_match('/ - (Ruby|Sapphire|Black Pearl|Emerald)$/i', $hashName)) {
+                $ttl = min($ttl, (int) config('cs2price.empire_phase_not_found_cache_seconds', 300));
+            }
             Cache::put(
                 $this->cacheKey($hashName),
                 $this->withFetchedAt($price),
-                (int) config('cs2price.empire_not_found_cache_seconds', 3600)
+                $ttl
             );
         } elseif ($this->isTransientError($price)) {
             Cache::put(

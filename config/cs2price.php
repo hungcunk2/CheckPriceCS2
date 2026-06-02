@@ -101,6 +101,8 @@ return [
     'empire_coin_to_vnd' => (float) env('EMPIRE_COIN_TO_USD', 0.6143) * (float) env('VND_TO_USD', 26700),
     'empire_price_refresh_seconds' => (int) env('EMPIRE_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
     'empire_not_found_cache_seconds' => (int) env('EMPIRE_NOT_FOUND_CACHE_SECONDS', 3600),
+    // Doppler/Gamma: cache "không có listing" ngắn để tự hồi nhanh khi có phase.
+    'empire_phase_not_found_cache_seconds' => (int) env('EMPIRE_PHASE_NOT_FOUND_CACHE_SECONDS', 300),
     'empire_error_cache_seconds' => (int) env('EMPIRE_ERROR_CACHE_SECONDS', 300),
     'empire_search_delay_ms' => (int) env('EMPIRE_SEARCH_DELAY_MS', 3500),
     // Tra nhanh trang chủ (giới hạn để không timeout).
