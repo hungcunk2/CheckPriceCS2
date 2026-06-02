@@ -135,7 +135,8 @@ class InventoryController extends Controller
             $result = $checker->checkUrl(
                 $row->url,
                 $row->label ?? null,
-                refreshSteam: false,
+                // Người dùng bấm đồng bộ: ép refresh kho ngay.
+                refreshSteam: true,
                 empireMode: 'admin',
             );
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? true));
@@ -233,7 +234,7 @@ class InventoryController extends Controller
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl($url, $label, refreshSteam: false, empireMode: 'admin');
+            $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'admin');
             $row = $this->store->find($id);
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? true) : true);
 

@@ -63,7 +63,8 @@ class SyncInventoryPricesCommand extends Command
             $this->line("→ {$label}");
 
             try {
-                $result = $checker->checkUrl($row->url, $row->label ?? null, empireMode: 'sync');
+                // Đồng bộ định kỳ: ép refresh kho để CS2Cap/Steam cập nhật item mới theo chu kỳ.
+                $result = $checker->checkUrl($row->url, $row->label ?? null, refreshSteam: true, empireMode: 'sync');
                 $persister->persist($result, (int) $row->id, (bool) ($row->is_public ?? true));
                 $ok++;
                 $this->info("  OK — {$result['priced_count']}/{$result['item_count']} có giá");
