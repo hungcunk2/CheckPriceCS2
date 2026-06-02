@@ -39,6 +39,8 @@ return [
     // Item đã có giá: chỉ gọi Buff lại sau N giây (mặc định 4 giờ, khớp chu kỳ sync).
     'price_refresh_seconds' => (int) env('BUFF_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
     'price_cache_seconds' => (int) env('BUFF_PRICE_CACHE_SECONDS', 14400),
+    // Cache giá theo item trong DB (chia sẻ giữa mọi lượt quét), mặc định 4 giờ.
+    'db_item_price_cache_seconds' => (int) env('DB_ITEM_PRICE_CACHE_SECONDS', 14400),
 
     // Tự động quét kho Steam + giá Buff (scheduler).
     'price_auto_sync_enabled' => filter_var(env('BUFF_PRICE_AUTO_SYNC', true), FILTER_VALIDATE_BOOL),

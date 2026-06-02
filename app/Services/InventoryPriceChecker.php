@@ -12,6 +12,7 @@ class InventoryPriceChecker
         private InventoryFetchService $inventoryFetch,
         private Buff163Service $buff,
         private CsgoEmpireService $empire,
+        private ItemPriceCacheStore $dbPriceCache,
     ) {}
 
     /**
@@ -71,11 +72,10 @@ class InventoryPriceChecker
             return [];
         }
 
-        $hashNames = array_column($steamItems, 'market_hash_name');
-        $buffPrices = $this->buff->getPricesForHashNames($hashNames);
-        $empirePrices = $this->empire->isEnabled()
-            ? $this->empire->getPricesForHashNames($hashNames, $empireMode)
-            : [];
+        $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
+
+        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
+        $empirePrices = $this->empirePricesWithDbCache($hashNames, $empireMode);
 
         return $this->buildItemRows($steamItems, $buffPrices, $empirePrices);
     }
@@ -100,11 +100,9 @@ class InventoryPriceChecker
     private function finalizeCheckResult(array $parsed, array $bundle, ?string $label, string $empireMode): array
     {
         $steamItems = $bundle['items'];
-        $hashNames = array_column($steamItems, 'market_hash_name');
+        $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
         $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
-        $empirePrices = $this->empire->isEnabled()
-            ? $this->empire->getPricesForHashNames($hashNames, $empireMode)
-            : [];
+        $empirePrices = $this->empirePricesWithDbCache($hashNames, $empireMode);
 
         $rows = $this->buildItemRows($steamItems, $buffPrices, $empirePrices);
 
@@ -172,14 +170,119 @@ class InventoryPriceChecker
      */
     private function buffPricesForItems(array $steamItems, array $hashNames): array
     {
-        if (config('cs2price.cs2cap_use_buff', false)) {
-            $cs2cap = app(\App\Services\Cs2CapService::class);
-            if ($cs2cap->isConfigured()) {
-                return $cs2cap->getBuffPricesForSteamItems($steamItems);
+        // DB cache key: hash + phase (phase quan trọng cho Doppler/Gamma).
+        $keys = array_values(array_map(function (array $item) {
+            return [
+                'hash' => (string) ($item['market_hash_name'] ?? ''),
+                'phase' => isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null,
+            ];
+        }, $steamItems));
+
+        $cachedByKey = $this->dbPriceCache->getFresh('buff', $keys);
+
+        $buffPrices = [];
+        $missingSteamItems = [];
+
+        foreach ($steamItems as $item) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            if ($hash === '') {
+                continue;
+            }
+            $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+            $key = $this->dbPriceCache->key($hash, $phase);
+
+            if (isset($cachedByKey[$key]) && ($cachedByKey[$key]['sell_min_price'] ?? null) !== null) {
+                $buffPrices[$hash] = $cachedByKey[$key];
+            } else {
+                $missingSteamItems[] = $item;
             }
         }
 
-        return $this->buff->getPricesForHashNames($hashNames);
+        if ($missingSteamItems === []) {
+            return $buffPrices;
+        }
+
+        // Fetch only missing.
+        if (config('cs2price.cs2cap_use_buff', false)) {
+            $cs2cap = app(\App\Services\Cs2CapService::class);
+            if ($cs2cap->isConfigured()) {
+                $fetched = $cs2cap->getBuffPricesForSteamItems($missingSteamItems);
+                $this->dbPriceCache->putMany('buff', $this->mapBuffPayloadByKey($missingSteamItems, $fetched), 'CNY');
+                return $buffPrices + $fetched;
+            }
+        }
+
+        $missingHashes = array_values(array_unique(array_column($missingSteamItems, 'market_hash_name')));
+        $fetched = $this->buff->getPricesForHashNames($missingHashes);
+        // Buff163Service không biết phase; cache theo phase nếu có, còn lại phase null.
+        $this->dbPriceCache->putMany('buff', $this->mapBuffPayloadByKey($missingSteamItems, $fetched), 'CNY');
+
+        return $buffPrices + $fetched;
+    }
+
+    /**
+     * @param  list<string>  $hashNames
+     * @return array<string, array<string, mixed>>
+     */
+    private function empirePricesWithDbCache(array $hashNames, string $empireMode): array
+    {
+        if (! $this->empire->isEnabled()) {
+            return [];
+        }
+
+        $keys = array_values(array_map(fn (string $h) => ['hash' => $h, 'phase' => null], $hashNames));
+        $cachedByKey = $this->dbPriceCache->getFresh('empire', $keys);
+
+        $result = [];
+        $missing = [];
+        foreach ($hashNames as $hash) {
+            $key = $this->dbPriceCache->key($hash, null);
+            if (isset($cachedByKey[$key]) && ($cachedByKey[$key]['market_value_coins'] ?? null) !== null) {
+                $result[$hash] = $cachedByKey[$key];
+            } else {
+                $missing[] = $hash;
+            }
+        }
+
+        if ($missing === []) {
+            return $result;
+        }
+
+        $fetched = $this->empire->getPricesForHashNames($missing, $empireMode);
+
+        $payloadByKey = [];
+        foreach ($missing as $hash) {
+            if (! isset($fetched[$hash])) {
+                continue;
+            }
+            $payloadByKey[$this->dbPriceCache->key($hash, null)] = $fetched[$hash];
+        }
+        $this->dbPriceCache->putMany('empire', $payloadByKey, 'COINS');
+
+        return $result + $fetched;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $steamItems
+     * @param  array<string, array<string, mixed>>  $buffPrices
+     * @return array<string, array<string, mixed>> map key => payload
+     */
+    private function mapBuffPayloadByKey(array $steamItems, array $buffPrices): array
+    {
+        $out = [];
+        foreach ($steamItems as $item) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            if ($hash === '') {
+                continue;
+            }
+            $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+            if (! isset($buffPrices[$hash])) {
+                continue;
+            }
+            $out[$this->dbPriceCache->key($hash, $phase)] = $buffPrices[$hash];
+        }
+
+        return $out;
     }
 
     /**
