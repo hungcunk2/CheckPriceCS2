@@ -3,6 +3,7 @@
 @php
     use App\Support\Currency;
     use App\Support\InventoryWeaponStats;
+    $placeholderImg = asset('images/logo.png');
 @endphp
 
 @if(count($items) > 0)
@@ -42,9 +43,17 @@
                     @endphp
                     <tr data-weapon-category="{{ $weaponCategory }}">
                         <td>
-                            @if(!empty($item->icon_url))
-                                <img src="{{ $item->icon_url }}" class="item-thumb image-zoomable" alt="" style="width:36px;height:36px">
-                            @endif
+                            <img
+                                src="{{ !empty($item->icon_url) ? $item->icon_url : $placeholderImg }}"
+                                class="item-thumb image-zoomable"
+                                alt=""
+                                width="36"
+                                height="36"
+                                loading="lazy"
+                                referrerpolicy="no-referrer"
+                                onerror="this.onerror=null;this.src='{{ $placeholderImg }}';"
+                                style="width:36px;height:36px"
+                            >
                         </td>
                         <td>
                             <div class="fw-semibold">{{ $item->name ?? '' }}</div>
