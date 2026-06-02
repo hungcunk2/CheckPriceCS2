@@ -25,80 +25,16 @@ class PublicInventoryController extends Controller
         private TrackedInventoryStore $store,
     ) {}
 
-    public function landing(Request $request, InventoryPriceChecker $checker, SteamInventoryService $steam): View
+    public function landing(Request $request): View
     {
-        $checkResult = null;
-        $checkError = null;
-        $submittedUrl = old('steam_url', '');
-
-        if ($request->isMethod('post')) {
-            $submittedUrl = trim((string) $request->input('steam_url', ''));
-            $request->validate([
-                'steam_url' => ['required', 'string', 'max:2000'],
-            ]);
-
-            try {
-                $steam->parseInventoryUrl($submittedUrl);
-            } catch (RuntimeException $e) {
-                $checkError = $e->getMessage();
-            }
-
-            if ($checkError === null) {
-                $cooldownKey = 'guest-price-check:'.$request->ip();
-                $cooldownSeconds = max(60, (int) config('cs2price.guest_check_cooldown_seconds', 300));
-
-                if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
-                    $checkError = sprintf(
-                        'Mỗi IP chỉ tra được 1 kho / %d phút. Thử lại sau %s.',
-                        (int) ceil($cooldownSeconds / 60),
-                        $this->formatCooldownWait(RateLimiter::availableIn($cooldownKey))
-                    );
-                } else {
-                    RateLimiter::hit($cooldownKey, $cooldownSeconds);
-
-                    $this->extendExecutionTime();
-
-                    try {
-                        $result = $checker->checkUrl($submittedUrl);
-                        $result['items'] = EmpireItemEnricher::enrich($result['items'], fetchMissing: true);
-                        $result['empire_priced_count'] = collect($result['items'])
-                            ->whereNotNull('empire_price_coins')->count();
-                        $result['total_empire_cny'] = round((float) collect($result['items'])
-                            ->sum(fn ($row) => (float) ($row['line_total_empire_cny'] ?? 0)), 2);
-                        $checkResult = [
-                            'inventory' => (object) [
-                                'label' => $result['steam_persona_name'] ?? $result['label'],
-                                'steam_persona_name' => $result['steam_persona_name'] ?? null,
-                                'steam_avatar_url' => $result['steam_avatar_url'] ?? null,
-                                'steam_id' => $result['steam_id'],
-                                'url' => $result['url'],
-                                'last_total_cny' => $result['total_cny'],
-                                'last_total_vnd' => $result['total_vnd'],
-                            ],
-                            'items' => $result['items'],
-                            'item_count' => $result['item_count'],
-                            'priced_count' => $result['priced_count'],
-                            'failed_count' => $result['failed_count'],
-                            'empire_priced_count' => $result['empire_priced_count'] ?? 0,
-                            'total_empire_cny' => $result['total_empire_cny'] ?? 0,
-                            'sell_compare_buff_wins' => $result['sell_compare_buff_wins'] ?? 0,
-                            'sell_compare_empire_wins' => $result['sell_compare_empire_wins'] ?? 0,
-                        ];
-                    } catch (RuntimeException $e) {
-                        $checkError = $e->getMessage();
-                    }
-                }
-            }
-        }
-
         return view('public.landing', [
             'meta' => SiteMeta::make([
                 'canonical' => route('public.landing'),
                 'url' => route('public.landing'),
             ]),
-            'checkResult' => $checkResult,
-            'checkError' => $checkError,
-            'submittedUrl' => $submittedUrl,
+            'checkResult' => null,
+            'checkError' => null,
+            'submittedUrl' => '',
         ]);
     }
 
@@ -130,7 +66,6 @@ class PublicInventoryController extends Controller
             ], 429);
         }
 
-        RateLimiter::hit($cooldownKey, $cooldownSeconds);
         $this->extendExecutionTime();
 
         try {
@@ -138,6 +73,8 @@ class PublicInventoryController extends Controller
         } catch (RuntimeException $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
         }
+
+        RateLimiter::hit($cooldownKey, $cooldownSeconds);
 
         $steamItems = $bundle['items'];
         $token = (string) Str::uuid();

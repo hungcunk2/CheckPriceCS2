@@ -22,8 +22,8 @@
         </p>
 
         <form
-            action="{{ route('public.landing') }}"
-            method="post"
+            action="#ket-qua-tra-gia"
+            method="get"
             class="lp-hero-form lp-glass-strong"
             id="lp-check-form"
             data-progressive="1"
@@ -51,6 +51,14 @@
             </button>
         </form>
 
+        <script>
+        (function () {
+            var f = document.getElementById('lp-check-form');
+            if (!f || f.getAttribute('data-progressive') !== '1') return;
+            f.addEventListener('submit', function (e) { e.preventDefault(); }, true);
+        })();
+        </script>
+
         @error('steam_url')
             <div class="lp-check-result lp-check-result--error lp-glass rounded-3 p-3 mt-3 text-start small" style="color:var(--lp-accent)">
                 {{ $message }}
@@ -64,10 +72,9 @@
 </section>
 
 @push('scripts')
-<script src="{{ asset('js/guest-check.js') }}?v={{ filemtime(public_path('js/guest-check.js')) }}"></script>
-@if(!empty($checkResult) || !empty($checkError))
-<script>
-document.getElementById('ket-qua-tra-gia')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-</script>
-@endif
+@php
+    $guestCheckJs = public_path('js/guest-check.js');
+    $guestCheckVer = is_file($guestCheckJs) ? (string) filemtime($guestCheckJs) : '1';
+@endphp
+<script src="{{ asset('js/guest-check.js') }}?v={{ $guestCheckVer }}" defer></script>
 @endpush

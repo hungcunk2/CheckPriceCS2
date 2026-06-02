@@ -64,6 +64,18 @@
         }
     }
 
+    function showLoading(message) {
+        if (!host) {
+            return;
+        }
+        host.innerHTML =
+            '<div id="ket-qua-tra-gia" class="lp-check-result lp-glass-strong rounded-3 p-4 mt-4 text-start">' +
+            '<div class="d-flex align-items-center gap-3">' +
+            '<span class="lp-pulse-dot"></span>' +
+            '<div class="fw-medium">' + escapeHtml(message || 'Đang tải kho đồ…') + '</div></div></div>';
+        scrollToResult();
+    }
+
     function showError(message) {
         if (!host) {
             return;
@@ -107,7 +119,10 @@
             body: JSON.stringify(body),
         }).then(function (res) {
             return res.json().then(function (data) {
-                return { status: res.status, data: data };
+                if (!res.ok) {
+                    throw new Error((data && data.error) || ('Lỗi máy chủ (' + res.status + ')'));
+                }
+                return data;
             });
         });
     }
@@ -339,11 +354,11 @@
 
         batches.forEach(function (batch) {
             chain = chain.then(function () {
-                return postJson(pricesUrl, { token: state.token, hashes: batch }).then(function (res) {
-                    if (!res.data.ok) {
-                        throw new Error(res.data.error || 'Không lấy được giá.');
+                return postJson(pricesUrl, { token: state.token, hashes: batch }).then(function (data) {
+                    if (!data.ok) {
+                        throw new Error(data.error || 'Không lấy được giá.');
                     }
-                    mergePricedRows(state, res.data.items || []);
+                    mergePricedRows(state, data.items || []);
                 });
             });
         });
@@ -357,10 +372,12 @@
     }
 
     form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+
         if (!startUrl || !pricesUrl || !host) {
+            showError('Tra giá chưa sẵn sàng (thiếu API). Chạy php artisan route:clear trên server rồi tải lại trang.');
             return;
         }
-        ev.preventDefault();
 
         var urlInput = form.querySelector('input[name="steam_url"]');
         var steamUrl = urlInput ? urlInput.value.trim() : '';
@@ -369,14 +386,14 @@
         }
 
         setBtnLoading(true);
+        showLoading('Đang tải kho đồ Steam…');
 
         postJson(startUrl, { steam_url: steamUrl })
-            .then(function (res) {
-                if (!res.data.ok) {
-                    throw new Error(res.data.error || 'Không tra được kho.');
+            .then(function (data) {
+                if (!data.ok) {
+                    throw new Error(data.error || 'Không tra được kho.');
                 }
 
-                var data = res.data;
                 var rows = (data.items || []).map(function (item) {
                     return Object.assign({}, item, { _priced: false });
                 });
