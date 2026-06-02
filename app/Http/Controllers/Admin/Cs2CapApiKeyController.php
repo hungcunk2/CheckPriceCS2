@@ -203,16 +203,7 @@ class Cs2CapApiKeyController extends Controller
         $effectiveRpm = is_array($meta) ? ($meta['effective_rate_requests_per_minute'] ?? null) : null;
         $effectiveQuota = is_array($meta) ? ($meta['effective_quota_requests_per_month'] ?? null) : null;
 
-        $suffix = '';
-        if ($tier || $effectiveRpm || $effectiveQuota || $remaining || $limit) {
-            $suffix = ' · tier='.($tier ?: '—')
-                .' · rpm='.($effectiveRpm ?? '—')
-                .' · quota='.($effectiveQuota ?? '—')
-                .' · remaining='.($remaining ?? '—')
-                .'/'.($limit ?? '—');
-        }
-
-        $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi').$suffix;
+        $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi');
 
         return [
             'ok' => $ok,

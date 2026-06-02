@@ -164,15 +164,87 @@
         if (cell) cell.innerHTML = renderCheckBlock(result);
     }
 
+    function formatInt(n) {
+        if (n === null || n === undefined || n === '') return '—';
+        const num = Number(n);
+        if (!Number.isFinite(num)) return '—';
+        return num.toLocaleString('vi-VN');
+    }
+
+    function formatUnix(ts) {
+        const num = Number(ts);
+        if (!Number.isFinite(num) || num <= 0) return '';
+        try {
+            const d = new Date(num * 1000);
+            const pad = (x) => String(x).padStart(2, '0');
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function renderCs2CapQuotaCell(details) {
+        if (!details || typeof details !== 'object') {
+            return '<span class="text-muted">—</span>';
+        }
+        const remaining = details.quota_remaining;
+        const limit = details.quota_limit ?? details.effective_quota;
+        const tier = details.tier;
+        const rpm = details.effective_rpm;
+        const reset = details.quota_reset;
+        let html = '';
+
+        if (tier) {
+            html += `<span class="badge text-bg-secondary text-uppercase">${escapeHtml(tier)}</span>`;
+        }
+
+        if (remaining != null || limit != null) {
+            html += `<div class="mt-1"><span class="fw-semibold">${formatInt(remaining)}</span>`
+                + ` <span class="text-muted">/</span> ${formatInt(limit)}</div>`;
+            const rem = Number(remaining);
+            const lim = Number(limit);
+            if (Number.isFinite(rem) && Number.isFinite(lim) && lim > 0) {
+                const usedPct = Math.min(100, Math.max(0, ((lim - rem) / lim) * 100));
+                html += `<div class="progress mt-1" style="height: 4px;" title="Đã dùng ${usedPct.toFixed(1)}%">`
+                    + `<div class="progress-bar ${usedPct >= 90 ? 'bg-danger' : usedPct >= 70 ? 'bg-warning' : ''}" `
+                    + `style="width: ${usedPct.toFixed(1)}%"></div></div>`;
+                html += `<div class="text-muted" style="font-size: 0.75rem;">${usedPct.toFixed(1)}% đã dùng · còn ${formatInt(rem)}</div>`;
+            }
+        } else if (details.effective_quota != null) {
+            html += `<div class="mt-1 text-muted">Hạn mức ${formatInt(details.effective_quota)}/tháng</div>`;
+            html += `<div class="text-muted" style="font-size: 0.75rem;">Chưa có số còn lại (cần gọi /fx)</div>`;
+        }
+
+        if (rpm != null) {
+            html += `<div class="text-muted" style="font-size: 0.75rem;">RPM: ${formatInt(rpm)}</div>`;
+        }
+        const resetStr = formatUnix(reset);
+        if (resetStr) {
+            html += `<div class="text-muted" style="font-size: 0.75rem;">Reset: ${resetStr}</div>`;
+        }
+
+        return html || '<span class="text-muted">—</span>';
+    }
+
     function updateCs2CapKeyRow(id, result) {
         const row = document.querySelector(`tr[data-cs2cap-key-id="${id}"]`);
-        const cell = row?.querySelector('.cs2cap-key-check-cell');
-        if (!cell) return;
+        if (!row) return;
+
+        const quotaCell = row.querySelector('.cs2cap-key-quota-cell');
+        if (quotaCell) {
+            quotaCell.innerHTML = renderCs2CapQuotaCell(result?.details);
+        }
+
+        const checkCell = row.querySelector('.cs2cap-key-check-cell');
+        if (!checkCell) return;
         const ok = result?.ok === true;
         const badge = ok
             ? '<span class="badge text-bg-success">OK</span>'
             : '<span class="badge text-bg-danger">Lỗi</span>';
-        cell.innerHTML = badge + `<div class="text-muted">${escapeHtml(result?.message ?? '—')}</div>`;
+        let html = badge + `<div class="text-muted">${escapeHtml(result?.message ?? '—')}</div>`;
+        const at = formatCheckedAt(new Date().toISOString());
+        if (at) html += `<div class="text-muted" style="font-size: 0.75rem;">${at}</div>`;
+        checkCell.innerHTML = html;
     }
 
     function updateBuffRow(label, result) {
@@ -468,6 +540,7 @@
                         <th>API key</th>
                         <th>Ưu tiên</th>
                         <th>Trạng thái</th>
+                        <th>Quota tháng</th>
                         <th>Lần check</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
@@ -489,6 +562,7 @@
                                     <span class="badge text-bg-warning text-dark ms-1" title="Cooldown">⏳ {{ $cooldown }}s</span>
                                 @endif
                             </td>
+                            <td class="small cs2cap-key-quota-cell text-muted">—</td>
                             <td class="small cs2cap-key-check-cell text-muted">Chưa check</td>
                             <td class="text-end text-nowrap">
                                 <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.probe', $k->id) }}"
