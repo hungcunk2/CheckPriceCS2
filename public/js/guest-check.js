@@ -232,7 +232,7 @@
 
     function rowHtml(row, rates) {
         var icon = row.icon_url
-            ? '<img src="' + escapeHtml(row.icon_url) + '" alt="" class="lp-check-item-thumb">'
+            ? '<img src="' + escapeHtml(row.icon_url) + '" alt="" class="lp-check-item-thumb" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\\'none\\'">'
             : '';
         var buffCell = row.buff_price_cny != null ? fmtCny(row.buff_price_cny) : '<span class="lp-price-pending lp-muted">…</span>';
         var buffErr = row.buff_error ? '<div class="small" style="color:var(--lp-accent)">' + escapeHtml(row.buff_error) + '</div>' : '';
