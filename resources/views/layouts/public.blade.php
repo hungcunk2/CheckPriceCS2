@@ -34,6 +34,63 @@
     <script src="{{ asset('js/currency-switch.js') }}"></script>
     <script src="{{ asset('js/image-lightbox.js') }}"></script>
     <script src="{{ asset('js/trade-countdown.js') }}"></script>
+    <script>
+    (function () {
+        var endpoint = @json(route('api.guest.item-image'));
+        var placeholder = @json(asset('images/logo.png'));
+
+        function hydrateImg(imgEl) {
+            try {
+                if (!imgEl || imgEl.dataset.fallbackTried === '1') return;
+                var hash = imgEl.getAttribute('data-hash') || '';
+                if (!hash || !endpoint) return;
+                imgEl.dataset.fallbackTried = '1';
+
+                fetch(endpoint + '?market_hash_name=' + encodeURIComponent(hash), {
+                    method: 'GET',
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                }).then(function (r) { return r.json(); })
+                  .then(function (j) {
+                      if (j && j.ok && j.image_url) {
+                          imgEl.src = j.image_url;
+                      } else if (placeholder) {
+                          imgEl.src = placeholder;
+                      }
+                  }).catch(function () {
+                      if (placeholder) imgEl.src = placeholder;
+                  });
+            } catch (e) {}
+        }
+
+        window.__cpcs2CatalogImgFallback = function (imgEl) {
+            hydrateImg(imgEl);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var imgs = document.querySelectorAll('img.item-thumb[data-hash]');
+            if (!imgs || !imgs.length) return;
+
+            var queue = Array.prototype.slice.call(imgs);
+            var concurrency = 4;
+            var active = 0;
+
+            function next() {
+                while (active < concurrency && queue.length) {
+                    var imgEl = queue.shift();
+                    active++;
+                    Promise.resolve()
+                        .then(function () { hydrateImg(imgEl); })
+                        .finally(function () {
+                            active--;
+                            next();
+                        });
+                }
+            }
+
+            next();
+        });
+    })();
+    </script>
     @stack('scripts')
 </body>
 </html>
