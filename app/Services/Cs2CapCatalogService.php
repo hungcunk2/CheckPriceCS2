@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\ItemCatalogImage;
 use App\Support\Cs2CapApiPool;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -19,6 +21,21 @@ class Cs2CapCatalogService
             return null;
         }
 
+        // 1) DB cache (bền, dùng lại giữa các lần quét)
+        $ttl = max(60, (int) config('cs2price.cs2cap_catalog_image_cache_seconds', 86400 * 30));
+        $cutoff = CarbonImmutable::now()->subSeconds($ttl);
+        $db = ItemCatalogImage::query()
+            ->where('market_hash_name', $marketHashName)
+            ->whereNotNull('fetched_at')
+            ->where('fetched_at', '>=', $cutoff)
+            ->first();
+
+        if ($db) {
+            $img = $db->image_url;
+            return is_string($img) && trim($img) !== '' ? $img : null;
+        }
+
+        // 2) Process cache (tránh query DB liên tục trong 1 request burst)
         $cacheKey = 'cs2cap_catalog_image:v1:'.md5($marketHashName);
         $cached = Cache::get($cacheKey);
         if (is_string($cached)) {
@@ -45,6 +62,10 @@ class Cs2CapCatalogService
 
         if (! $resp->successful()) {
             Cache::put($cacheKey, '', 3600);
+            ItemCatalogImage::query()->updateOrCreate(
+                ['market_hash_name' => $marketHashName],
+                ['image_url' => null, 'fetched_at' => now()]
+            );
             return null;
         }
 
@@ -53,11 +74,19 @@ class Cs2CapCatalogService
         $imageUrl = is_array($first) ? ($first['image_url'] ?? null) : null;
 
         if (is_string($imageUrl) && trim($imageUrl) !== '') {
-            Cache::put($cacheKey, $imageUrl, 86400 * 30);
+            Cache::put($cacheKey, $imageUrl, $ttl);
+            ItemCatalogImage::query()->updateOrCreate(
+                ['market_hash_name' => $marketHashName],
+                ['image_url' => $imageUrl, 'fetched_at' => now()]
+            );
             return $imageUrl;
         }
 
-        Cache::put($cacheKey, '', 86400);
+        Cache::put($cacheKey, '', min($ttl, 86400));
+        ItemCatalogImage::query()->updateOrCreate(
+            ['market_hash_name' => $marketHashName],
+            ['image_url' => null, 'fetched_at' => now()]
+        );
         return null;
     }
 
