@@ -116,13 +116,53 @@ class Cs2CapApiKeyController extends Controller
         ])->get("{$base}/account/key");
 
         $ok = $response->successful();
-        $message = $row->label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi');
+
+        $tier = (string) ($response->json('key.effective_rate_requests_per_minute') !== null
+            ? ($response->header('X-RateLimit-Tier') ?? '')
+            : ($response->header('X-RateLimit-Tier') ?? ''));
+
+        $meta = $response->json('key') ?? null;
+
+        // Lấy remaining từ header quota (nằm trên mọi request market-data; gọi thêm /fx để chắc chắn có header)
+        $fx = Http::timeout(20)->withHeaders([
+            'Authorization' => 'Bearer '.(string) $row->api_key,
+            'Accept' => 'application/json',
+        ])->get("{$base}/fx");
+
+        $remaining = $fx->header('X-RateLimit-Remaining');
+        $limit = $fx->header('X-RateLimit-Limit');
+        $reset = $fx->header('X-RateLimit-Reset');
+        $tier = $fx->header('X-RateLimit-Tier') ?? $tier;
+
+        $effectiveRpm = is_array($meta) ? ($meta['effective_rate_requests_per_minute'] ?? null) : null;
+        $effectiveQuota = is_array($meta) ? ($meta['effective_quota_requests_per_month'] ?? null) : null;
+
+        $suffix = '';
+        if ($tier || $effectiveRpm || $effectiveQuota || $remaining || $limit) {
+            $suffix = ' · tier='.($tier ?: '—')
+                .' · rpm='.($effectiveRpm ?? '—')
+                .' · quota='.($effectiveQuota ?? '—')
+                .' · remaining='.($remaining ?? '—')
+                .'/' .($limit ?? '—');
+        }
+
+        $message = $row->label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi').$suffix;
 
         if ($request->wantsJson()) {
             return response()->json([
                 'ok' => $ok,
                 'message' => $message,
                 'cs2cap_key_id' => $cs2capKey,
+                'details' => [
+                    'tier' => $tier ?: null,
+                    'effective_rpm' => $effectiveRpm,
+                    'effective_quota' => $effectiveQuota,
+                    'quota_remaining' => is_string($remaining) && ctype_digit($remaining) ? (int) $remaining : $remaining,
+                    'quota_limit' => is_string($limit) && ctype_digit($limit) ? (int) $limit : $limit,
+                    'quota_reset' => is_string($reset) && ctype_digit($reset) ? (int) $reset : $reset,
+                    'account_http_status' => $response->status(),
+                    'fx_http_status' => $fx->status(),
+                ],
             ]);
         }
 
