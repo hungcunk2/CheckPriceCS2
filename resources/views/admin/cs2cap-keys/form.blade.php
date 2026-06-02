@@ -33,8 +33,12 @@
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Ưu tiên (sort_order)</label>
                             <input name="sort_order" type="number" class="form-control @error('sort_order') is-invalid @enderror"
-                                   value="{{ old('sort_order', $key->sort_order ?? $nextSortOrder ?? 1) }}">
+                                   value="{{ old('sort_order', $key->sort_order ?? '') }}"
+                                   placeholder="{{ $key ? '' : ($nextSortOrder ?? 1) }}">
                             @error('sort_order')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @if(!$key)
+                                <div class="form-text">Để trống để tự tăng dần (gợi ý: {{ $nextSortOrder ?? 1 }}).</div>
+                            @endif
                         </div>
 
                         <div class="col-12">

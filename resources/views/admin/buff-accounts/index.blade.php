@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Buff163 & cs.trade')
-@section('page-title', 'Buff163 & nguồn kho cs.trade')
+@section('title', 'Buff163 & nguồn kho')
+@section('page-title', 'Buff163 & nguồn kho')
 
 @section('content')
 <div id="admin-probe-toast" class="position-fixed top-0 end-0 p-3" style="z-index: 1090; max-width: 420px;"></div>
@@ -234,10 +234,7 @@
                             }
                         });
                     });
-                } else if (mode === 'cstrade' && json.result) {
-                    updateGlobalBlock('cstrade-global-status', 'cstrade-global-check', json.result);
                 } else if (mode === 'all') {
-                    if (json.cstrade) updateGlobalBlock('cstrade-global-status', 'cstrade-global-check', json.cstrade);
                     if (json.empire) {
                         updateGlobalBlock('empire-global-status', 'empire-global-check', json.empire);
                         (json.empire.keys || []).forEach((r) => {
@@ -262,21 +259,6 @@
 })();
 </script>
 @endpush
-
-@php
-    $csCheck = $csTrade['last_check'] ?? null;
-    $csStatus = $csCheck['status'] ?? null;
-    $csBadgeClass = match ($csStatus) {
-        'ok' => 'text-bg-success',
-        'error' => 'text-bg-danger',
-        default => 'text-bg-secondary',
-    };
-    $csStatusLabel = match ($csStatus) {
-        'ok' => 'Hoạt động',
-        'error' => 'Lỗi',
-        default => 'Chưa check',
-    };
-@endphp
 
 @php
     $empireCheck = $empire['last_check'] ?? null;
@@ -521,40 +503,6 @@
     </div>
 </div>
 
-<div class="panel-admin rounded border mb-4">
-    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <h2 class="h6 mb-0">cs.trade — lấy danh sách kho</h2>
-        <form method="POST" action="{{ route('admin.buff-accounts.cstrade-probe') }}" class="js-ajax-probe" data-probe-update="cstrade">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-outline-primary">
-                <i class="fas fa-sync-alt me-1"></i> Kiểm tra cs.trade
-            </button>
-        </form>
-    </div>
-    <div class="p-3">
-        <dl class="row mb-0 small">
-            <dt class="col-sm-3">API</dt>
-            <dd class="col-sm-9 font-monospace text-break">{{ $csTrade['api_url'] ?? '—' }}</dd>
-            <dt class="col-sm-3">Trạng thái</dt>
-            <dd class="col-sm-9" id="cstrade-global-status"><span class="badge {{ $csBadgeClass }}">{{ $csStatusLabel }}</span></dd>
-            <dt class="col-sm-3">Lần check</dt>
-            <dd class="col-sm-9" id="cstrade-global-check">
-                @if($csCheck)
-                    <div>{{ $csCheck['message'] ?? '—' }}</div>
-                    <div class="text-muted">
-                        {{ \Carbon\Carbon::parse($csCheck['checked_at'])->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}
-                        @if(!empty($csCheck['latency_ms']))
-                            · {{ $csCheck['latency_ms'] }} ms
-                        @endif
-                    </div>
-                @else
-                    <span class="text-muted">—</span>
-                @endif
-            </dd>
-        </dl>
-    </div>
-</div>
-
 <div class="d-flex justify-content-end align-items-center mb-3 flex-wrap gap-2">
     @if(!$usesDatabase && $configured)
         <form method="POST" action="{{ route('admin.buff-accounts.import-env') }}">
@@ -573,7 +521,7 @@
         <form method="POST" action="{{ route('admin.buff-accounts.probe-all') }}" class="js-ajax-probe" data-probe-update="all">
             @csrf
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-stethoscope me-1"></i> Kiểm tra cs.trade + Buff
+                <i class="fas fa-stethoscope me-1"></i> Kiểm tra Buff
             </button>
         </form>
     @endif

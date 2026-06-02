@@ -10,7 +10,6 @@ use App\Services\EmpireApiKeyStore;
 use App\Support\CsgoEmpireApiPool;
 use App\Support\Cs2CapApiPool;
 use App\Services\CsgoEmpireHealthService;
-use App\Services\CsTradeHealthService;
 use App\Support\Buff163AccountPool;
 use App\Support\ExchangeRateStore;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +22,6 @@ class BuffAccountController extends Controller
 {
     public function __construct(
         private Buff163HealthService $health,
-        private CsTradeHealthService $csTradeHealth,
         private CsgoEmpireHealthService $empireHealth,
         private BuffAccountStore $store,
         private EmpireApiKeyStore $empireKeyStore,
@@ -37,7 +35,6 @@ class BuffAccountController extends Controller
             'configured' => Buff163AccountPool::isConfigured(),
             'accounts' => $this->health->accountsOverview(),
             'managedAccounts' => Buff163AccountPool::usesDatabase() ? $this->store->all() : collect(),
-            'csTrade' => $this->csTradeHealth->overview(),
             'empire' => $this->empireHealth->overview(),
             'exchangeRates' => ExchangeRateStore::get(),
             'empireUsesDatabase' => CsgoEmpireApiPool::usesDatabase(),
@@ -174,9 +171,6 @@ class BuffAccountController extends Controller
     {
         $messages = [];
 
-        $csResult = $this->csTradeHealth->probe();
-        $messages[] = 'cs.trade: '.$csResult['message'];
-
         $buffResults = [];
         if (Buff163AccountPool::isConfigured()) {
             $buffResults = $this->health->probeAll();
@@ -194,7 +188,6 @@ class BuffAccountController extends Controller
             return response()->json([
                 'ok' => true,
                 'message' => $message,
-                'cstrade' => $csResult,
                 'buff' => $buffResults,
                 'empire' => $empireResult,
             ]);
@@ -203,21 +196,6 @@ class BuffAccountController extends Controller
         return redirect()
             ->route('admin.buff-accounts.index')
             ->with('success', $message);
-    }
-
-    public function probeCsTrade(Request $request): JsonResponse|RedirectResponse
-    {
-        $result = $this->csTradeHealth->probe();
-        $ok = ($result['status'] ?? '') === 'ok';
-        $message = 'cs.trade: '.($result['message'] ?? '—');
-
-        if ($request->wantsJson()) {
-            return response()->json(['ok' => $ok, 'message' => $message, 'result' => $result]);
-        }
-
-        return redirect()
-            ->route('admin.buff-accounts.index')
-            ->with($ok ? 'success' : 'error', $message);
     }
 
     public function probeEmpire(Request $request): JsonResponse|RedirectResponse

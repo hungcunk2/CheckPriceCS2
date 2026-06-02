@@ -51,7 +51,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/buff-accounts', [BuffAccountController::class, 'store'])->name('buff-accounts.store');
         Route::post('/buff-accounts/import-env', [BuffAccountController::class, 'importFromEnv'])->name('buff-accounts.import-env');
         Route::post('/buff-accounts/probe-all', [BuffAccountController::class, 'probeAll'])->name('buff-accounts.probe-all');
-        Route::post('/buff-accounts/cstrade-probe', [BuffAccountController::class, 'probeCsTrade'])->name('buff-accounts.cstrade-probe');
         Route::post('/buff-accounts/empire-probe', [BuffAccountController::class, 'probeEmpire'])->name('buff-accounts.empire-probe');
         Route::get('/buff-accounts/{buffAccount}/edit', [BuffAccountController::class, 'edit'])->whereNumber('buffAccount')->name('buff-accounts.edit');
         Route::put('/buff-accounts/{buffAccount}', [BuffAccountController::class, 'update'])->whereNumber('buffAccount')->name('buff-accounts.update');
