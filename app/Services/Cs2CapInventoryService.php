@@ -138,6 +138,9 @@ class Cs2CapInventoryService
         // Steam CDN hay chặn/hỏng theo region; chuẩn hóa về steamstatic cloudflare (đang dùng ổn trong app).
         $url = str_replace('https://steamcommunity-a.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
         $url = str_replace('https://steamcommunity.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('https://steamcommunity.com/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('http://steamcommunity-a.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
+        $url = str_replace('http://steamcommunity.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
 
         return $url;
     }
