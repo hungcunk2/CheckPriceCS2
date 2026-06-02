@@ -233,8 +233,8 @@
     }
 
     function rowHtml(row, rates) {
-        // Thống nhất: luôn ưu tiên ảnh Catalog CS2Cap. Render placeholder trước, sau đó hydrate bằng API.
-        var iconSrc = placeholderImageUrl ? escapeHtml(placeholderImageUrl) : '';
+        // Ưu tiên ảnh Catalog CS2Cap nếu server đã có cache; nếu chưa có thì placeholder rồi hydrate.
+        var iconSrc = row.icon_url ? escapeHtml(row.icon_url) : (placeholderImageUrl ? escapeHtml(placeholderImageUrl) : '');
         var icon = '<img src="' + iconSrc + '" alt="" class="lp-check-item-thumb" loading="lazy" referrerpolicy="no-referrer" ' +
             'data-hash="' + escapeHtml(row.market_hash_name) + '" ' +
             'onerror="window.__cpcs2_onItemImgError && window.__cpcs2_onItemImgError(this)">';
@@ -356,7 +356,13 @@
         var imgs = rootEl.querySelectorAll('img.lp-check-item-thumb[data-hash]');
         if (!imgs || !imgs.length) return;
 
-        var queue = Array.prototype.slice.call(imgs);
+        var queue = Array.prototype.slice.call(imgs).filter(function (imgEl) {
+            // chỉ hydrate khi đang là placeholder/empty
+            if (!imgEl) return false;
+            var src = imgEl.getAttribute('src') || '';
+            if (!src) return true;
+            return placeholderImageUrl && src === placeholderImageUrl;
+        });
         var concurrency = 4;
         var active = 0;
 

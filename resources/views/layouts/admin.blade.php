@@ -169,14 +169,12 @@
             } catch (e) {}
         };
 
-        // Nếu icon_url bị rỗng -> thử catalog ngay khi DOM sẵn sàng.
+        // Thống nhất: luôn hydrate ảnh từ Catalog CS2Cap khi DOM sẵn sàng.
         document.addEventListener('DOMContentLoaded', function () {
             var imgs = document.querySelectorAll('img.item-thumb[data-hash]');
             if (!imgs || !imgs.length) return;
             imgs.forEach(function (imgEl) {
-                if (!imgEl.getAttribute('src') || imgEl.getAttribute('src') === window.__cpcs2PlaceholderImg) {
-                    window.__cpcs2CatalogImgFallback(imgEl);
-                }
+                window.__cpcs2CatalogImgFallback(imgEl);
             });
         });
     })();

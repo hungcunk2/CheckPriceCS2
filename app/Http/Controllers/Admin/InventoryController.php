@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\InventoryPriceChecker;
 use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
+use App\Services\Cs2CapCatalogService;
 use App\Support\Buff163AccountPool;
 use App\Support\Cs2PriceFeatures;
 use App\Support\EmpireItemEnricher;
@@ -35,6 +36,16 @@ class InventoryController extends Controller
                 fetchMissing: false,
             );
             $inv->display_items = $this->priceHistory->enrichItems($items);
+            // Preload ảnh catalog từ DB để render ngay.
+            $hashes = array_values(array_unique(array_column($inv->display_items, 'market_hash_name')));
+            $catalogMap = app(Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
+            $inv->display_items = array_map(static function (array $item) use ($catalogMap) {
+                $hash = (string) ($item['market_hash_name'] ?? '');
+                if ($hash !== '' && isset($catalogMap[$hash])) {
+                    $item['icon_url'] = $catalogMap[$hash];
+                }
+                return $item;
+            }, $inv->display_items);
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
             return $inv;

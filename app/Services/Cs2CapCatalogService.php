@@ -12,6 +12,39 @@ use Illuminate\Support\Facades\Http;
 class Cs2CapCatalogService
 {
     /**
+     * Chỉ đọc DB cache (không gọi API).
+     *
+     * @param  list<string>  $marketHashNames
+     * @return array<string, string> map hash => image_url
+     */
+    public function cachedImageUrlsForHashes(array $marketHashNames): array
+    {
+        $names = array_values(array_unique(array_filter(array_map('trim', $marketHashNames))));
+        if ($names === []) {
+            return [];
+        }
+
+        $ttl = max(60, (int) config('cs2price.cs2cap_catalog_image_cache_seconds', 86400 * 30));
+        $cutoff = CarbonImmutable::now()->subSeconds($ttl);
+
+        $rows = ItemCatalogImage::query()
+            ->whereIn('market_hash_name', $names)
+            ->whereNotNull('fetched_at')
+            ->where('fetched_at', '>=', $cutoff)
+            ->get(['market_hash_name', 'image_url']);
+
+        $out = [];
+        foreach ($rows as $row) {
+            $img = $row->image_url;
+            if (is_string($img) && trim($img) !== '') {
+                $out[$row->market_hash_name] = $img;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Lấy image_url (CDN CS2Cap) theo market_hash_name.
      */
     public function imageUrlForHash(string $marketHashName): ?string

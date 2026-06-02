@@ -92,14 +92,23 @@ class PublicInventoryController extends Controller
             'steam_items' => $steamItems,
         ], now()->addMinutes($cacheMinutes));
 
-        $displayItems = array_map(static fn (array $item) => [
+        // Preload ảnh catalog đã cache (DB) để hạn chế nháy logo.
+        $hashes = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
+        $catalogMap = app(\App\Services\Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
+
+        $displayItems = array_map(static function (array $item) use ($catalogMap) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            $catalogUrl = $hash !== '' ? ($catalogMap[$hash] ?? null) : null;
+            return [
             'assetid' => $item['assetid'] ?? null,
             'name' => $item['name'] ?? '',
             'market_hash_name' => $item['market_hash_name'] ?? '',
-            'icon_url' => $item['icon_url'] ?? null,
+            // Thống nhất: ưu tiên icon_url = catalog nếu đã cache; nếu chưa có thì để null (JS sẽ hydrate).
+            'icon_url' => $catalogUrl,
             'amount' => $item['amount'] ?? 1,
             'tradable' => $item['tradable'] ?? true,
-        ], $steamItems);
+            ];
+        }, $steamItems);
 
         return response()->json([
             'ok' => true,
@@ -234,6 +243,16 @@ class PublicInventoryController extends Controller
                 InventorySnapshotReader::itemsFromInventory($inv),
                 fetchMissing: false,
             );
+            // Preload ảnh catalog từ DB để render luôn (giảm nháy logo).
+            $hashes = array_values(array_unique(array_column($inv->display_items, 'market_hash_name')));
+            $catalogMap = app(\App\Services\Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
+            $inv->display_items = array_map(static function (array $item) use ($catalogMap) {
+                $hash = (string) ($item['market_hash_name'] ?? '');
+                if ($hash !== '' && isset($catalogMap[$hash])) {
+                    $item['icon_url'] = $catalogMap[$hash];
+                }
+                return $item;
+            }, $inv->display_items);
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
             return $inv;
@@ -255,6 +274,15 @@ class PublicInventoryController extends Controller
             InventorySnapshotReader::itemsFromInventory($row),
             fetchMissing: true,
         );
+        $hashes = array_values(array_unique(array_column($items, 'market_hash_name')));
+        $catalogMap = app(\App\Services\Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
+        $items = array_map(static function (array $item) use ($catalogMap) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            if ($hash !== '' && isset($catalogMap[$hash])) {
+                $item['icon_url'] = $catalogMap[$hash];
+            }
+            return $item;
+        }, $items);
 
         return view('public.show', [
             'inventory' => $row,
