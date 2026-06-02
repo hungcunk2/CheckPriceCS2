@@ -75,7 +75,7 @@ class InventoryPriceChecker
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
 
         $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
-        $empirePrices = $this->empirePricesWithDbCache($hashNames, $empireMode);
+        $empirePrices = $this->empirePricesForItems($steamItems, $empireMode);
 
         return $this->buildItemRows($steamItems, $buffPrices, $empirePrices);
     }
@@ -102,7 +102,7 @@ class InventoryPriceChecker
         $steamItems = $bundle['items'];
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
         $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
-        $empirePrices = $this->empirePricesWithDbCache($hashNames, $empireMode);
+        $empirePrices = $this->empirePricesForItems($steamItems, $empireMode);
 
         $rows = $this->buildItemRows($steamItems, $buffPrices, $empirePrices);
 
@@ -122,7 +122,8 @@ class InventoryPriceChecker
         foreach ($steamItems as $item) {
             $hash = $item['market_hash_name'];
             $buff = $buffPrices[$hash] ?? null;
-            $empireRow = $empirePrices[$hash] ?? null;
+            $empireKey = $this->empireQueryNameForItem($item);
+            $empireRow = $empirePrices[$empireKey] ?? ($empirePrices[$hash] ?? null);
             $priceCny = $buff['sell_min_price'] ?? null;
             $amount = $item['amount'];
             $lineCny = $priceCny !== null ? $priceCny * $amount : null;
@@ -224,23 +225,35 @@ class InventoryPriceChecker
      * @param  list<string>  $hashNames
      * @return array<string, array<string, mixed>>
      */
-    private function empirePricesWithDbCache(array $hashNames, string $empireMode): array
+    private function empirePricesForItems(array $steamItems, string $empireMode): array
     {
         if (! $this->empire->isEnabled()) {
             return [];
         }
 
-        $keys = array_values(array_map(fn (string $h) => ['hash' => $h, 'phase' => null], $hashNames));
+        $queryNames = [];
+        $keys = [];
+        foreach ($steamItems as $item) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            if ($hash === '') {
+                continue;
+            }
+            $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+            $keys[] = ['hash' => $hash, 'phase' => $phase];
+            $queryNames[] = $this->empireQueryName($hash, $phase);
+        }
+        $queryNames = array_values(array_unique($queryNames));
         $cachedByKey = $this->dbPriceCache->getFresh('empire', $keys);
 
         $result = [];
         $missing = [];
-        foreach ($hashNames as $hash) {
-            $key = $this->dbPriceCache->key($hash, null);
+        foreach ($queryNames as $q) {
+            [$hash, $phase] = $this->splitEmpireQueryName($q);
+            $key = $this->dbPriceCache->key($hash, $phase);
             if (isset($cachedByKey[$key]) && ($cachedByKey[$key]['market_value_coins'] ?? null) !== null) {
-                $result[$hash] = $cachedByKey[$key];
+                $result[$q] = $cachedByKey[$key];
             } else {
-                $missing[] = $hash;
+                $missing[] = $q;
             }
         }
 
@@ -251,15 +264,86 @@ class InventoryPriceChecker
         $fetched = $this->empire->getPricesForHashNames($missing, $empireMode);
 
         $payloadByKey = [];
-        foreach ($missing as $hash) {
-            if (! isset($fetched[$hash])) {
+        foreach ($missing as $q) {
+            if (! isset($fetched[$q])) {
                 continue;
             }
-            $payloadByKey[$this->dbPriceCache->key($hash, null)] = $fetched[$hash];
+            [$hash, $phase] = $this->splitEmpireQueryName($q);
+            $payloadByKey[$this->dbPriceCache->key($hash, $phase)] = $fetched[$q];
         }
         $this->dbPriceCache->putMany('empire', $payloadByKey, 'COINS');
 
         return $result + $fetched;
+    }
+
+    /**
+     * Empire cần market_name đúng (có phase): "{hash} - Phase 4"
+     */
+    private function empireQueryNameForItem(array $item): string
+    {
+        $hash = (string) ($item['market_hash_name'] ?? '');
+        $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+
+        return $this->empireQueryName($hash, $phase);
+    }
+
+    private function empireQueryName(string $marketHashName, ?string $phase): string
+    {
+        $marketHashName = trim($marketHashName);
+        if ($marketHashName === '' || ! is_string($phase) || trim($phase) === '') {
+            return $marketHashName;
+        }
+
+        $phase = $this->normalizeEmpirePhase($phase);
+        if ($phase === null) {
+            return $marketHashName;
+        }
+
+        return $marketHashName.' - '.$phase;
+    }
+
+    private function normalizeEmpirePhase(string $phase): ?string
+    {
+        $phase = trim($phase);
+        if ($phase === '') {
+            return null;
+        }
+
+        // CS2Cap trả dạng "Phase 4" (đã đúng) hoặc đôi khi chỉ là "4".
+        if (preg_match('/^phase\s*\d+$/i', $phase)) {
+            return preg_replace('/^phase\s*/i', 'Phase ', $phase);
+        }
+        if (preg_match('/^\d+$/', $phase)) {
+            return 'Phase '.$phase;
+        }
+
+        // Gem names (để mở rộng tương lai).
+        $known = ['Ruby', 'Sapphire', 'Black Pearl', 'Emerald'];
+        foreach ($known as $k) {
+            if (strcasecmp($phase, $k) === 0) {
+                return $k;
+            }
+        }
+
+        // Đã là string khác: dùng nguyên văn.
+        return $phase;
+    }
+
+    /**
+     * @return array{0:string,1:string|null}
+     */
+    private function splitEmpireQueryName(string $queryName): array
+    {
+        $queryName = (string) $queryName;
+        $pos = strrpos($queryName, ' - ');
+        if ($pos === false) {
+            return [$queryName, null];
+        }
+
+        $hash = substr($queryName, 0, $pos);
+        $phase = substr($queryName, $pos + 3);
+
+        return [trim($hash), trim($phase) !== '' ? trim($phase) : null];
     }
 
     /**

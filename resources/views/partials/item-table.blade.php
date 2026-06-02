@@ -32,7 +32,7 @@
                     <tr data-weapon-category="{{ $weaponCategory }}">
                         <td>
                             <img
-                                src="{{ !empty($item->icon_url) ? $item->icon_url : $placeholderImg }}"
+                                src="{{ $placeholderImg }}"
                                 class="item-thumb image-zoomable"
                                 alt=""
                                 data-hash="{{ $item->market_hash_name ?? '' }}"
