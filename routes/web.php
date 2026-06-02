@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicInventoryController::class, 'landing'])->name('public.landing');
 Route::post('/', [PublicInventoryController::class, 'landing']);
+Route::post('/api/guest/check/start', [PublicInventoryController::class, 'guestCheckStart'])->name('api.guest.check.start');
+Route::post('/api/guest/check/prices', [PublicInventoryController::class, 'guestCheckPrices'])->name('api.guest.check.prices');
 Route::get('/bang-gia', [PublicInventoryController::class, 'index'])->name('public.index');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')->name('blog.show');

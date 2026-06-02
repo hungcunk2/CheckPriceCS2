@@ -56,6 +56,9 @@ return [
 
     // Khách tra giá trên trang chủ: tối đa 1 lần / IP / N giây (mặc định 5 phút).
     'guest_check_cooldown_seconds' => (int) env('GUEST_CHECK_COOLDOWN_SECONDS', 300),
+    // Số skin mỗi lần gọi Buff/Empire khi tra giá từng bước trên trang chủ.
+    'guest_check_batch_size' => (int) env('GUEST_CHECK_BATCH_SIZE', 12),
+    'guest_check_cache_minutes' => (int) env('GUEST_CHECK_CACHE_MINUTES', 15),
 
     'timezone' => env('APP_TIMEZONE', 'Asia/Ho_Chi_Minh'),
     'price_current_window_hours' => (int) env('BUFF_PRICE_CURRENT_WINDOW_HOURS', 2),

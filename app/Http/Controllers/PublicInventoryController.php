@@ -5,12 +5,17 @@ namespace App\Http\Controllers;
 use App\Services\InventoryPriceChecker;
 use App\Services\SteamInventoryService;
 use App\Services\TrackedInventoryStore;
+use App\Support\Cs2PriceFeatures;
 use App\Support\EmpireItemEnricher;
+use App\Support\ExchangeRateStore;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
 use App\Support\SiteMeta;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RuntimeException;
 
@@ -95,6 +100,136 @@ class PublicInventoryController extends Controller
             'checkError' => $checkError,
             'submittedUrl' => $submittedUrl,
         ]);
+    }
+
+    public function guestCheckStart(Request $request, InventoryPriceChecker $checker, SteamInventoryService $steam): JsonResponse
+    {
+        $request->validate([
+            'steam_url' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $url = trim((string) $request->input('steam_url'));
+
+        try {
+            $steam->parseInventoryUrl($url);
+        } catch (RuntimeException $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        $cooldownKey = 'guest-price-check:'.$request->ip();
+        $cooldownSeconds = max(60, (int) config('cs2price.guest_check_cooldown_seconds', 300));
+
+        if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
+            return response()->json([
+                'ok' => false,
+                'error' => sprintf(
+                    'Mỗi IP chỉ tra được 1 kho / %d phút. Thử lại sau %s.',
+                    (int) ceil($cooldownSeconds / 60),
+                    $this->formatCooldownWait(RateLimiter::availableIn($cooldownKey))
+                ),
+            ], 429);
+        }
+
+        RateLimiter::hit($cooldownKey, $cooldownSeconds);
+        $this->extendExecutionTime();
+
+        try {
+            ['parsed' => $parsed, 'bundle' => $bundle] = $checker->fetchSteamBundleForUrl($url);
+        } catch (RuntimeException $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        $steamItems = $bundle['items'];
+        $token = (string) Str::uuid();
+        $cacheMinutes = max(5, (int) config('cs2price.guest_check_cache_minutes', 15));
+
+        Cache::put($this->guestCheckCacheKey($token), [
+            'ip' => $request->ip(),
+            'parsed' => $parsed,
+            'bundle' => [
+                'steam_persona_name' => $bundle['steam_persona_name'] ?? null,
+                'steam_avatar_url' => $bundle['steam_avatar_url'] ?? null,
+                'inventory_source' => $bundle['inventory_source'] ?? null,
+                'inventory_fallback_message' => $bundle['inventory_fallback_message'] ?? null,
+            ],
+            'steam_items' => $steamItems,
+        ], now()->addMinutes($cacheMinutes));
+
+        $displayItems = array_map(static fn (array $item) => [
+            'assetid' => $item['assetid'] ?? null,
+            'name' => $item['name'] ?? '',
+            'market_hash_name' => $item['market_hash_name'] ?? '',
+            'icon_url' => $item['icon_url'] ?? null,
+            'amount' => $item['amount'] ?? 1,
+            'tradable' => $item['tradable'] ?? true,
+        ], $steamItems);
+
+        return response()->json([
+            'ok' => true,
+            'token' => $token,
+            'empire_enabled' => Cs2PriceFeatures::empireEnabled(),
+            'batch_size' => max(4, (int) config('cs2price.guest_check_batch_size', 12)),
+            'rates' => [
+                'cny_to_vnd' => ExchangeRateStore::cnyToVnd(),
+                'vnd_to_usd' => ExchangeRateStore::vndToUsd(),
+            ],
+            'inventory' => [
+                'label' => $bundle['steam_persona_name'] ?? $parsed['label'] ?? 'Steam',
+                'steam_persona_name' => $bundle['steam_persona_name'] ?? null,
+                'steam_avatar_url' => $bundle['steam_avatar_url'] ?? null,
+                'steam_id' => $parsed['steam_id'],
+                'url' => $parsed['url'],
+            ],
+            'item_count' => count($displayItems),
+            'items' => $displayItems,
+            'inventory_source' => $bundle['inventory_source'] ?? null,
+            'inventory_fallback_message' => $bundle['inventory_fallback_message'] ?? null,
+        ]);
+    }
+
+    public function guestCheckPrices(Request $request, InventoryPriceChecker $checker): JsonResponse
+    {
+        $batchSize = max(4, (int) config('cs2price.guest_check_batch_size', 12));
+
+        $request->validate([
+            'token' => ['required', 'string', 'uuid'],
+            'hashes' => ['required', 'array', 'min:1', 'max:'.$batchSize],
+            'hashes.*' => ['required', 'string', 'max:500'],
+        ]);
+
+        $token = (string) $request->input('token');
+        $cached = Cache::get($this->guestCheckCacheKey($token));
+
+        if (! is_array($cached) || ($cached['ip'] ?? '') !== $request->ip()) {
+            return response()->json(['ok' => false, 'error' => 'Phiên tra giá hết hạn. Vui lòng tra lại từ đầu.'], 410);
+        }
+
+        $this->extendExecutionTime();
+
+        $hashes = array_values(array_unique($request->input('hashes', [])));
+        $steamItems = $cached['steam_items'] ?? [];
+
+        try {
+            $rows = $checker->priceSteamItems($steamItems, 'guest', $hashes);
+        } catch (RuntimeException $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        $totalItems = count($steamItems);
+
+        return response()->json([
+            'ok' => true,
+            'items' => $rows,
+            'progress' => [
+                'batch' => count($hashes),
+                'total' => $totalItems,
+            ],
+        ]);
+    }
+
+    private function guestCheckCacheKey(string $token): string
+    {
+        return 'guest_check:'.$token;
     }
 
     private function extendExecutionTime(): void

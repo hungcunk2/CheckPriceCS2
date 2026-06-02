@@ -21,7 +21,17 @@
             Dán link Steam public — xem giá Buff163 ngay tại đây, không lưu, không cần đăng nhập.
         </p>
 
-        <form action="{{ route('public.landing') }}" method="post" class="lp-hero-form lp-glass-strong" id="lp-check-form">
+        <form
+            action="{{ route('public.landing') }}"
+            method="post"
+            class="lp-hero-form lp-glass-strong"
+            id="lp-check-form"
+            data-progressive="1"
+            data-start-url="{{ route('api.guest.check.start') }}"
+            data-prices-url="{{ route('api.guest.check.prices') }}"
+            data-empire-enabled="{{ ($empireEnabled ?? false) ? '1' : '0' }}"
+            data-batch-size="{{ config('cs2price.guest_check_batch_size', 12) }}"
+        >
             @csrf
             <div class="lp-hero-input-wrap">
                 <i class="fas fa-link lp-muted"></i>
@@ -47,20 +57,17 @@
             </div>
         @enderror
 
-        @include('landing.check-result')
+        <div id="lp-check-result-host">
+            @include('landing.check-result')
+        </div>
     </div>
 </section>
 
 @push('scripts')
-<script>
-document.getElementById('lp-check-form')?.addEventListener('submit', function () {
-    var btn = document.getElementById('lp-check-submit');
-    var label = btn?.querySelector('.lp-check-btn-label');
-    if (btn) btn.disabled = true;
-    if (label) label.textContent = 'Đang quét kho…';
-});
+<script src="{{ asset('js/guest-check.js') }}?v={{ filemtime(public_path('js/guest-check.js')) }}"></script>
 @if(!empty($checkResult) || !empty($checkError))
+<script>
 document.getElementById('ket-qua-tra-gia')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-@endif
 </script>
+@endif
 @endpush
