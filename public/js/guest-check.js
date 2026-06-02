@@ -11,6 +11,7 @@
     var startUrl = form.getAttribute('data-start-url') || '';
     var pricesUrl = form.getAttribute('data-prices-url') || '';
     var itemImageUrl = form.getAttribute('data-item-image-url') || '';
+    var placeholderImageUrl = form.getAttribute('data-placeholder-image-url') || '';
     var empireEnabled = form.getAttribute('data-empire-enabled') === '1';
     var batchSize = parseInt(form.getAttribute('data-batch-size') || '12', 10) || 12;
 
@@ -232,9 +233,10 @@
     }
 
     function rowHtml(row, rates) {
-        var icon = row.icon_url
-            ? '<img src="' + escapeHtml(row.icon_url) + '" alt="" class="lp-check-item-thumb" loading="lazy" referrerpolicy="no-referrer" onerror="window.__cpcs2_onItemImgError && window.__cpcs2_onItemImgError(this)">'
-            : '';
+        var iconSrc = row.icon_url ? escapeHtml(row.icon_url) : '';
+        var icon = '<img src="' + iconSrc + '" alt="" class="lp-check-item-thumb" loading="lazy" referrerpolicy="no-referrer" ' +
+            (row.icon_url ? '' : 'data-missing="1" ') +
+            'onerror="window.__cpcs2_onItemImgError && window.__cpcs2_onItemImgError(this)">';
         var buffCell = row.buff_price_cny != null ? fmtCny(row.buff_price_cny) : '<span class="lp-price-pending lp-muted">…</span>';
         var buffErr = row.buff_error ? '<div class="small" style="color:var(--lp-accent)">' + escapeHtml(row.buff_error) + '</div>' : '';
 
@@ -268,18 +270,37 @@
     // Fallback ảnh: nếu steamstatic icon lỗi, gọi API lấy image_url từ CS2Cap catalog.
     window.__cpcs2_onItemImgError = function (imgEl) {
         try {
-            if (!itemImageUrl || !imgEl) return;
+            if (!imgEl) return;
             if (imgEl.dataset.fallbackTried === '1') {
-                imgEl.style.display = 'none';
+                if (placeholderImageUrl) {
+                    imgEl.src = placeholderImageUrl;
+                    imgEl.style.display = '';
+                } else {
+                    imgEl.style.display = 'none';
+                }
                 return;
             }
             var tr = imgEl.closest('tr');
             var hash = tr ? tr.getAttribute('data-hash') : null;
             if (!hash) {
-                imgEl.style.display = 'none';
+                if (placeholderImageUrl) {
+                    imgEl.src = placeholderImageUrl;
+                    imgEl.style.display = '';
+                } else {
+                    imgEl.style.display = 'none';
+                }
                 return;
             }
             imgEl.dataset.fallbackTried = '1';
+            if (!itemImageUrl) {
+                if (placeholderImageUrl) {
+                    imgEl.src = placeholderImageUrl;
+                    imgEl.style.display = '';
+                } else {
+                    imgEl.style.display = 'none';
+                }
+                return;
+            }
             fetch(itemImageUrl + '?market_hash_name=' + encodeURIComponent(hash), {
                 method: 'GET',
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -289,9 +310,21 @@
                       imgEl.src = j.image_url;
                       imgEl.style.display = '';
                   } else {
+                      if (placeholderImageUrl) {
+                          imgEl.src = placeholderImageUrl;
+                          imgEl.style.display = '';
+                      } else {
+                          imgEl.style.display = 'none';
+                      }
+                  }
+              }).catch(function () {
+                  if (placeholderImageUrl) {
+                      imgEl.src = placeholderImageUrl;
+                      imgEl.style.display = '';
+                  } else {
                       imgEl.style.display = 'none';
                   }
-              }).catch(function () { imgEl.style.display = 'none'; });
+              });
         } catch (e) {}
     };
 
@@ -304,6 +337,19 @@
         tbody.innerHTML = state.rows.map(function (row) {
             return rowHtml(row, state.rates);
         }).join('');
+
+        // Nếu item không có icon_url từ inventory -> fetch ảnh từ CS2Cap catalog ngay.
+        hydrateMissingImages(tbody);
+    }
+
+    function hydrateMissingImages(rootEl) {
+        if (!itemImageUrl || !rootEl) return;
+        var imgs = rootEl.querySelectorAll('img.lp-check-item-thumb[data-missing="1"]');
+        if (!imgs || !imgs.length) return;
+        imgs.forEach(function (imgEl) {
+            if (imgEl.dataset.fallbackTried === '1') return;
+            window.__cpcs2_onItemImgError(imgEl);
+        });
     }
 
     function updateHeader(state) {

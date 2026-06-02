@@ -30,6 +30,7 @@
             data-start-url="{{ route('api.guest.check.start') }}"
             data-prices-url="{{ route('api.guest.check.prices') }}"
             data-item-image-url="{{ route('api.guest.item-image') }}"
+            data-placeholder-image-url="{{ asset('images/logo.png') }}"
             data-empire-enabled="{{ ($empireEnabled ?? false) ? '1' : '0' }}"
             data-batch-size="{{ config('cs2price.guest_check_batch_size', 12) }}"
         >
