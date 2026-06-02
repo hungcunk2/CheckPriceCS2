@@ -80,12 +80,7 @@
                             <tr>
                                 <td>
                                     @if(!empty($item->icon_url))
-                                        <img src="{{ $item->icon_url }}"
-                                             alt=""
-                                             class="lp-check-item-thumb"
-                                             loading="lazy"
-                                             referrerpolicy="no-referrer"
-                                             onerror="this.style.display='none'">
+                                        <img src="{{ $item->icon_url }}" alt="" class="lp-check-item-thumb">
                                     @endif
                                 </td>
                                 <td>

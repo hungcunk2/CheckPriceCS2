@@ -31,13 +31,7 @@
                     <tr data-weapon-category="{{ $weaponCategory }}">
                         <td>
                             @if(!empty($item->icon_url))
-                                <img src="{{ $item->icon_url }}"
-                                     class="item-thumb image-zoomable"
-                                     alt=""
-                                     style="{{ $compact ? 'width:36px;height:36px' : '' }}"
-                                     loading="lazy"
-                                     referrerpolicy="no-referrer"
-                                     onerror="this.style.display='none'">
+                                <img src="{{ $item->icon_url }}" class="item-thumb image-zoomable" alt="" style="{{ $compact ? 'width:36px;height:36px' : '' }}">
                             @endif
                         </td>
                         <td>
