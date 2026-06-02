@@ -117,6 +117,70 @@
     <script src="{{ asset('js/currency-switch.js') }}"></script>
     <script src="{{ asset('js/image-lightbox.js') }}"></script>
     <script src="{{ asset('js/trade-countdown.js') }}"></script>
+    <script>
+    (function () {
+        window.__cpcs2CatalogEndpoint = @json(route('api.guest.item-image'));
+        window.__cpcs2PlaceholderImg = @json(asset('images/logo.png'));
+
+        window.__cpcs2CatalogImgFallback = function (imgEl) {
+            try {
+                if (!imgEl) return;
+                if (imgEl.dataset.fallbackTried === '1') {
+                    imgEl.onerror = null;
+                    imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
+                    return;
+                }
+
+                var hash = imgEl.getAttribute('data-hash') || '';
+                if (!hash) {
+                    imgEl.onerror = null;
+                    imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
+                    return;
+                }
+
+                imgEl.dataset.fallbackTried = '1';
+
+                var endpoint = window.__cpcs2CatalogEndpoint || '';
+                if (!endpoint) {
+                    imgEl.onerror = null;
+                    imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
+                    return;
+                }
+
+                fetch(endpoint + '?market_hash_name=' + encodeURIComponent(hash), {
+                    method: 'GET',
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                }).then(function (r) { return r.json(); })
+                  .then(function (j) {
+                      if (j && j.ok && j.image_url) {
+                          imgEl.onerror = function () {
+                              imgEl.onerror = null;
+                              imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
+                          };
+                          imgEl.src = j.image_url;
+                      } else {
+                          imgEl.onerror = null;
+                          imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
+                      }
+                  }).catch(function () {
+                      imgEl.onerror = null;
+                      imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
+                  });
+            } catch (e) {}
+        };
+
+        // Nếu icon_url bị rỗng -> thử catalog ngay khi DOM sẵn sàng.
+        document.addEventListener('DOMContentLoaded', function () {
+            var imgs = document.querySelectorAll('img.item-thumb[data-hash]');
+            if (!imgs || !imgs.length) return;
+            imgs.forEach(function (imgEl) {
+                if (!imgEl.getAttribute('src') || imgEl.getAttribute('src') === window.__cpcs2PlaceholderImg) {
+                    window.__cpcs2CatalogImgFallback(imgEl);
+                }
+            });
+        });
+    })();
+    </script>
     @stack('scripts')
 </body>
 </html>

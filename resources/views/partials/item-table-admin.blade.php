@@ -47,11 +47,12 @@
                                 src="{{ !empty($item->icon_url) ? $item->icon_url : $placeholderImg }}"
                                 class="item-thumb image-zoomable"
                                 alt=""
+                                data-hash="{{ $item->market_hash_name ?? '' }}"
                                 width="36"
                                 height="36"
                                 loading="lazy"
                                 referrerpolicy="no-referrer"
-                                onerror="this.onerror=null;this.src='{{ $placeholderImg }}';"
+                                onerror="window.__cpcs2CatalogImgFallback && window.__cpcs2CatalogImgFallback(this)"
                                 style="width:36px;height:36px"
                             >
                         </td>
