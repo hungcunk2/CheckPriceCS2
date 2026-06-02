@@ -67,6 +67,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/buff-accounts/cs2cap-keys/create', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'create'])->name('buff-accounts.cs2cap-keys.create');
         Route::post('/buff-accounts/cs2cap-keys', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'store'])->name('buff-accounts.cs2cap-keys.store');
         Route::post('/buff-accounts/cs2cap-keys/import-env', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'importFromEnv'])->name('buff-accounts.cs2cap-keys.import-env');
+        Route::post('/buff-accounts/cs2cap-keys/probe-all', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'probeAll'])->name('buff-accounts.cs2cap-keys.probe-all');
         Route::get('/buff-accounts/cs2cap-keys/{cs2capKey}/edit', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'edit'])->name('buff-accounts.cs2cap-keys.edit');
         Route::put('/buff-accounts/cs2cap-keys/{cs2capKey}', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'update'])->name('buff-accounts.cs2cap-keys.update');
         Route::delete('/buff-accounts/cs2cap-keys/{cs2capKey}', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'destroy'])->name('buff-accounts.cs2cap-keys.destroy');

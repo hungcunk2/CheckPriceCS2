@@ -164,6 +164,17 @@
         if (cell) cell.innerHTML = renderCheckBlock(result);
     }
 
+    function updateCs2CapKeyRow(id, result) {
+        const row = document.querySelector(`tr[data-cs2cap-key-id="${id}"]`);
+        const cell = row?.querySelector('.cs2cap-key-check-cell');
+        if (!cell) return;
+        const ok = result?.ok === true;
+        const badge = ok
+            ? '<span class="badge text-bg-success">OK</span>'
+            : '<span class="badge text-bg-danger">Lỗi</span>';
+        cell.innerHTML = badge + `<div class="text-muted">${escapeHtml(result?.message ?? '—')}</div>`;
+    }
+
     function updateBuffRow(label, result) {
         const row = document.querySelector(`tr[data-buff-label="${CSS.escape(label)}"]`);
         const checkCell = row?.querySelector('.buff-check-cell');
@@ -221,6 +232,12 @@
                 const mode = form.dataset.probeUpdate;
                 if (mode === 'empire-key' && json.result) {
                     updateEmpireKeyRow(form.dataset.empireKeyId, json.result);
+                } else if (mode === 'cs2cap-key') {
+                    updateCs2CapKeyRow(form.dataset.cs2capKeyId, json);
+                } else if (mode === 'cs2cap-all' && Array.isArray(json.keys)) {
+                    json.keys.forEach((r) => {
+                        if (r.cs2cap_key_id) updateCs2CapKeyRow(r.cs2cap_key_id, r);
+                    });
                 } else if (mode === 'buff' && json.result) {
                     updateBuffRow(form.dataset.buffLabel, json.result);
                 } else if (mode === 'empire-global' && json.result) {
@@ -431,6 +448,14 @@
                     <button type="submit" class="btn btn-sm btn-outline-secondary">Import key từ .env</button>
                 </form>
             @endif
+            @if(($cs2capUsesDatabase ?? false) && ($cs2capKeys ?? collect())->isNotEmpty())
+                <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.probe-all') }}" class="js-ajax-probe" data-probe-update="cs2cap-all">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Kiểm tra tất cả key trong bảng">
+                        <i class="fas fa-sync-alt me-1"></i> Kiểm tra tất cả key
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
     <div class="p-3">
@@ -443,13 +468,14 @@
                         <th>API key</th>
                         <th>Ưu tiên</th>
                         <th>Trạng thái</th>
+                        <th>Lần check</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody>
                     @foreach($cs2capKeys as $k)
                         @php $cooldown = $k->cooldown_seconds ?? null; @endphp
-                        <tr>
+                        <tr data-cs2cap-key-id="{{ $k->id }}">
                             <td><code>{{ $k->label }}</code></td>
                             <td class="font-monospace small text-muted">{{ $k->api_key_hint }}</td>
                             <td>{{ $k->sort_order }}</td>
@@ -463,6 +489,7 @@
                                     <span class="badge text-bg-warning text-dark ms-1" title="Cooldown">⏳ {{ $cooldown }}s</span>
                                 @endif
                             </td>
+                            <td class="small cs2cap-key-check-cell text-muted">Chưa check</td>
                             <td class="text-end text-nowrap">
                                 <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.probe', $k->id) }}"
                                       class="d-inline js-ajax-probe" data-probe-update="cs2cap-key" data-cs2cap-key-id="{{ $k->id }}"

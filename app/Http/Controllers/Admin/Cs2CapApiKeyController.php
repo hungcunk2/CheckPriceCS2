@@ -108,24 +108,90 @@ class Cs2CapApiKeyController extends Controller
             return redirect()->route('admin.buff-accounts.index')->with('error', 'Không tìm thấy key.');
         }
 
+        $result = $this->probeCredentials((string) $row->label, (string) $row->api_key);
+        $result['cs2cap_key_id'] = $cs2capKey;
+
+        if ($request->wantsJson()) {
+            return response()->json($result);
+        }
+
+        return redirect()
+            ->route('admin.buff-accounts.index')
+            ->withFragment('cs2cap-keys')
+            ->with($result['ok'] ? 'success' : 'error', $result['message']);
+    }
+
+    public function probeAll(Request $request): JsonResponse|RedirectResponse
+    {
+        $keys = $this->store->all();
+        if ($keys->isEmpty()) {
+            $message = 'Chưa có API key CS2Cap trong DB.';
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => $message, 'keys' => []], 422);
+            }
+
+            return redirect()->route('admin.buff-accounts.index')->withFragment('cs2cap-keys')->with('error', $message);
+        }
+
+        $results = [];
+        $failed = [];
+
+        foreach ($keys as $row) {
+            $probe = $this->probeCredentials((string) $row->label, (string) $row->api_key);
+            $probe['cs2cap_key_id'] = (int) $row->id;
+            $results[] = $probe;
+            if (! $probe['ok']) {
+                $failed[] = $probe['message'];
+            }
+        }
+
+        $total = count($results);
+        $failCount = count($failed);
+        $allOk = $failCount === 0;
+
+        if ($allOk) {
+            $message = "CS2Cap: đã kiểm tra {$total} key — tất cả OK.";
+        } else {
+            $message = "CS2Cap: đã kiểm tra {$total} key — {$failCount} lỗi: ".implode(' · ', array_slice($failed, 0, 5));
+            if ($failCount > 5) {
+                $message .= ' …';
+            }
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => $allOk,
+                'message' => $message,
+                'keys' => $results,
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.buff-accounts.index')
+            ->withFragment('cs2cap-keys')
+            ->with($allOk ? 'success' : 'error', $message);
+    }
+
+    /**
+     * @return array{ok: bool, message: string, label: string, details: array<string, mixed>}
+     */
+    private function probeCredentials(string $label, string $apiKey): array
+    {
         $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
 
         $response = Http::timeout(20)->withHeaders([
-            'Authorization' => 'Bearer '.(string) $row->api_key,
+            'Authorization' => 'Bearer '.$apiKey,
             'Accept' => 'application/json',
         ])->get("{$base}/account/key");
 
         $ok = $response->successful();
 
-        $tier = (string) ($response->json('key.effective_rate_requests_per_minute') !== null
-            ? ($response->header('X-RateLimit-Tier') ?? '')
-            : ($response->header('X-RateLimit-Tier') ?? ''));
+        $tier = (string) ($response->header('X-RateLimit-Tier') ?? '');
 
         $meta = $response->json('key') ?? null;
 
-        // Lấy remaining từ header quota (nằm trên mọi request market-data; gọi thêm /fx để chắc chắn có header)
         $fx = Http::timeout(20)->withHeaders([
-            'Authorization' => 'Bearer '.(string) $row->api_key,
+            'Authorization' => 'Bearer '.$apiKey,
             'Accept' => 'application/json',
         ])->get("{$base}/fx");
 
@@ -143,32 +209,26 @@ class Cs2CapApiKeyController extends Controller
                 .' · rpm='.($effectiveRpm ?? '—')
                 .' · quota='.($effectiveQuota ?? '—')
                 .' · remaining='.($remaining ?? '—')
-                .'/' .($limit ?? '—');
+                .'/'.($limit ?? '—');
         }
 
-        $message = $row->label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi').$suffix;
+        $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi').$suffix;
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'ok' => $ok,
-                'message' => $message,
-                'cs2cap_key_id' => $cs2capKey,
-                'details' => [
-                    'tier' => $tier ?: null,
-                    'effective_rpm' => $effectiveRpm,
-                    'effective_quota' => $effectiveQuota,
-                    'quota_remaining' => is_string($remaining) && ctype_digit($remaining) ? (int) $remaining : $remaining,
-                    'quota_limit' => is_string($limit) && ctype_digit($limit) ? (int) $limit : $limit,
-                    'quota_reset' => is_string($reset) && ctype_digit($reset) ? (int) $reset : $reset,
-                    'account_http_status' => $response->status(),
-                    'fx_http_status' => $fx->status(),
-                ],
-            ]);
-        }
-
-        return redirect()
-            ->route('admin.buff-accounts.index')
-            ->with($ok ? 'success' : 'error', $message);
+        return [
+            'ok' => $ok,
+            'message' => $message,
+            'label' => $label,
+            'details' => [
+                'tier' => $tier ?: null,
+                'effective_rpm' => $effectiveRpm,
+                'effective_quota' => $effectiveQuota,
+                'quota_remaining' => is_string($remaining) && ctype_digit($remaining) ? (int) $remaining : $remaining,
+                'quota_limit' => is_string($limit) && ctype_digit($limit) ? (int) $limit : $limit,
+                'quota_reset' => is_string($reset) && ctype_digit($reset) ? (int) $reset : $reset,
+                'account_http_status' => $response->status(),
+                'fx_http_status' => $fx->status(),
+            ],
+        ];
     }
 
     /**
