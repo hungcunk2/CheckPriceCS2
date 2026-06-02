@@ -69,4 +69,15 @@
     $guestCheckVer = is_file($guestCheckJs) ? (string) filemtime($guestCheckJs) : '1';
 @endphp
 <script src="{{ asset('js/guest-check.js') }}?v={{ $guestCheckVer }}" defer></script>
+@if(!empty($submittedUrl))
+<script>
+// Nếu user submit GET làm URL đổi (?steam_url=...), tự chạy lại AJAX để show kết quả.
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('lp-check-form');
+    if (!form) return;
+    // trigger submit so guest-check.js chạy
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+});
+</script>
+@endif
 @endpush

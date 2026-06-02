@@ -27,6 +27,8 @@ class PublicInventoryController extends Controller
 
     public function landing(Request $request): View
     {
+        $submittedUrl = trim((string) $request->query('steam_url', ''));
+
         return view('public.landing', [
             'meta' => SiteMeta::make([
                 'canonical' => route('public.landing'),
@@ -34,7 +36,7 @@ class PublicInventoryController extends Controller
             ]),
             'checkResult' => null,
             'checkError' => null,
-            'submittedUrl' => '',
+            'submittedUrl' => $submittedUrl,
         ]);
     }
 
