@@ -19,6 +19,20 @@ class Cs2CapApiKeyStore
             ->map(fn (Cs2CapApiKey $row) => $this->asObject($row));
     }
 
+    /**
+     * Danh sách key kèm secret — chỉ dùng server-side (probe hàng loạt).
+     *
+     * @return Collection<int, object>
+     */
+    public function allWithSecrets(): Collection
+    {
+        return Cs2CapApiKey::query()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Cs2CapApiKey $row) => $this->asObject($row, includeSecret: true));
+    }
+
     public function find(int $id): ?object
     {
         $row = Cs2CapApiKey::query()->find($id);

@@ -123,7 +123,7 @@ class Cs2CapApiKeyController extends Controller
 
     public function probeAll(Request $request): JsonResponse|RedirectResponse
     {
-        $keys = $this->store->all();
+        $keys = $this->store->allWithSecrets();
         if ($keys->isEmpty()) {
             $message = 'Chưa có API key CS2Cap trong DB.';
             if ($request->wantsJson()) {
