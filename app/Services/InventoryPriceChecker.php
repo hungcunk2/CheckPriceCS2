@@ -101,7 +101,7 @@ class InventoryPriceChecker
     {
         $steamItems = $bundle['items'];
         $hashNames = array_column($steamItems, 'market_hash_name');
-        $buffPrices = $this->buff->getPricesForHashNames($hashNames);
+        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
         $empirePrices = $this->empire->isEnabled()
             ? $this->empire->getPricesForHashNames($hashNames, $empireMode)
             : [];
@@ -163,6 +163,23 @@ class InventoryPriceChecker
         }
 
         return $rows;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $steamItems
+     * @param  list<string>  $hashNames
+     * @return array<string, array<string, mixed>>
+     */
+    private function buffPricesForItems(array $steamItems, array $hashNames): array
+    {
+        if (config('cs2price.cs2cap_use_buff', false)) {
+            $cs2cap = app(\App\Services\Cs2CapService::class);
+            if ($cs2cap->isConfigured()) {
+                return $cs2cap->getBuffPricesForSteamItems($steamItems);
+            }
+        }
+
+        return $this->buff->getPricesForHashNames($hashNames);
     }
 
     /**

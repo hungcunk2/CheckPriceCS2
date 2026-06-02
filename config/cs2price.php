@@ -114,4 +114,31 @@ return [
     // Nút ⟳ admin: 0 = search mọi skin còn thiếu trong kho
     'empire_admin_max_searches' => (int) env('EMPIRE_ADMIN_MAX_SEARCHES', 0),
     'empire_admin_max_pages' => (int) env('EMPIRE_ADMIN_MAX_PAGES', 15),
+
+    /*
+    | CS2Cap (tùy chọn) — aggregator: Buff CNY + Empire USD (hai currency / hai request mỗi skin).
+    */
+    'cs2cap_enabled' => filter_var(env('CS2CAP_ENABLED', false), FILTER_VALIDATE_BOOL),
+    'cs2cap_api_key' => env('CS2CAP_API_KEY'),
+    'cs2cap_key_label' => env('CS2CAP_KEY_LABEL', 'cs2cap-1'),
+    'cs2cap_extra_api_keys' => array_values(array_filter(array_map(
+        static function (int $index): ?array {
+            $key = env('CS2CAP_API_KEY_'.$index);
+            if (! filled($key)) {
+                return null;
+            }
+
+            return [
+                'label' => env('CS2CAP_KEY_LABEL_'.$index, 'cs2cap-'.$index),
+                'api_key' => $key,
+            ];
+        },
+        range(2, 20)
+    ))),
+    'cs2cap_base_url' => env('CS2CAP_API_BASE', 'https://api.cs2c.app/v1'),
+    'cs2cap_buff_currency' => env('CS2CAP_BUFF_CURRENCY', 'CNY'),
+    'cs2cap_empire_currency' => env('CS2CAP_EMPIRE_CURRENCY', 'USD'),
+    'cs2cap_cooldown_seconds' => (int) env('CS2CAP_COOLDOWN_SECONDS', 30),
+    'cs2cap_use_inventory' => filter_var(env('CS2CAP_USE_INVENTORY', false), FILTER_VALIDATE_BOOL),
+    'cs2cap_use_buff' => filter_var(env('CS2CAP_USE_BUFF', false), FILTER_VALIDATE_BOOL),
 ];

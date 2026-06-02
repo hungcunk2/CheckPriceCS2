@@ -436,6 +436,91 @@
     </div>
 </div>
 
+<div class="panel-admin rounded border mb-4" id="cs2cap-keys">
+    <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="h6 mb-0">CS2Cap — API key (lấy kho + giá Buff)</h2>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.buff-accounts.cs2cap-keys.create') }}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-plus me-1"></i> Thêm API key
+            </a>
+            @if(($cs2capUsesDatabase ?? false) && filled(config('cs2price.cs2cap_api_key')))
+                <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.import-env') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Import key từ .env</button>
+                </form>
+            @endif
+        </div>
+    </div>
+    <div class="p-3">
+        @if(($cs2capUsesDatabase ?? false) && ($cs2capKeys ?? collect())->isNotEmpty())
+            <div class="table-responsive mb-3">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Label</th>
+                        <th>API key</th>
+                        <th>Ưu tiên</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($cs2capKeys as $k)
+                        @php $cooldown = $k->cooldown_seconds ?? null; @endphp
+                        <tr>
+                            <td><code>{{ $k->label }}</code></td>
+                            <td class="font-monospace small text-muted">{{ $k->api_key_hint }}</td>
+                            <td>{{ $k->sort_order }}</td>
+                            <td>
+                                @if($k->is_active)
+                                    <span class="badge text-bg-success">Bật</span>
+                                @else
+                                    <span class="badge text-bg-secondary">Tắt</span>
+                                @endif
+                                @if($cooldown)
+                                    <span class="badge text-bg-warning text-dark ms-1" title="Cooldown">⏳ {{ $cooldown }}s</span>
+                                @endif
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.probe', $k->id) }}"
+                                      class="d-inline js-ajax-probe" data-probe-update="cs2cap-key" data-cs2cap-key-id="{{ $k->id }}"
+                                      title="Kiểm tra key này">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </form>
+                                <a href="{{ route('admin.buff-accounts.cs2cap-keys.edit', $k->id) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+                                <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.destroy', $k->id) }}" class="d-inline" onsubmit="return confirm('Xóa key {{ $k->label }}?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @elseif(($cs2capUsesDatabase ?? false))
+            <p class="small text-muted mb-3">Chưa có API key — bấm <strong>Thêm API key</strong>.</p>
+        @else
+            <p class="small text-muted mb-3">Key đang lấy từ <code>.env</code> — chạy <code>php artisan migrate</code> rồi quản lý key trong admin.</p>
+        @endif
+
+        <dl class="row mb-0 small">
+            <dt class="col-sm-3">Bật CS2Cap</dt>
+            <dd class="col-sm-9">{{ config('cs2price.cs2cap_enabled', false) ? 'CS2CAP_ENABLED=true' : 'Tắt — bật CS2CAP_ENABLED trong .env' }}</dd>
+            <dt class="col-sm-3">Dùng lấy kho</dt>
+            <dd class="col-sm-9">{{ config('cs2price.cs2cap_use_inventory', false) ? 'CS2CAP_USE_INVENTORY=true' : 'Tắt' }}</dd>
+            <dt class="col-sm-3">Dùng giá Buff</dt>
+            <dd class="col-sm-9">{{ config('cs2price.cs2cap_use_buff', false) ? 'CS2CAP_USE_BUFF=true' : 'Tắt' }}</dd>
+            <dt class="col-sm-3">Currency Buff</dt>
+            <dd class="col-sm-9"><code>{{ config('cs2price.cs2cap_buff_currency', 'CNY') }}</code></dd>
+        </dl>
+    </div>
+</div>
+
 <div class="panel-admin rounded border mb-4">
     <div class="p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h2 class="h6 mb-0">cs.trade — lấy danh sách kho</h2>

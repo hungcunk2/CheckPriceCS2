@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Buff163HealthService;
 use App\Services\BuffAccountStore;
+use App\Services\Cs2CapApiKeyStore;
 use App\Services\EmpireApiKeyStore;
 use App\Support\CsgoEmpireApiPool;
+use App\Support\Cs2CapApiPool;
 use App\Services\CsgoEmpireHealthService;
 use App\Services\CsTradeHealthService;
 use App\Support\Buff163AccountPool;
@@ -25,6 +27,7 @@ class BuffAccountController extends Controller
         private CsgoEmpireHealthService $empireHealth,
         private BuffAccountStore $store,
         private EmpireApiKeyStore $empireKeyStore,
+        private Cs2CapApiKeyStore $cs2capKeyStore,
     ) {}
 
     public function index(): View
@@ -44,6 +47,14 @@ class BuffAccountController extends Controller
                     $ek->cooldown_seconds = CsgoEmpireApiPool::cooldownRemaining($ek->label);
 
                     return $ek;
+                })
+                : collect(),
+            'cs2capUsesDatabase' => Cs2CapApiPool::usesDatabase(),
+            'cs2capKeys' => Cs2CapApiPool::usesDatabase()
+                ? $this->cs2capKeyStore->all()->map(function (object $k) {
+                    $k->cooldown_seconds = \App\Support\Cs2CapApiPool::cooldownSeconds($k->label);
+
+                    return $k;
                 })
                 : collect(),
         ]);

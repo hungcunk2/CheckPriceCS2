@@ -10,6 +10,7 @@ class InventoryFetchService
     public function __construct(
         private SteamInventoryService $steam,
         private CsTradeInventoryService $csTrade,
+        private Cs2CapInventoryService $cs2cap,
         private SteamProfileService $steamProfile,
     ) {}
 
@@ -26,6 +27,10 @@ class InventoryFetchService
      */
     public function fetchBundle(string $steamId, bool $refresh = false): array
     {
+        if (config('cs2price.cs2cap_use_inventory', false) || config('cs2price.inventory_source') === 'cs2cap') {
+            return $this->fromCs2Cap($steamId, $refresh);
+        }
+
         if (config('cs2price.inventory_source') === 'steam') {
             return $this->fromSteam($steamId, $refresh);
         }
@@ -96,6 +101,30 @@ class InventoryFetchService
             'steam_avatar_url' => $profile['steam_avatar_url'],
             'inventory_source' => 'steam',
             'inventory_fallback_message' => $fallbackMessage,
+        ];
+    }
+
+    /**
+     * @return array{
+     *   items: list<array<string, mixed>>,
+     *   steam_persona_name: string|null,
+     *   steam_avatar_url: string|null,
+     *   inventory_source: string,
+     *   inventory_fallback_message: string|null
+     * }
+     */
+    private function fromCs2Cap(string $steamId, bool $refresh): array
+    {
+        $bundle = $this->cs2cap->fetchCached($steamId, $refresh);
+
+        $profile = $this->steamProfile->fetchProfile($steamId);
+
+        return [
+            'items' => $bundle['items'],
+            'steam_persona_name' => $profile['steam_persona_name'],
+            'steam_avatar_url' => $profile['steam_avatar_url'],
+            'inventory_source' => 'cs2cap',
+            'inventory_fallback_message' => null,
         ];
     }
 }
