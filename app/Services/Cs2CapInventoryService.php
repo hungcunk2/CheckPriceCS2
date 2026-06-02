@@ -92,11 +92,15 @@ class Cs2CapInventoryService
             if ($hash === '') {
                 continue;
             }
+            $iconUrl = $this->normalizeIconUrl($row['icon_url'] ?? null);
+            if ($iconUrl === null) {
+                $iconUrl = $this->catalogImageUrlForHash($hash);
+            }
             $items[] = [
                 'assetid' => (string) ($row['assetid'] ?? ('cs2cap-'.$steamIdOrVanity.'-'.$i)),
                 'market_hash_name' => $hash,
                 'name' => (string) ($row['name'] ?? $hash),
-                'icon_url' => $this->normalizeIconUrl($row['icon_url'] ?? null),
+                'icon_url' => $iconUrl,
                 'tradable' => (bool) ($row['tradable'] ?? false),
                 'amount' => (int) ($row['quantity'] ?? 1),
                 // quan trọng: phase để tra giá doppler/gamma
@@ -135,6 +139,16 @@ class Cs2CapInventoryService
             return null;
         }
 
+        // CS2Cap/Steam sometimes returns icon_url as a hash-only string (no scheme/host).
+        if (! str_contains($url, '://') && ! str_starts_with($url, '//') && ! str_starts_with($url, '/')) {
+            $url = 'https://community.cloudflare.steamstatic.com/economy/image/'.$url;
+        }
+
+        // Một số response có icon_url bị cụt kiểu ".../economy/image/" -> 404.
+        if (preg_match('#/economy/image/?$#', $url)) {
+            return null;
+        }
+
         // Steam CDN hay chặn/hỏng theo region; chuẩn hóa về steamstatic cloudflare (đang dùng ổn trong app).
         $url = str_replace('https://steamcommunity-a.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
         $url = str_replace('https://steamcommunity.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
@@ -143,6 +157,55 @@ class Cs2CapInventoryService
         $url = str_replace('http://steamcommunity.akamaihd.net/economy/image/', 'https://community.cloudflare.steamstatic.com/economy/image/', $url);
 
         return $url;
+    }
+
+    private function catalogImageUrlForHash(string $marketHashName): ?string
+    {
+        $marketHashName = trim($marketHashName);
+        if ($marketHashName === '') {
+            return null;
+        }
+
+        $cacheKey = 'cs2cap_catalog_image:'.md5($marketHashName);
+        $cached = Cache::get($cacheKey);
+        if (is_string($cached)) {
+            return $cached !== '' ? $cached : null;
+        }
+
+        $account = Cs2CapApiPool::next();
+        if ($account === null) {
+            return null;
+        }
+
+        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
+        $response = Http::timeout(20)
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$account['api_key'],
+                'Accept' => 'application/json',
+            ])
+            ->get("{$base}/items", [
+                'market_hash_name' => $marketHashName,
+                'limit' => 1,
+            ]);
+
+        $this->handleRateLimit($response, $account['label']);
+
+        if (! $response->successful()) {
+            Cache::put($cacheKey, '', 3600);
+            return null;
+        }
+
+        $items = $response->json('items') ?? [];
+        $first = is_array($items) ? ($items[0] ?? null) : null;
+        $imageUrl = is_array($first) ? ($first['image_url'] ?? null) : null;
+
+        if (is_string($imageUrl) && trim($imageUrl) !== '') {
+            Cache::put($cacheKey, $imageUrl, 86400 * 30);
+            return $imageUrl;
+        }
+
+        Cache::put($cacheKey, '', 86400);
+        return null;
     }
 }
 

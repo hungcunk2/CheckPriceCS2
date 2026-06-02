@@ -51,14 +51,6 @@
             </button>
         </form>
 
-        <script>
-        (function () {
-            var f = document.getElementById('lp-check-form');
-            if (!f || f.getAttribute('data-progressive') !== '1') return;
-            f.addEventListener('submit', function (e) { e.preventDefault(); }, true);
-        })();
-        </script>
-
         @error('steam_url')
             <div class="lp-check-result lp-check-result--error lp-glass rounded-3 p-3 mt-3 text-start small" style="color:var(--lp-accent)">
                 {{ $message }}
