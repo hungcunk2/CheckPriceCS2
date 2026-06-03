@@ -315,6 +315,18 @@
     display: none;
 }
 
+.is-hidden {
+    display: none !important;
+}
+
+.ma-register-alert:empty {
+    display: none;
+}
+
+.ma-register-alert:not(:empty) {
+    margin-bottom: 0.75rem;
+}
+
 /* Modal — rộng + chữ lớn */
 .ma-modal-dialog {
     max-width: 42rem;

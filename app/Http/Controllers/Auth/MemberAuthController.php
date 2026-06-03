@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\RegistrationOtpService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,7 +71,7 @@ class MemberAuthController extends Controller
         return redirect()->intended(route('member.dashboard'));
     }
 
-    public function registerSendOtp(Request $request): RedirectResponse
+    public function registerSendOtp(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -86,6 +87,18 @@ class MemberAuthController extends Controller
             $validated['email'],
             $validated['password'],
         );
+
+        if ($request->expectsJson()) {
+            if (! $result['ok']) {
+                return response()->json(['ok' => false, 'message' => $result['message']], 422);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'message' => $result['message'],
+                'email' => $validated['email'],
+            ]);
+        }
 
         if (! $result['ok']) {
             return $this->authRedirectBack($request, 'register')
@@ -107,6 +120,7 @@ class MemberAuthController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required', 'string', 'size:6'],
+            'password' => ['required', 'confirmed', Password::min(8)],
         ], [
             'otp.size' => 'Mã OTP phải gồm 6 chữ số.',
         ]);
@@ -130,7 +144,7 @@ class MemberAuthController extends Controller
         User::query()->create([
             'name' => $verified['name'],
             'email' => $verified['email'],
-            'password' => $verified['password'],
+            'password' => $validated['password'],
             'is_active' => false,
             'paid_until' => null,
             'email_verified_at' => now(),
