@@ -37,11 +37,13 @@
     @if(!empty($autoOpenModal))
     var modalEl = document.getElementById('memberAuthModal');
     if (modalEl && typeof bootstrap !== 'undefined') {
-        var authTab = @json(request('auth', session('auth_tab', request()->has('forgot') ? 'forgot' : 'login')));
+        var authTab = @json(
+            request()->has('forgot') || request('auth') === 'forgot' ? 'forgot'
+            : (session('register_otp_sent') || session('register_otp_message') || request('auth') === 'register' || session('auth_tab') === 'register' ? 'register'
+            : (session('register_success') ? 'login' : (request('auth', session('auth_tab', 'login')))))
+        );
         var scope = '-modal';
-        if (authTab === 'register' || authTab === 'forgot' || authTab === 'login') {
-            switchPanel(scope, authTab);
-        }
+        switchPanel(scope, authTab);
 
         var shouldOpen = @json(
             $errors->any()

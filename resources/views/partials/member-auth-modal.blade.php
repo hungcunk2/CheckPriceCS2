@@ -1,5 +1,13 @@
 @php
-    $authMode = request('forgot') ? 'forgot' : request('auth', session('auth_tab', 'login'));
+    if (request()->has('forgot')) {
+        $authMode = 'forgot';
+    } elseif (session('register_otp_sent') || session('register_otp_message') || request('auth') === 'register' || session('auth_tab') === 'register') {
+        $authMode = 'register';
+    } elseif (session('register_success') || request('auth') === 'login' || session('auth_tab') === 'login') {
+        $authMode = 'login';
+    } else {
+        $authMode = request('auth', session('auth_tab', 'login'));
+    }
 @endphp
 <div class="modal fade" id="memberAuthModal" tabindex="-1" aria-labelledby="memberAuthModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg ma-modal-dialog">

@@ -95,6 +95,7 @@ class MemberAuthController extends Controller
 
         return $this->authRedirectBack($request, 'register')
             ->with([
+                'auth_tab' => 'register',
                 'register_otp_sent' => true,
                 'register_otp_email' => $validated['email'],
                 'register_otp_message' => $result['message'],
@@ -172,6 +173,7 @@ class MemberAuthController extends Controller
 
         return $this->authRedirectBack($request, 'register')
             ->with([
+                'auth_tab' => 'register',
                 'register_otp_sent' => true,
                 'register_otp_email' => $validated['email'],
                 'register_otp_message' => $result['message'],
@@ -192,7 +194,10 @@ class MemberAuthController extends Controller
                 $query['auth'] = $mode;
             }
 
-            return redirect()->to($to.$separator.http_build_query($query))->with('auth_tab', $mode);
+            return redirect()
+                ->to($to.$separator.http_build_query($query))
+                ->with('auth_tab', $mode)
+                ->withInput($mode === 'register' ? $request->only('email') : []);
         }
 
         $routeParams = ['mode' => $mode];

@@ -3,9 +3,18 @@
     $otpSent = $otpSent ?? session('register_otp_sent') || (old('otp') && old('email'));
     $otpEmail = old('email', session('register_otp_email', ''));
     $otpService = app(\App\Services\RegistrationOtpService::class);
-    $authMode = $mode ?? old('mode', request('auth', session('auth_tab', 'login')));
-    $showForgot = $authMode === 'forgot' || request()->has('forgot') || $errors->getBag('forgot')->isNotEmpty();
-    $showRegister = ! $showForgot && ($authMode === 'register' || $otpSent || $errors->has('password') || $errors->has('password_confirmation') || $errors->has('otp'));
+    $authMode = $mode ?? old('mode');
+    if (! in_array($authMode, ['login', 'register', 'forgot'], true)) {
+        if (request()->has('forgot')) {
+            $authMode = 'forgot';
+        } elseif ($otpSent || session('register_otp_sent') || session('register_otp_message') || $errors->has('otp') || $errors->has('password') || $errors->has('password_confirmation') || request('auth') === 'register' || session('auth_tab') === 'register') {
+            $authMode = 'register';
+        } else {
+            $authMode = request('auth', session('auth_tab', 'login'));
+        }
+    }
+    $showForgot = $authMode === 'forgot';
+    $showRegister = ! $showForgot && $authMode === 'register';
     $redirectTo = $authRedirectTo ?? url()->current();
 @endphp
 <div class="ma-card ma-card--embedded {{ ($formIdSuffix ?? '') === 'modal' ? 'ma-card--modal' : '' }}">
