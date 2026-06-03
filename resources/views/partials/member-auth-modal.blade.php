@@ -8,19 +8,22 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content lp-auth-modal">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="memberAuthModalLabel">Tài khoản thành viên</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                <div>
+                    <p class="lp-auth-modal-kicker mb-1">Thành viên</p>
+                    <h5 class="modal-title mb-0" id="memberAuthModalLabel">Đăng nhập / Đăng ký</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body pt-2">
-                <p class="small text-muted mb-3">
-                    Thành viên: giá Empire chính xác (coin). Khách chỉ cần tra link — không cần đăng nhập.
+                <p class="lp-auth-modal-desc mb-3">
+                    Giá Empire chính xác (coin). Khách tra link Steam — không cần tài khoản.
                 </p>
 
                 @if(session('register_success'))
-                    <div class="alert alert-success small">{{ session('register_success') }}</div>
+                    <div class="alert alert-success lp-auth-alert small mb-3">{{ session('register_success') }}</div>
                 @endif
                 @if(session('register_otp_message'))
-                    <div class="alert alert-info small">{{ session('register_otp_message') }}</div>
+                    <div class="alert alert-info lp-auth-alert small mb-3">{{ session('register_otp_message') }}</div>
                 @endif
 
                 <ul class="nav nav-pills nav-fill mb-3 lp-auth-tabs" role="tablist">
@@ -40,7 +43,7 @@
 
                 <div class="tab-content">
                     <div class="tab-pane fade @if($authTab !== 'register') show active @endif" id="auth-pane-login" role="tabpanel">
-                        <form method="POST" action="{{ route('login.submit') }}">
+                        <form method="POST" action="{{ route('login.submit') }}" class="lp-auth-form">
                             @csrf
                             <input type="hidden" name="auth_tab" value="login">
                             <input type="hidden" name="redirect_to" value="{{ url()->current() }}">
@@ -56,17 +59,17 @@
                                 <label class="form-label">Mật khẩu</label>
                                 <input type="password" name="password" class="form-control" required autocomplete="current-password">
                             </div>
-                            <div class="mb-3 form-check">
+                            <div class="mb-3 form-check lp-auth-check">
                                 <input type="checkbox" name="remember" value="1" class="form-check-input" id="authRemember">
                                 <label class="form-check-label" for="authRemember">Ghi nhớ đăng nhập</label>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+                            <button type="submit" class="lp-btn-primary w-100">Đăng nhập</button>
                         </form>
                     </div>
 
                     <div class="tab-pane fade @if($authTab === 'register') show active @endif" id="auth-pane-register" role="tabpanel">
                         @if(!$otpSent)
-                            <form method="POST" action="{{ route('register.send-otp') }}">
+                            <form method="POST" action="{{ route('register.send-otp') }}" class="lp-auth-form">
                                 @csrf
                                 <input type="hidden" name="auth_tab" value="register">
                                 <input type="hidden" name="redirect_to" value="{{ url()->current() }}">
@@ -92,17 +95,17 @@
                                     <label class="form-label">Nhập lại mật khẩu</label>
                                     <input type="password" name="password_confirmation" class="form-control" required minlength="8" autocomplete="new-password">
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Gửi mã OTP qua email</button>
-                                <p class="small text-muted mt-3 mb-0">Chúng tôi gửi mã 6 số tới email để xác nhận đăng ký.</p>
+                                <button type="submit" class="lp-btn-primary w-100">Gửi mã OTP qua email</button>
+                                <p class="lp-auth-hint mt-3 mb-0">Mã 6 số gửi tới email để xác nhận đăng ký.</p>
                             </form>
                         @else
-                            <form method="POST" action="{{ route('register.verify') }}">
+                            <form method="POST" action="{{ route('register.verify') }}" class="lp-auth-form">
                                 @csrf
                                 <input type="hidden" name="auth_tab" value="register">
                                 <input type="hidden" name="redirect_to" value="{{ url()->current() }}">
-                                <p class="small mb-3">
+                                <p class="lp-auth-hint mb-3">
                                     Đã gửi mã OTP tới <strong>{{ $otpService->maskEmail($otpEmail) }}</strong>.
-                                    Mã có hiệu lực {{ $otpService->ttlMinutes() }} phút.
+                                    Hiệu lực {{ $otpService->ttlMinutes() }} phút.
                                 </p>
                                 <div class="mb-3">
                                     <label class="form-label">Email</label>
@@ -112,24 +115,24 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Mã OTP (6 số)</label>
-                                    <input type="text" name="otp" class="form-control text-center font-monospace @error('otp') is-invalid @enderror"
+                                    <input type="text" name="otp" class="form-control lp-auth-otp-input text-center font-monospace @error('otp') is-invalid @enderror"
                                            value="{{ old('otp') }}" required maxlength="6" minlength="6" pattern="\d{6}"
-                                           inputmode="numeric" autocomplete="one-time-code" placeholder="000000"
-                                           style="font-size:1.25rem;letter-spacing:0.35em">
+                                           inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
                                     @error('otp')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Xác nhận &amp; đăng ký</button>
+                                <button type="submit" class="lp-btn-primary w-100">Xác nhận &amp; đăng ký</button>
                             </form>
-                            <form method="POST" action="{{ route('register.resend-otp') }}" class="mt-2">
+                            <form method="POST" action="{{ route('register.resend-otp') }}" class="mt-3 text-center">
                                 @csrf
                                 <input type="hidden" name="auth_tab" value="register">
                                 <input type="hidden" name="redirect_to" value="{{ url()->current() }}">
                                 <input type="hidden" name="email" value="{{ $otpEmail }}">
-                                <button type="submit" class="btn btn-link btn-sm text-muted p-0">Gửi lại mã OTP</button>
+                                <button type="submit" class="lp-auth-link-btn">Gửi lại mã OTP</button>
                             </form>
-                            <p class="small text-muted mt-3 mb-0">
-                                <a href="{{ route('register.cancel') }}">Đăng ký email khác</a>
-                                · Sau đăng ký admin kích hoạt gói.
+                            <p class="lp-auth-hint mt-3 mb-0 text-center">
+                                <a href="{{ route('register.cancel') }}" class="lp-auth-inline-link">Đăng ký email khác</a>
+                                <span class="mx-1">·</span>
+                                Admin kích hoạt gói sau đăng ký
                             </p>
                         @endif
                     </div>

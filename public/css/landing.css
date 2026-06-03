@@ -129,56 +129,207 @@ body.landing h4 {
 .lp-btn-ghost {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     padding: 0.5rem 1rem;
     border-radius: 0.75rem;
-    border: 1px solid var(--lp-border, rgba(255, 255, 255, 0.12));
+    border: 1px solid var(--lp-border);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--lp-muted);
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
 .lp-btn-ghost:hover {
-    color: var(--lp-fg, #fff);
-    border-color: var(--lp-muted);
+    color: var(--lp-fg);
+    border-color: rgba(88, 166, 255, 0.45);
+    background: rgba(88, 166, 255, 0.08);
 }
 
 button.lp-btn-ghost {
-    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.25;
+}
+
+.lp-nav .lp-btn-nav-auth {
+    padding: 0.5rem 0.875rem;
+    white-space: nowrap;
+}
+
+.lp-btn-primary.w-100 {
+    width: 100%;
+}
+
+/* Member auth modal — luôn dark glass, không phụ thuộc theme trang bảng giá */
+#memberAuthModal .modal-content.lp-auth-modal {
+    background: var(--lp-glass-strong);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    color: var(--lp-fg);
+    border: 1px solid var(--lp-glass-border);
+    border-radius: 1rem;
+    box-shadow: var(--lp-shadow-card), 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+#memberAuthModal .modal-title {
+    font-family: var(--lp-display);
+    font-weight: 600;
+    color: var(--lp-fg);
+}
+
+.lp-auth-modal-kicker {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--lp-accent);
+    margin: 0;
+}
+
+.lp-auth-modal-desc,
+.lp-auth-hint {
+    font-size: 0.8125rem;
+    color: var(--lp-muted);
+    line-height: 1.5;
+}
+
+.lp-auth-hint strong {
+    color: var(--lp-fg);
+    font-weight: 600;
+}
+
+#memberAuthModal .form-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--lp-muted);
+    margin-bottom: 0.35rem;
+}
+
+#memberAuthModal .form-control {
+    background: rgba(13, 17, 23, 0.65);
+    border: 1px solid var(--lp-border);
+    color: var(--lp-fg);
+    border-radius: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+}
+
+#memberAuthModal .form-control::placeholder {
+    color: rgba(139, 148, 158, 0.55);
+}
+
+#memberAuthModal .form-control:focus {
+    background: rgba(13, 17, 23, 0.85);
+    border-color: var(--lp-primary);
+    color: var(--lp-fg);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+}
+
+#memberAuthModal .form-control:read-only {
+    opacity: 0.85;
+}
+
+#memberAuthModal .lp-auth-otp-input {
+    font-size: 1.25rem;
+    letter-spacing: 0.35em;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+#memberAuthModal .lp-auth-check .form-check-label {
+    color: var(--lp-muted);
+    font-size: 0.8125rem;
+}
+
+#memberAuthModal .lp-auth-check .form-check-input {
+    background-color: rgba(13, 17, 23, 0.65);
+    border-color: var(--lp-border);
+}
+
+#memberAuthModal .lp-auth-check .form-check-input:checked {
+    background-color: var(--lp-primary);
+    border-color: var(--lp-primary);
+}
+
+#memberAuthModal .lp-auth-tabs {
+    padding: 0.25rem;
+    border-radius: 0.75rem;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--lp-border);
+    gap: 0.25rem;
+}
+
+#memberAuthModal .lp-auth-tabs .nav-link {
+    color: var(--lp-muted);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    transition: color 0.2s, background 0.2s;
+}
+
+#memberAuthModal .lp-auth-tabs .nav-link:hover {
+    color: var(--lp-fg);
+}
+
+#memberAuthModal .lp-auth-tabs .nav-link.active {
+    background: var(--lp-primary);
+    color: var(--lp-primary-fg);
+    font-weight: 600;
+}
+
+#memberAuthModal .lp-auth-alert {
+    background: rgba(88, 166, 255, 0.12);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    color: var(--lp-fg);
+    border-radius: 0.625rem;
+}
+
+#memberAuthModal .alert-success.lp-auth-alert {
+    background: rgba(35, 134, 54, 0.15);
+    border-color: rgba(35, 134, 54, 0.35);
+}
+
+#memberAuthModal .alert-info.lp-auth-alert {
+    background: rgba(88, 166, 255, 0.12);
+    border-color: rgba(88, 166, 255, 0.3);
+}
+
+#memberAuthModal .invalid-feedback {
+    color: #ff7b72;
+    font-size: 0.8125rem;
+}
+
+#memberAuthModal .lp-auth-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.8125rem;
+    color: var(--lp-primary);
+    text-decoration: underline;
     cursor: pointer;
     font-family: inherit;
 }
 
-.lp-auth-modal {
-    background: var(--lp-card, #141820);
-    color: var(--lp-fg, #e8eaed);
-    border: 1px solid var(--lp-border, rgba(255, 255, 255, 0.1));
-    border-radius: 1rem;
+#memberAuthModal .lp-auth-link-btn:hover {
+    color: #9ec5ff;
 }
 
-.lp-auth-modal .form-control,
-.lp-auth-modal .form-select {
-    background: rgba(0, 0, 0, 0.25);
-    border-color: var(--lp-border, rgba(255, 255, 255, 0.12));
-    color: var(--lp-fg, #e8eaed);
+#memberAuthModal .lp-auth-inline-link {
+    color: var(--lp-primary);
+    text-decoration: none;
 }
 
-.lp-auth-modal .form-control:focus {
-    background: rgba(0, 0, 0, 0.35);
-    border-color: var(--lp-primary, #3b82f6);
-    color: var(--lp-fg, #e8eaed);
-    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+#memberAuthModal .lp-auth-inline-link:hover {
+    color: #9ec5ff;
+    text-decoration: underline;
 }
 
-.lp-auth-tabs .nav-link {
-    color: var(--lp-muted);
-    border-radius: 0.5rem;
-}
-
-.lp-auth-tabs .nav-link.active {
-    background: var(--lp-primary, #3b82f6);
-    color: #fff;
+/* Modal backdrop khi mở auth trên trang sáng */
+body.has-lp-nav .modal-backdrop.show {
+    background-color: #010409;
 }
 
 .lp-btn-gradient {
