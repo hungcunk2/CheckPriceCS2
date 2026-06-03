@@ -4,8 +4,7 @@
 @section('page-title', 'User trả phí')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <p class="text-muted small mb-0">Tài khoản đăng nhập <code>/dang-nhap</code> — Empire coin qua API.</p>
+<div class="d-flex justify-content-end align-items-center mb-3">
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Thêm user</a>
 </div>
 

@@ -12,11 +12,26 @@ class TrackedInventoryStore
      */
     public function all(): Collection
     {
-        return TrackedInventory::query()
-            ->orderByDesc('last_total_cny')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (TrackedInventory $row) => $this->asObject($row));
+        return $this->mapQuery(
+            TrackedInventory::query()->orderByDesc('last_total_cny')->orderByDesc('id')
+        );
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    public function forUser(int $userId): Collection
+    {
+        return $this->mapQuery(
+            $this->memberInventoryQuery($userId)
+                ->orderByDesc('last_total_cny')
+                ->orderByDesc('id')
+        );
+    }
+
+    public function countForUser(int $userId): int
+    {
+        return $this->memberInventoryQuery($userId)->count();
     }
 
     /**
@@ -39,6 +54,34 @@ class TrackedInventoryStore
         return $row ? $this->asObject($row) : null;
     }
 
+    public function findForUser(int $id, int $userId): ?object
+    {
+        $row = $this->memberInventoryQuery($userId)
+            ->where('id', $id)
+            ->first();
+
+        return $row ? $this->asObject($row) : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function upsertForUser(int $userId, array $attributes, ?int $id = null): object
+    {
+        return $this->upsert(
+            array_merge($attributes, ['user_id' => $userId]),
+            $id,
+            $userId,
+        );
+    }
+
+    public function deleteForUser(int $id, int $userId): bool
+    {
+        return $this->memberInventoryQuery($userId)
+            ->where('id', $id)
+            ->delete() > 0;
+    }
+
     public function findPublic(int $id): ?object
     {
         $row = TrackedInventory::query()
@@ -52,16 +95,29 @@ class TrackedInventoryStore
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function upsert(array $attributes, ?int $id = null): object
+    public function upsert(array $attributes, ?int $id = null, ?int $ownerUserId = null): object
     {
         $model = null;
 
         if ($id) {
-            $model = TrackedInventory::query()->find($id);
+            $idQuery = TrackedInventory::query()->where('id', $id);
+            if ($ownerUserId !== null) {
+                $idQuery->where('user_id', $ownerUserId);
+            }
+            $model = $idQuery->first();
         }
 
         if (! $model && ! empty($attributes['url'])) {
-            $model = TrackedInventory::query()->where('url', $attributes['url'])->first();
+            $urlQuery = TrackedInventory::query()->where('url', $attributes['url']);
+            if ($ownerUserId !== null) {
+                $urlQuery->where('user_id', $ownerUserId);
+            } elseif (array_key_exists('user_id', $attributes)) {
+                $userId = $attributes['user_id'];
+                $userId === null
+                    ? $urlQuery->whereNull('user_id')
+                    : $urlQuery->where('user_id', $userId);
+            }
+            $model = $urlQuery->first();
         }
 
         $payload = $this->normalizeAttributes($attributes);
@@ -90,7 +146,7 @@ class TrackedInventoryStore
     private function normalizeAttributes(array $attributes): array
     {
         $allowed = [
-            'label', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
+            'user_id', 'label', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
             'is_public', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
             'item_count', 'priced_count', 'failed_count', 'last_snapshot',
         ];
@@ -108,6 +164,23 @@ class TrackedInventoryStore
         }
 
         return $payload;
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<TrackedInventory>  $query
+     * @return Collection<int, object>
+     */
+    private function mapQuery($query): Collection
+    {
+        return $query->get()->map(fn (TrackedInventory $row) => $this->asObject($row));
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<TrackedInventory>
+     */
+    private function memberInventoryQuery(int $userId)
+    {
+        return TrackedInventory::query()->where('user_id', $userId);
     }
 
     private function asObject(TrackedInventory $row): object

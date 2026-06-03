@@ -92,4 +92,16 @@ final class SubscriptionPlans
     {
         return number_format($amount, 0, ',', '.').'đ';
     }
+
+    /** null = không giới hạn (Shop). */
+    public static function inventoryLimit(?string $plan): ?int
+    {
+        return match ($plan) {
+            'pro' => 3,
+            'plus' => 20,
+            'max' => 50,
+            'shop' => null,
+            default => 3,
+        };
+    }
 }

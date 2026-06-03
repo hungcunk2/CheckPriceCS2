@@ -1,44 +1,43 @@
-@extends('layouts.landing')
+@extends('layouts.member')
+
+@section('title', 'Thông tin gói')
+@section('page-title', 'Thông tin gói')
 
 @section('content')
-@include('landing.nav')
-@include('partials.flash-alerts')
+@if(session('register_magic_success'))
+    <div class="alert alert-success py-2 small mb-3">{{ session('register_magic_success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert-warning py-2 small mb-3">{{ session('error') }}</div>
+@endif
+<div class="row">
+    <div class="col-lg-6">
+        <div class="panel-admin rounded border p-4">
+            <p class="small text-muted mb-3">{{ $user->email }}</p>
 
-<section class="lp-container" style="max-width:40rem;margin:3rem auto;padding:0 1rem">
-    <div class="lp-glass-strong rounded-3 p-4">
-        <h1 class="h4 mb-2">Xin chào, {{ $user->name }}</h1>
-        <p class="small text-muted mb-3">{{ $user->email }}</p>
+            <ul class="list-unstyled small mb-4">
+                <li class="mb-2"><strong>Trạng thái:</strong>
+                    @if($user->hasActiveSubscription())
+                        <span class="badge text-bg-success">Hoạt động</span>
+                    @else
+                        <span class="badge text-bg-warning">Chờ kích hoạt</span>
+                    @endif
+                </li>
+                <li class="mb-2"><strong>Gói:</strong> {{ $user->subscriptionPlanLabel() ?? '—' }}</li>
+                <li class="mb-2"><strong>Hết hạn:</strong>
+                    @if($user->paid_until)
+                        {{ $user->paid_until->timezone(config('cs2price.timezone'))->format('d/m/Y H:i') }}
+                    @else
+                        chưa gán
+                    @endif
+                </li>
+            </ul>
 
-        @if(session('error'))
-            <div class="alert alert-warning py-2 small">{{ session('error') }}</div>
-        @endif
-
-        <ul class="list-unstyled small mb-4">
-            <li><strong>Trạng thái:</strong>
-                @if($user->hasActiveSubscription())
-                    <span class="text-success">Đang hoạt động</span>
-                @else
-                    <span class="text-warning">Chờ admin kích hoạt gói</span>
-                @endif
-            </li>
-            <li><strong>Gói:</strong> {{ $user->subscriptionPlanLabel() ?? '—' }}</li>
-            <li><strong>Hết hạn:</strong>
-                @if($user->paid_until)
-                    {{ $user->paid_until->timezone(config('cs2price.timezone'))->format('d/m/Y H:i') }}
-                @else
-                    chưa gán
-                @endif
-            </li>
-        </ul>
-
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('member.inventories.index') }}" class="btn btn-primary btn-sm">Xem kho đồ</a>
-            <a href="{{ route('public.landing') }}#hero" class="btn btn-outline-secondary btn-sm">Tra giá Steam</a>
-            <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                @csrf
-                <button type="submit" class="btn btn-outline-secondary btn-sm">Đăng xuất</button>
-            </form>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('member.inventories.index') }}" class="btn btn-primary btn-sm">Kho đồ Steam</a>
+                <a href="{{ route('public.pricing') }}" class="btn btn-outline-secondary btn-sm">Nâng cấp gói</a>
+            </div>
         </div>
     </div>
-</section>
+</div>
 @endsection

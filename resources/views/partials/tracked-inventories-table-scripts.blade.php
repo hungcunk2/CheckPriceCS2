@@ -1,5 +1,8 @@
 @php
-    $enableRefresh = ($tableMode ?? 'admin') === 'admin';
+    $enableRefresh = in_array($tableMode ?? 'admin', ['admin', 'member'], true);
+    $refreshRouteTemplate = ($tableMode ?? 'admin') === 'member'
+        ? route('member.inventories.refresh', ['inventory' => 0])
+        : route('admin.inventories.refresh', ['inventory' => 0]);
 @endphp
 <script src="{{ asset('js/inventory-weapon-filter.js') }}"></script>
 <script>
@@ -60,7 +63,7 @@ document.querySelectorAll('.btn-refresh').forEach(btn => {
         btn.disabled = true;
         if (icon) icon.classList.add('fa-spin');
         try {
-            const res = await fetch(@json(route('admin.inventories.refresh', ['inventory' => 0])).replace('/0/', '/' + id + '/'), {
+            const res = await fetch(@json($refreshRouteTemplate).replace('/0/', '/' + id + '/'), {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',

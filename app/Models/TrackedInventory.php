@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class TrackedInventory extends Model
 {
     protected $fillable = [
+        'user_id',
         'label',
         'url',
         'steam_id',

@@ -4,10 +4,7 @@
 @section('page-title', 'Đơn thanh toán')
 
 @section('content')
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <p class="text-muted small mb-0">
-        User báo đã chuyển khoản trên <code>/thanh-toan</code> — đối soát nội dung CK (vd. <code>trantuanhungpro3</code>) rồi bấm <strong>Duyệt</strong>.
-    </p>
+<div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mb-3">
     <div class="btn-group btn-group-sm">
         <a href="{{ route('admin.plan-orders.index', ['status' => 'pending']) }}"
            class="btn {{ $status === 'pending' ? 'btn-primary' : 'btn-outline-secondary' }}">

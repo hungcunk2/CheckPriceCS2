@@ -25,7 +25,7 @@
             </div>
             <div class="lp-nav-right">
                 @auth
-                    <a href="{{ route('member.dashboard') }}" class="lp-btn-ghost me-2">Tài khoản</a>
+                    <a href="{{ route('member.inventories.index') }}" class="lp-btn-ghost me-2">Kho đồ</a>
                 @endauth
                 @if($showHeaderActions ?? false)
                     <div class="lp-nav-utilities">

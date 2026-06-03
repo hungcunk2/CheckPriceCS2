@@ -48,8 +48,18 @@ Route::get('/dang-ky/xac-nhan-email', [MemberAuthController::class, 'registerCon
 Route::post('/dang-xuat', [MemberAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::middleware('auth')->prefix('tai-khoan')->name('member.')->group(function () {
-    Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/thong-tin', DashboardController::class)->name('dashboard');
+});
+
+Route::middleware(['auth', 'member'])->prefix('tai-khoan')->name('member.')->group(function () {
+    Route::get('/', fn () => redirect()->route('member.inventories.index'));
     Route::get('/kho', [MemberInventoryController::class, 'index'])->name('inventories.index');
+    Route::get('/kho/them', [MemberInventoryController::class, 'create'])->name('inventories.create');
+    Route::post('/kho', [MemberInventoryController::class, 'store'])->name('inventories.store');
+    Route::get('/kho/{inventory}/sua', [MemberInventoryController::class, 'edit'])->name('inventories.edit');
+    Route::put('/kho/{inventory}', [MemberInventoryController::class, 'update'])->name('inventories.update');
+    Route::delete('/kho/{inventory}', [MemberInventoryController::class, 'destroy'])->name('inventories.destroy');
+    Route::post('/kho/{inventory}/refresh', [MemberInventoryController::class, 'refresh'])->name('inventories.refresh');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {

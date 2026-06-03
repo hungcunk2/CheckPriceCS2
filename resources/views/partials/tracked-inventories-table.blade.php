@@ -23,6 +23,12 @@
             <i class="fas fa-plus me-1"></i> Thêm kho
         </a>
     </div>
+@elseif($tableMode === 'member' && ($canAddInventory ?? true))
+    <div class="d-flex justify-content-end align-items-center mb-3">
+        <a href="{{ route('member.inventories.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Thêm kho
+        </a>
+    </div>
 @endif
 
 <div class="panel-admin rounded border mb-4">
@@ -139,6 +145,14 @@
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa"><i class="fas fa-trash"></i></button>
                                 </form>
+                            @elseif($tableMode === 'member')
+                                <button type="button" class="btn btn-sm btn-outline-primary btn-refresh" data-id="{{ $inv->id }}" title="Check giá"><i class="fas fa-sync-alt"></i></button>
+                                <a href="{{ route('member.inventories.edit', $inv->id) }}" class="btn btn-sm btn-outline-secondary" title="Sửa"><i class="fas fa-edit"></i></a>
+                                <form action="{{ route('member.inventories.destroy', $inv->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa kho này?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa"><i class="fas fa-trash"></i></button>
+                                </form>
                             @endif
                         </td>
                     </tr>
@@ -150,7 +164,7 @@
                                         'inventory' => $inv,
                                         'items' => $inv->display_items ?? $items,
                                         'weaponStats' => $inv->weapon_stats ?? [],
-                                        'admin' => true,
+                                        'admin' => $tableMode === 'admin',
                                     ])
                                 </div>
                             </div>
@@ -161,6 +175,8 @@
                         <td colspan="{{ $colspan }}" class="text-center text-muted py-4">
                             @if($tableMode === 'admin')
                                 Chưa có kho nào. Bấm "Thêm kho" để bắt đầu.
+                            @elseif($tableMode === 'member')
+                                Chưa có kho nào. Bấm "Thêm kho" để thêm link Steam của bạn.
                             @else
                                 Chưa có kho nào được theo dõi.
                             @endif

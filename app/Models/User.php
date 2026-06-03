@@ -75,5 +75,11 @@ class User extends Authenticatable
         return SubscriptionPlans::get($this->subscription_plan)['name']
             ?? strtoupper($this->subscription_plan);
     }
+
+    /** null = không giới hạn số kho. */
+    public function inventorySlotLimit(): ?int
+    {
+        return SubscriptionPlans::inventoryLimit($this->subscription_plan);
+    }
 }
 

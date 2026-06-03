@@ -22,7 +22,7 @@ class MemberAuthController extends Controller
     public function showLogin(Request $request): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()?->hasActiveSubscription()) {
-            return redirect()->route('member.dashboard');
+            return redirect()->route('member.inventories.index');
         }
 
         $mode = (string) $request->query('mode', session('auth_tab', $request->has('forgot') ? 'forgot' : 'login'));
@@ -68,7 +68,7 @@ class MemberAuthController extends Controller
                 ->onlyInput('email');
         }
 
-        return redirect()->intended(route('member.dashboard'));
+        return redirect()->intended(route('member.inventories.index'));
     }
 
     public function registerSendOtp(Request $request): RedirectResponse|JsonResponse
@@ -186,8 +186,8 @@ class MemberAuthController extends Controller
         session()->forget(['register_otp_sent', 'register_otp_email', 'register_otp_message']);
 
         return redirect()
-            ->route('member.inventories.index')
-            ->with('register_magic_success', 'Đăng ký thành công! Bạn đã được đăng nhập. Admin sẽ kích hoạt gói để dùng đầy đủ tính năng thành viên.');
+            ->route('member.dashboard')
+            ->with('register_magic_success', 'Đăng ký thành công! Bạn đã được đăng nhập. Admin sẽ kích hoạt gói để dùng kho đồ Steam.');
     }
 
     public function registerCancel(Request $request): RedirectResponse
