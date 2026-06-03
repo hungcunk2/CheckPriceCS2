@@ -112,7 +112,7 @@
                             @endif
                         </td>
                         <td>
-                            @if($inv->is_public ?? true)
+                            @if($inv->is_public ?? false)
                                 <span class="badge text-bg-success">Hiện</span>
                             @else
                                 <span class="badge text-bg-secondary">Ẩn</span>

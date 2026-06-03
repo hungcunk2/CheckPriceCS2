@@ -71,7 +71,7 @@ class TrackedInventoryStore
             $model->save();
         } else {
             $model = TrackedInventory::query()->create(array_merge([
-                'is_public' => true,
+                'is_public' => (bool) ($payload['is_public'] ?? false),
             ], $payload));
         }
 

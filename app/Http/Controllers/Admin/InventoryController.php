@@ -72,7 +72,7 @@ class InventoryController extends Controller
         $row = $this->store->upsert([
             'label' => $validated['label'],
             'url' => $validated['url'],
-            'is_public' => $request->boolean('is_public', true),
+            'is_public' => $request->boolean('is_public', false),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'trade_at' => $this->parseTradeAtFromRequest($request),
         ]);

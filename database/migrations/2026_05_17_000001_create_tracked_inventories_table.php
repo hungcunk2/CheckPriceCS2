@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('steam_id', 20)->nullable();
             $table->string('steam_persona_name')->nullable();
             $table->string('steam_avatar_url', 512)->nullable();
-            $table->boolean('is_public')->default(true);
+            $table->boolean('is_public')->default(false);
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamp('last_checked_at')->nullable();
             $table->decimal('last_total_cny', 14, 2)->nullable();

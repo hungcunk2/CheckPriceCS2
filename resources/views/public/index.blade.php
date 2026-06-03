@@ -37,6 +37,9 @@
             <p>Không tìm thấy kho phù hợp.</p>
         @else
             <p>Chưa có kho nào được công bố.</p>
+            <p class="small mb-0">
+                <a href="{{ route('public.landing') }}#hero">Tra giá kho Steam</a> trên trang chủ — không cần đăng nhập.
+            </p>
         @endif
     </div>
 @else

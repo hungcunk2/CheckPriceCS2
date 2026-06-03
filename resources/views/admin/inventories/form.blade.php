@@ -100,8 +100,8 @@
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="is_public" value="1" id="is_public"
-                            {{ old('is_public', $inventory->is_public ?? true) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="is_public">Hiển thị trên trang công khai</label>
+                            {{ old('is_public', $inventory->is_public ?? false) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="is_public">Hiển thị trên Bảng giá / Xem kho ngay</label>
                     </div>
                 </div>
 

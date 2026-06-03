@@ -4,6 +4,9 @@
             ? '#'.$id
             : route('public.landing').'#'.$id;
     };
+    $checkNowUrl = request()->routeIs('public.landing')
+        ? '#hero'
+        : route('public.landing').'#hero';
 @endphp
 <header class="lp-nav-wrap">
     <div class="lp-container">
@@ -28,21 +31,13 @@
                     @if(auth()->user()?->hasActiveSubscription())
                         <a href="{{ route('member.dashboard') }}" class="lp-btn-ghost me-2">Tài khoản</a>
                     @endif
-                @else
-                    <div class="lp-nav-auth me-2" role="group" aria-label="Tài khoản thành viên">
-                        <a href="#" class="lp-nav-auth-link" role="button" data-bs-toggle="modal" data-bs-target="#memberAuthModal"
-                           data-auth-tab="login">Đăng nhập</a>
-                        <span class="lp-nav-auth-sep" aria-hidden="true">·</span>
-                        <a href="#" class="lp-nav-auth-link" role="button" data-bs-toggle="modal" data-bs-target="#memberAuthModal"
-                           data-auth-tab="register">Đăng ký</a>
-                    </div>
                 @endauth
                 @if($showHeaderActions ?? false)
                     <div class="lp-nav-utilities">
                         @include('partials.header-actions')
                     </div>
                 @endif
-                <a href="{{ route('public.index') }}" class="lp-btn-primary lp-glow-blue">Xem kho ngay</a>
+                <a href="{{ $checkNowUrl }}" class="lp-btn-primary lp-glow-blue">Xem kho ngay</a>
             </div>
         </nav>
     </div>
