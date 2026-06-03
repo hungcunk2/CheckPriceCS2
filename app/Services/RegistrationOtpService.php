@@ -6,6 +6,7 @@ use App\Mail\RegisterOtpMail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -54,7 +55,13 @@ class RegistrationOtpService
         Cache::put($cooldownKey, time() + $this->resendCooldownSeconds(), $this->resendCooldownSeconds());
 
         try {
-            Mail::to($email)->send(new RegisterOtpMail($email, $name, $otp, $ttl));
+            Mail::to($email)->send(new RegisterOtpMail(
+                $email,
+                $name,
+                $otp,
+                $ttl,
+                $this->signedConfirmationUrl($email, $otp),
+            ));
         } catch (Throwable $e) {
             report($e);
             Cache::forget(self::PENDING_PREFIX.$email);
@@ -132,6 +139,17 @@ class RegistrationOtpService
     public function hasPending(string $email): bool
     {
         return Cache::has(self::PENDING_PREFIX.$this->normalizeEmail($email));
+    }
+
+    public function signedConfirmationUrl(string $email, string $otp): string
+    {
+        $email = $this->normalizeEmail($email);
+
+        return URL::temporarySignedRoute(
+            'register.confirm-email',
+            now()->addMinutes($this->ttlMinutes()),
+            ['email' => $email, 'otp' => $otp],
+        );
     }
 
     public function maskEmail(string $email): string

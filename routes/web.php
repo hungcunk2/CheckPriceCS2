@@ -35,6 +35,9 @@ Route::get('/dang-ky/huy', [MemberAuthController::class, 'registerCancel'])->nam
 Route::post('/dang-ky/gui-otp', [MemberAuthController::class, 'registerSendOtp'])->name('register.send-otp');
 Route::post('/dang-ky/gui-lai-otp', [MemberAuthController::class, 'registerResendOtp'])->name('register.resend-otp');
 Route::post('/dang-ky/xac-nhan', [MemberAuthController::class, 'registerVerify'])->name('register.verify');
+Route::get('/dang-ky/xac-nhan-email', [MemberAuthController::class, 'registerConfirmEmail'])
+    ->middleware('signed')
+    ->name('register.confirm-email');
 Route::post('/dang-xuat', [MemberAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::middleware(['auth', EnsurePaidMember::class])->prefix('tai-khoan')->name('member.')->group(function () {

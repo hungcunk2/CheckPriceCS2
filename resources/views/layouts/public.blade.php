@@ -21,6 +21,12 @@
 <body class="app-shell has-lp-nav">
     @include('landing.nav', ['showHeaderActions' => true])
     <main class="app-main container-fluid px-4 pb-4">
+        @if(session('register_magic_success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('register_magic_success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+            </div>
+        @endif
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 {{ session('error') }}

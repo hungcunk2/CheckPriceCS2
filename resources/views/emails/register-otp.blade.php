@@ -115,7 +115,7 @@
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 28px auto;">
                                 <tr>
                                     <td>
-                                        <a href="{{ $siteUrl }}/" class="btn-verify" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #60A5FA, #F97316); color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; box-shadow: 0 4px 20px rgba(96,165,250,0.30);">
+                                        <a href="{{ $verificationUrl }}" class="btn-verify" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #60A5FA, #F97316); color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; box-shadow: 0 4px 20px rgba(96,165,250,0.30);">
                                             Mở CheckPriceCS2 &rarr;
                                         </a>
                                     </td>

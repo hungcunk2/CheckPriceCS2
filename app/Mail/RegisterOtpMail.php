@@ -15,6 +15,7 @@ class RegisterOtpMail extends Mailable
         public string $recipientName,
         public string $otpCode,
         public int $expiresMinutes,
+        public string $verificationUrl,
     ) {}
 
     public function build(): self

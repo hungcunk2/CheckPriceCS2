@@ -132,28 +132,61 @@ class MemberAuthController extends Controller
                 ->with('register_otp_email', $validated['email']);
         }
 
-        $verified = $this->registrationOtp->verifyOtp($validated['email'], $validated['otp']);
+        $result = $this->completeRegistration(
+            $validated['email'],
+            $validated['otp'],
+            $validated['password'],
+        );
 
-        if (! $verified['ok']) {
+        if (! $result['ok']) {
             return $this->authRedirectBack($request, 'register')
-                ->withErrors(['otp' => $verified['message']])
+                ->withErrors(['otp' => $result['message']])
                 ->with('register_otp_sent', true)
                 ->with('register_otp_email', $validated['email']);
         }
-
-        User::query()->create([
-            'name' => $verified['name'],
-            'email' => $verified['email'],
-            'password' => $validated['password'],
-            'is_active' => false,
-            'paid_until' => null,
-            'email_verified_at' => now(),
-        ]);
 
         session()->forget(['register_otp_sent', 'register_otp_email', 'register_otp_message']);
 
         return $this->authRedirectBack($request, 'login')
             ->with('register_success', 'Đăng ký thành công. Admin sẽ kích hoạt gói — sau đó bạn đăng nhập được.');
+    }
+
+    public function registerConfirmEmail(Request $request): RedirectResponse
+    {
+        $email = trim(mb_strtolower((string) $request->query('email', '')));
+        $otp = trim((string) $request->query('otp', ''));
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL) || ! preg_match('/^\d{6}$/', $otp)) {
+            return redirect()->route('public.landing')
+                ->with('error', 'Liên kết xác nhận không hợp lệ.');
+        }
+
+        if (Auth::check()) {
+            return redirect()->route('public.landing')
+                ->with('register_magic_success', 'Bạn đã đăng nhập rồi.');
+        }
+
+        if (User::query()->where('email', $email)->exists()) {
+            return redirect()->route('public.landing')
+                ->with('register_success', 'Email đã được đăng ký. Đăng nhập sau khi admin kích hoạt gói.');
+        }
+
+        $result = $this->completeRegistration($email, $otp);
+
+        if (! $result['ok']) {
+            return redirect()->route('public.landing')
+                ->with('error', $result['message']);
+        }
+
+        /** @var User $user */
+        $user = $result['user'];
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        session()->forget(['register_otp_sent', 'register_otp_email', 'register_otp_message']);
+
+        return redirect()->route('public.landing')
+            ->with('register_magic_success', 'Đăng ký thành công! Bạn đã được đăng nhập. Admin sẽ kích hoạt gói để dùng đầy đủ tính năng thành viên.');
     }
 
     public function registerCancel(Request $request): RedirectResponse
@@ -237,5 +270,33 @@ class MemberAuthController extends Controller
         $name = trim(str_replace(['.', '_', '+'], ' ', $local));
 
         return $name !== '' ? Str::title($name) : 'Thành viên';
+    }
+
+    /**
+     * @return array{ok: bool, message: string, user?: User}
+     */
+    private function completeRegistration(string $email, string $otp, ?string $password = null): array
+    {
+        $verified = $this->registrationOtp->verifyOtp($email, $otp);
+
+        if (! $verified['ok']) {
+            return ['ok' => false, 'message' => $verified['message']];
+        }
+
+        $plainPassword = $password ?? (string) ($verified['password'] ?? '');
+        if ($plainPassword === '') {
+            return ['ok' => false, 'message' => 'Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.'];
+        }
+
+        $user = User::query()->create([
+            'name' => $verified['name'],
+            'email' => $verified['email'],
+            'password' => $plainPassword,
+            'is_active' => false,
+            'paid_until' => null,
+            'email_verified_at' => now(),
+        ]);
+
+        return ['ok' => true, 'message' => 'Đăng ký thành công.', 'user' => $user];
     }
 }
