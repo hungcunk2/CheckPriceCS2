@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PaymentSetting;
 use App\Models\PlanOrder;
 use App\Models\User;
 use App\Support\SubscriptionPlans;
@@ -42,7 +43,7 @@ class CheckoutController extends Controller
             'months' => $months,
             'plansJson' => $plansJson,
             'checkoutUser' => $user,
-            'payment' => config('cs2price.payment'),
+            'payment' => PaymentSetting::current()->forCheckout(),
         ]);
     }
 

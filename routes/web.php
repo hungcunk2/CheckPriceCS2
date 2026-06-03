@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BuffAccountController;
 use App\Http\Controllers\Admin\EmpireProxyController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
+use App\Http\Controllers\Admin\PaymentSettingController;
 use App\Http\Controllers\Admin\PlanOrderController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
@@ -105,6 +106,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/empire-proxy', [EmpireProxyController::class, 'edit'])->name('empire-proxy.edit');
         Route::put('/empire-proxy', [EmpireProxyController::class, 'update'])->name('empire-proxy.update');
         Route::post('/empire-proxy/test', [EmpireProxyController::class, 'test'])->name('empire-proxy.test');
+
+        Route::get('/cai-dat-thanh-toan', [PaymentSettingController::class, 'edit'])->name('payment-settings.edit');
+        Route::put('/cai-dat-thanh-toan', [PaymentSettingController::class, 'update'])->name('payment-settings.update');
+        Route::post('/cai-dat-thanh-toan/import-env', [PaymentSettingController::class, 'importFromEnv'])->name('payment-settings.import-env');
+        Route::post('/cai-dat-thanh-toan/refresh-banks', [PaymentSettingController::class, 'refreshBanks'])->name('payment-settings.refresh-banks');
+        Route::post('/cai-dat-thanh-toan/test-qr', [PaymentSettingController::class, 'testQr'])->name('payment-settings.test-qr');
 
         Route::get('/don-thanh-toan', [PlanOrderController::class, 'index'])->name('plan-orders.index');
         Route::post('/don-thanh-toan/{planOrder}/duyet', [PlanOrderController::class, 'confirm'])->name('plan-orders.confirm');

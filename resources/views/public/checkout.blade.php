@@ -140,17 +140,24 @@
                             </button>
                         </div>
 
-                        @if(session('success'))
+                        @if(($payment['configured'] ?? false) || session('success'))
                             <div class="bank-panel" id="bankPanel">
-                                <p><strong>Chuyển khoản theo thông tin sau:</strong></p>
-                                <p>Ngân hàng: {{ $payment['bank_name'] ?: '—' }}</p>
-                                <p>Số TK: {{ $payment['account_number'] ?: 'Liên hệ admin' }}</p>
-                                <p>Chủ TK: {{ $payment['account_holder'] ?: '—' }}</p>
-                                <p>Số tiền: <strong id="bankAmount">—</strong></p>
-                                <p>Nội dung CK: <strong id="bankRef">—</strong></p>
-                                <p style="margin-top:8px;color:#64748b;font-size:12px;">
-                                    Mã CK = phần email trước @ + gói + tháng (vd. trantuanhungpro3)
-                                </p>
+                                <p><strong>Chuyển khoản ngân hàng</strong></p>
+                                @if($payment['configured'] ?? false)
+                                    <p>Ngân hàng: {{ $payment['bank_name'] ?: '—' }}</p>
+                                    <p>Số TK: {{ $payment['account_number'] }}</p>
+                                    <p>Chủ TK: {{ $payment['account_holder'] }}</p>
+                                    <p>Số tiền: <strong id="bankAmount">—</strong></p>
+                                    <p>Nội dung CK: <strong id="bankRef">—</strong></p>
+                                    <div class="vietqr-wrap" id="vietqrWrap">
+                                        <img src="" alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
+                                    </div>
+                                    <p style="margin-top:8px;color:#64748b;font-size:12px;">
+                                        Quét VietQR hoặc CK thủ công. Mã nội dung = email trước @ + gói + tháng.
+                                    </p>
+                                @else
+                                    <p>Admin chưa cấu hình STK. Liên hệ hỗ trợ sau khi gửi đơn.</p>
+                                @endif
                             </div>
                         @endif
                     </section>
@@ -209,6 +216,7 @@
 <script>
 (function () {
     const planData = @json($plansJson);
+    const vietqr = @json($payment['vietqr'] ?? null);
     const cycles = {
         '1m': { label: '1 tháng', months: 1 },
         '3m': { label: '3 tháng', months: 3, savePct: 5 },
@@ -239,6 +247,20 @@
     function buildRef(email, plan, months) {
         const local = emailLocal(email);
         return local ? (local + plan + months) : '';
+    }
+
+    function buildVietQrUrl(amount, addInfo) {
+        if (!vietqr || !vietqr.bankId || !vietqr.account) return '';
+        let url = 'https://img.vietqr.io/image/'
+            + encodeURIComponent(vietqr.bankId) + '-'
+            + encodeURIComponent(vietqr.account) + '-'
+            + encodeURIComponent(vietqr.template || 'compact') + '.png';
+        const q = new URLSearchParams();
+        if (amount > 0) q.set('amount', String(amount));
+        if (addInfo) q.set('addInfo', addInfo.slice(0, 50));
+        if (vietqr.accountHolder) q.set('accountName', vietqr.accountHolder);
+        const qs = q.toString();
+        return qs ? (url + '?' + qs) : url;
     }
 
     function currentEmail() {
@@ -296,10 +318,23 @@
             if (el) el.textContent = fmt(p.prices[cy.months]);
         }
 
+        const ref = buildRef(state.email, state.plan, months);
         const bankAmount = document.getElementById('bankAmount');
         const bankRef = document.getElementById('bankRef');
         if (bankAmount) bankAmount.textContent = fmt(total);
-        if (bankRef) bankRef.textContent = buildRef(state.email, state.plan, months) || '—';
+        if (bankRef) bankRef.textContent = ref || '—';
+
+        const qrImg = document.getElementById('vietqrImg');
+        const qrWrap = document.getElementById('vietqrWrap');
+        if (qrImg && qrWrap && vietqr && state.email && ref) {
+            const src = buildVietQrUrl(total, ref);
+            if (src) {
+                qrImg.src = src;
+                qrWrap.style.display = 'block';
+            }
+        } else if (qrWrap) {
+            qrWrap.style.display = 'none';
+        }
     }
 
     document.querySelectorAll('.plan-pick').forEach(function (el) {

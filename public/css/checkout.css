@@ -492,6 +492,19 @@
     margin-top: 6px;
 }
 
+.cp-checkout-v3 .vietqr-wrap {
+    margin-top: 14px;
+    text-align: center;
+}
+
+.cp-checkout-v3 .vietqr-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    background: #fff;
+    padding: 8px;
+}
+
 .cp-checkout-v3 .alert-success {
     background: rgba(74, 222, 128, 0.1);
     border: 1px solid rgba(74, 222, 128, 0.3);

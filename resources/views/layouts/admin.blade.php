@@ -56,6 +56,12 @@
                                 <span>Buff & nguồn kho</span>
                             </a>
                         </li>
+                        <li class="nav-item {{ request()->routeIs('admin.payment-settings.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.payment-settings.edit') }}" class="nav-link">
+                                <i class="fas fa-qrcode"></i>
+                                <span>TK thanh toán</span>
+                            </a>
+                        </li>
                         <li class="nav-item {{ request()->routeIs('admin.plan-orders.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.plan-orders.index') }}" class="nav-link">
                                 <i class="fas fa-receipt"></i>

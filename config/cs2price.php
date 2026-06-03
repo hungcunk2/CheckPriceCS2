@@ -154,7 +154,8 @@ return [
     'cs2cap_catalog_image_cache_seconds' => (int) env('CS2CAP_CATALOG_IMAGE_CACHE_SECONDS', 86400 * 30),
 
     /*
-    | Thanh toán chuyển khoản (trang /thanh-toan).
+    | Thanh toán: cấu hình chính trong Admin → TK thanh toán (payment_settings).
+    | Các biến .env bên dưới chỉ dùng import lần đầu / fallback.
     */
     'payment' => [
         'bank_name' => env('PAYMENT_BANK_NAME', ''),
