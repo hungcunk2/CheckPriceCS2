@@ -27,6 +27,7 @@ Route::get('/kho/{inventory}', [PublicInventoryController::class, 'show'])->wher
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::get('/dang-nhap', [MemberAuthController::class, 'showLogin'])->name('login');
+Route::get('/dang-ky', [MemberAuthController::class, 'showRegister'])->name('register');
 Route::post('/dang-nhap', [MemberAuthController::class, 'login'])->name('login.submit');
 Route::get('/dang-ky/huy', [MemberAuthController::class, 'registerCancel'])->name('register.cancel');
 Route::post('/dang-ky/gui-otp', [MemberAuthController::class, 'registerSendOtp'])->name('register.send-otp');

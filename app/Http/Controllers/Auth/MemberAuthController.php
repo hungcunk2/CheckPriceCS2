@@ -8,6 +8,7 @@ use App\Services\RegistrationOtpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -17,13 +18,26 @@ class MemberAuthController extends Controller
         private RegistrationOtpService $registrationOtp,
     ) {}
 
-    public function showLogin(): RedirectResponse
+    public function showLogin(Request $request): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()?->hasActiveSubscription()) {
             return redirect()->route('member.dashboard');
         }
 
-        return redirect()->route('public.landing', ['auth' => 'login']);
+        $mode = (string) $request->query('mode', session('auth_tab', 'login'));
+        if (! in_array($mode, ['login', 'register'], true)) {
+            $mode = 'login';
+        }
+
+        return view('auth.member', [
+            'mode' => $mode,
+            'otpSent' => session('register_otp_sent') || ($request->old('otp') && $request->old('email')),
+        ]);
+    }
+
+    public function showRegister(): RedirectResponse
+    {
+        return redirect()->route('login', ['mode' => 'register']);
     }
 
     public function login(Request $request): RedirectResponse
@@ -31,17 +45,15 @@ class MemberAuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-            'auth_tab' => ['nullable', 'string'],
-            'redirect_to' => ['nullable', 'string'],
         ]);
 
         if (! Auth::attempt(
             ['email' => $credentials['email'], 'password' => $credentials['password']],
             $request->boolean('remember')
         )) {
-            return $this->authRedirectBack($request, 'login')
+            return redirect()->route('login', ['mode' => 'login'])
                 ->withErrors(['email' => 'Email hoặc mật khẩu không đúng.'])
-                ->onlyInput('email', 'auth_tab');
+                ->onlyInput('email');
         }
 
         $request->session()->regenerate();
@@ -50,9 +62,9 @@ class MemberAuthController extends Controller
         if ($user === null || ! $user->hasActiveSubscription()) {
             Auth::logout();
 
-            return $this->authRedirectBack($request, 'login')
+            return redirect()->route('login', ['mode' => 'login'])
                 ->withErrors(['email' => 'Tài khoản chưa kích hoạt hoặc đã hết hạn gói. Liên hệ admin.'])
-                ->onlyInput('email', 'auth_tab');
+                ->onlyInput('email');
         }
 
         return redirect()->intended(route('member.dashboard'));
@@ -61,33 +73,31 @@ class MemberAuthController extends Controller
     public function registerSendOtp(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
-            'auth_tab' => ['nullable', 'string'],
-            'redirect_to' => ['nullable', 'string'],
         ], [
             'email.unique' => 'Email đã được đăng ký.',
         ]);
 
+        $name = $this->displayNameFromEmail($validated['email']);
+
         $result = $this->registrationOtp->sendOtp(
-            $validated['name'],
+            $name,
             $validated['email'],
             $validated['password'],
         );
 
         if (! $result['ok']) {
-            return $this->authRedirectBack($request, 'register')
+            return redirect()->route('login', ['mode' => 'register'])
                 ->withErrors(['email' => $result['message']])
-                ->withInput($request->only('name', 'email', 'auth_tab'));
+                ->withInput($request->only('email'));
         }
 
-        return $this->authRedirectBack($request, 'register')
+        return redirect()->route('login', ['mode' => 'register'])
             ->with([
                 'register_otp_sent' => true,
                 'register_otp_email' => $validated['email'],
                 'register_otp_message' => $result['message'],
-                'auth_tab' => 'register',
             ]);
     }
 
@@ -96,14 +106,12 @@ class MemberAuthController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required', 'string', 'size:6'],
-            'auth_tab' => ['nullable', 'string'],
-            'redirect_to' => ['nullable', 'string'],
         ], [
             'otp.size' => 'Mã OTP phải gồm 6 chữ số.',
         ]);
 
         if (User::query()->where('email', $validated['email'])->exists()) {
-            return $this->authRedirectBack($request, 'register')
+            return redirect()->route('login', ['mode' => 'register'])
                 ->withErrors(['email' => 'Email đã được đăng ký.'])
                 ->with('register_otp_sent', true)
                 ->with('register_otp_email', $validated['email']);
@@ -112,7 +120,7 @@ class MemberAuthController extends Controller
         $verified = $this->registrationOtp->verifyOtp($validated['email'], $validated['otp']);
 
         if (! $verified['ok']) {
-            return $this->authRedirectBack($request, 'register')
+            return redirect()->route('login', ['mode' => 'register'])
                 ->withErrors(['otp' => $verified['message']])
                 ->with('register_otp_sent', true)
                 ->with('register_otp_email', $validated['email']);
@@ -127,11 +135,10 @@ class MemberAuthController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        return $this->authRedirectBack($request, 'register')
-            ->with([
-                'register_success' => 'Đăng ký thành công. Admin sẽ kích hoạt gói — sau đó bạn đăng nhập được.',
-                'auth_tab' => 'register',
-            ]);
+        session()->forget(['register_otp_sent', 'register_otp_email', 'register_otp_message']);
+
+        return redirect()->route('login', ['mode' => 'login'])
+            ->with('register_success', 'Đăng ký thành công. Admin sẽ kích hoạt gói — sau đó bạn đăng nhập được.');
     }
 
     public function registerCancel(): RedirectResponse
@@ -142,43 +149,28 @@ class MemberAuthController extends Controller
             'register_otp_message',
         ]);
 
-        return redirect()
-            ->route('public.landing', ['auth' => 'register'])
-            ->with('auth_tab', 'register');
+        return redirect()->route('login', ['mode' => 'register']);
     }
 
     public function registerResendOtp(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
-            'auth_tab' => ['nullable', 'string'],
-            'redirect_to' => ['nullable', 'string'],
         ]);
 
         $result = $this->registrationOtp->resendOtp($validated['email']);
 
         if (! $result['ok']) {
-            return $this->authRedirectBack($request, 'register')
+            return redirect()->route('login', ['mode' => 'register'])
                 ->withErrors(['otp' => $result['message']]);
         }
 
-        return $this->authRedirectBack($request, 'register')
+        return redirect()->route('login', ['mode' => 'register'])
             ->with([
                 'register_otp_sent' => true,
                 'register_otp_email' => $validated['email'],
                 'register_otp_message' => $result['message'],
-                'auth_tab' => 'register',
             ]);
-    }
-
-    private function authRedirectBack(Request $request, string $tab): RedirectResponse
-    {
-        $to = trim((string) $request->input('redirect_to', ''));
-        if ($to !== '' && str_starts_with($to, url('/'))) {
-            return redirect()->to($to)->with('auth_tab', $tab);
-        }
-
-        return redirect()->route('public.landing', ['auth' => $tab])->with('auth_tab', $tab);
     }
 
     public function logout(Request $request): RedirectResponse
@@ -188,5 +180,13 @@ class MemberAuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('public.landing');
+    }
+
+    private function displayNameFromEmail(string $email): string
+    {
+        $local = Str::before(strtolower(trim($email)), '@');
+        $name = trim(str_replace(['.', '_', '+'], ' ', $local));
+
+        return $name !== '' ? Str::title($name) : 'Thành viên';
     }
 }
