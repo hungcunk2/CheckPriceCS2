@@ -96,10 +96,38 @@ class FiveStarsRotatingProxyService
             return null;
         }
 
-        $ttl = $this->ttlFromMessage($result['message']);
-        Cache::put(self::CACHE_KEY, $result['proxy_url'], $ttl);
+        $this->rememberProxy($result['proxy_url'], $result['message']);
 
         return $result['proxy_url'];
+    }
+
+    public function rememberProxy(string $url, string $message): void
+    {
+        Cache::put(self::CACHE_KEY, $url, $this->cacheTtlSeconds($message));
+    }
+
+    public function cacheTtlSeconds(string $message): int
+    {
+        $rotate = max(0, (int) config('cs2price.fivestars_proxy_rotate_seconds', 62));
+
+        $apiLifetime = null;
+        if (preg_match('/die sau (\d+)s/i', $message, $m)) {
+            $apiLifetime = max(1, (int) $m[1]);
+        }
+
+        if ($rotate > 0) {
+            $ttl = $rotate;
+        } elseif ($apiLifetime !== null) {
+            $ttl = max(10, $apiLifetime - 2);
+        } else {
+            $ttl = 62;
+        }
+
+        if ($apiLifetime !== null) {
+            $ttl = min($ttl, max(10, $apiLifetime - 2));
+        }
+
+        return min($ttl, 3600);
     }
 
     /**
@@ -125,15 +153,6 @@ class FiveStarsRotatingProxyService
         $scheme = $socks5 ? 'socks5' : 'http';
 
         return "{$scheme}://{$host}:{$port}";
-    }
-
-    private function ttlFromMessage(string $message): int
-    {
-        if (preg_match('/die sau (\d+)s/i', $message, $m)) {
-            return max(60, min((int) $m[1] - 30, 3600));
-        }
-
-        return 1200;
     }
 
     /**

@@ -80,6 +80,9 @@ return [
     'empire_bulk_max_pages' => (int) env('EMPIRE_BULK_MAX_PAGES', 25),
     'empire_page_delay_ms' => (int) env('EMPIRE_PAGE_DELAY_MS', 550),
     'empire_bulk_per_page' => (int) env('EMPIRE_BULK_PER_PAGE', 0),
+    // Proxy 5Stars: sau N giây gọi lại get.php để lấy IP mới (0 = chỉ theo message "die sau Xs").
+    'fivestars_proxy_rotate_seconds' => (int) env('FIVESTARS_PROXY_ROTATE_SECONDS', 62),
+
     'empire_enabled' => filter_var(env('EMPIRE_ENABLED', false), FILTER_VALIDATE_BOOL),
     'empire_api_key' => env('CSGOEMPIRE_API_KEY'),
     'empire_account_label' => env('CSGOEMPIRE_ACCOUNT_LABEL', 'empire-1'),

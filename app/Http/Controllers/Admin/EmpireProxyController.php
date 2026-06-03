@@ -60,7 +60,7 @@ class EmpireProxyController extends Controller
         ]);
 
         if ($result['ok'] && $result['proxy_url']) {
-            Cache::put('fivestars_rotating_proxy:url', $result['proxy_url'], 1200);
+            $proxy->rememberProxy($result['proxy_url'], (string) ($result['message'] ?? ''));
         }
 
         return redirect()
