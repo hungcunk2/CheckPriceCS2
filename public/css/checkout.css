@@ -539,10 +539,17 @@
 
 .cp-checkout-v3 .vietqr-img {
     max-width: 100%;
-    height: auto;
+    width: 280px;
+    height: 280px;
+    object-fit: contain;
     border-radius: 12px;
-    background: #fff;
+    background: #1e293b;
     padding: 8px;
+    transition: opacity 0.2s;
+}
+
+.cp-checkout-v3 .vietqr-img.is-loading {
+    opacity: 0.35;
 }
 
 .cp-checkout-v3 .alert-success {

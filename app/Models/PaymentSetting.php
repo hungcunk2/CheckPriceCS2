@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class PaymentSetting extends Model
@@ -76,6 +77,24 @@ class PaymentSetting extends Model
         $name = Str::upper(Str::ascii((string) $this->account_holder));
 
         return preg_replace('/[^A-Z0-9 ]/', '', $name) ?? '';
+    }
+
+    /** QR cố định theo STK — không gắn số tiền / nội dung CK (đổi theo từng đơn trên trang). */
+    public function staticQuickLinkImageUrl(): ?string
+    {
+        return $this->quickLinkImageUrl(null, null);
+    }
+
+    public function staticQrCacheKey(): string
+    {
+        return 'vietqr_static:'.md5(
+            $this->vietqrBankId().'|'.preg_replace('/\s+/', '', (string) $this->account_number).'|'.($this->qr_template ?: 'compact')
+        );
+    }
+
+    public function forgetStaticQrCache(): void
+    {
+        Cache::forget($this->staticQrCacheKey());
     }
 
     public function quickLinkImageUrl(?int $amount = null, ?string $addInfo = null): ?string

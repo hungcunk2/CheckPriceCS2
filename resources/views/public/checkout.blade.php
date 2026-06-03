@@ -115,13 +115,13 @@
                                 <p>Chủ TK: {{ $payment['account_holder'] }}</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
                                 <p>Nội dung CK: <strong id="bankRef">—</strong></p>
-                                <div class="vietqr-wrap" id="checkoutQrSection" @if(empty($qrImageUrl)) style="display:none" @endif>
-                                    @if(!empty($qrImageUrl))
-                                        <img src="{{ $qrImageUrl }}" alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
-                                    @else
-                                        <img alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
-                                    @endif
-                                </div>
+                                @if(!empty($qrImageUrl))
+                                    <div class="vietqr-wrap" id="checkoutQrSection">
+                                        <img src="{{ $qrImageUrl }}" alt="Mã VietQR chuyển khoản" id="vietqrImg"
+                                             class="vietqr-img" width="280" height="280"
+                                             decoding="async" fetchpriority="high">
+                                    </div>
+                                @endif
                             @else
                                 <p style="color:#94a3b8;">Chưa cấu hình STK.</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
@@ -186,6 +186,9 @@
 @endsection
 
 @push('styles')
+@if(!empty($qrImageUrl))
+    <link rel="preload" as="image" href="{{ $qrImageUrl }}">
+@endif
 <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v={{ @filemtime(public_path('css/checkout.css')) ?: 1 }}">
 @endpush
 
@@ -193,7 +196,6 @@
 <script>
 (function () {
     const planData = @json($plansJson);
-    const vietqr = @json($payment['vietqr'] ?? null);
     const cycles = {
         '1m': { label: '1 tháng', months: 1 },
         '3m': { label: '3 tháng', months: 3, savePct: 5 },
@@ -223,20 +225,6 @@
     function buildRef(email, plan, months) {
         const local = emailLocal(email);
         return local ? (local + plan + months) : '';
-    }
-
-    function buildVietQrUrl(amount, addInfo) {
-        if (!vietqr || !vietqr.bankId || !vietqr.account) return '';
-        let url = 'https://img.vietqr.io/image/'
-            + encodeURIComponent(vietqr.bankId) + '-'
-            + encodeURIComponent(vietqr.account) + '-'
-            + encodeURIComponent(vietqr.template || 'compact') + '.png';
-        const q = new URLSearchParams();
-        if (amount > 0) q.set('amount', String(amount));
-        if (addInfo) q.set('addInfo', addInfo.slice(0, 50));
-        if (vietqr.accountHolder) q.set('accountName', vietqr.accountHolder);
-        const qs = q.toString();
-        return qs ? (url + '?' + qs) : url;
     }
 
     function currentEmail() {
@@ -300,18 +288,6 @@
         const bankRef = document.getElementById('bankRef');
         if (bankAmount) bankAmount.textContent = fmt(total);
         if (bankRef) bankRef.textContent = ref || '—';
-
-        const qrImg = document.getElementById('vietqrImg');
-        const qrSection = document.getElementById('checkoutQrSection');
-        if (qrImg && qrSection && vietqr && state.email && ref) {
-            const src = buildVietQrUrl(total, ref);
-            if (src) {
-                qrImg.src = src;
-                qrSection.style.display = 'block';
-            }
-        } else if (qrSection) {
-            qrSection.style.display = 'none';
-        }
     }
 
     if (payBtn) {

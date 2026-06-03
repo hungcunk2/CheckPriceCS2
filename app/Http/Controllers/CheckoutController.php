@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Support\SubscriptionPlans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -27,13 +30,9 @@ class CheckoutController extends Controller
         $planData = SubscriptionPlans::get($plan);
         $user = $this->resolveUser($request);
         $paymentSettings = PaymentSetting::current();
-        $qrImageUrl = null;
-        if ($user !== null) {
-            $qrImageUrl = $paymentSettings->quickLinkImageUrl(
-                SubscriptionPlans::price($plan, $months),
-                SubscriptionPlans::transferReference($user->email, $plan, $months)
-            );
-        }
+        $qrImageUrl = $paymentSettings->isConfigured()
+            ? route('public.checkout.qr')
+            : null;
 
         $plansJson = [];
         foreach (SubscriptionPlans::PLANS as $key => $p) {
@@ -99,6 +98,34 @@ class CheckoutController extends Controller
         return redirect()
             ->route('public.checkout', ['plan' => $plan, 'months' => $months, 'email' => $user->email])
             ->with('success', 'Đã ghi nhận yêu cầu thanh toán. Admin sẽ kích hoạt gói trong vòng 24h sau khi xác nhận chuyển khoản.');
+    }
+
+    public function qrImage(): Response
+    {
+        $settings = PaymentSetting::current();
+        if (! $settings->isConfigured()) {
+            abort(404);
+        }
+
+        $vietqrUrl = $settings->staticQuickLinkImageUrl();
+        if ($vietqrUrl === null) {
+            abort(404);
+        }
+
+        $png = Cache::remember($settings->staticQrCacheKey(), 60 * 60 * 24 * 30, function () use ($vietqrUrl) {
+            $response = Http::timeout(20)->get($vietqrUrl);
+
+            return $response->successful() ? $response->body() : null;
+        });
+
+        if (! is_string($png) || $png === '') {
+            abort(502);
+        }
+
+        return response($png, 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=2592000',
+        ]);
     }
 
     private function resolveUser(Request $request): ?User

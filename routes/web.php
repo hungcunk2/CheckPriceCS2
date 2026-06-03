@@ -26,6 +26,7 @@ Route::post('/api/guest/check/prices', [PublicInventoryController::class, 'guest
 Route::get('/api/guest/item-image', [PublicInventoryController::class, 'guestItemImage'])->name('api.guest.item-image');
 Route::get('/bang-gia', [PublicInventoryController::class, 'pricing'])->name('public.pricing');
 Route::get('/thanh-toan', [CheckoutController::class, 'show'])->name('public.checkout');
+Route::get('/thanh-toan/qr', [CheckoutController::class, 'qrImage'])->name('public.checkout.qr');
 Route::post('/thanh-toan', [CheckoutController::class, 'store'])->name('public.checkout.submit');
 Route::get('/kho-cong-khai', [PublicInventoryController::class, 'index'])->name('public.inventories');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');

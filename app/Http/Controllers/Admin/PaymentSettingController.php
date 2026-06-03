@@ -35,6 +35,7 @@ class PaymentSettingController extends Controller
         ]);
 
         $settings = PaymentSetting::current();
+        $settings->forgetStaticQrCache();
         $settings->update([
             'enabled' => $request->boolean('enabled'),
             'bank_bin' => $validated['bank_bin'],
@@ -44,6 +45,7 @@ class PaymentSettingController extends Controller
             'account_holder' => trim($validated['account_holder']),
             'qr_template' => $validated['qr_template'],
         ]);
+        $settings->forgetStaticQrCache();
 
         return redirect()
             ->route('admin.payment-settings.edit')
