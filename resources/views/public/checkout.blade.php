@@ -22,7 +22,7 @@
         <div class="lp-checkout-header">
             <span class="lp-checkout-badge">Thanh toán</span>
             <h1 class="lp-checkout-title">Hoàn tất đăng ký gói {{ $plan['name'] }}</h1>
-            <p class="lp-checkout-subtitle">Chuyển khoản ngân hàng — gói được kích hoạt sau khi admin xác nhận (thường trong 24h).</p>
+            <p class="lp-checkout-subtitle">Chuyển khoản ngân hàng — admin duyệt tay sau khi đối soát (thường trong 24h).</p>
         </div>
 
         <div class="lp-checkout-layout">

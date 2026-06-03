@@ -34,6 +34,17 @@
                     @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="mb-3">
+                    <label class="form-label">Gói (Pro / Plus / Max / Shop)</label>
+                    <select name="subscription_plan" class="form-select">
+                        <option value="">— Chưa gán —</option>
+                        @foreach(\App\Support\SubscriptionPlans::PLANS as $key => $info)
+                            <option value="{{ $key }}" @selected(old('subscription_plan', $user->subscription_plan ?? '') === $key)>
+                                {{ $info['name'] }} ({{ $info['slots'] }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Hết hạn gói (để trống = không giới hạn)</label>
                     <input type="datetime-local" name="paid_until" class="form-control"
                            value="{{ old('paid_until', $user && $user->paid_until ? $user->paid_until->format('Y-m-d\TH:i') : '') }}">

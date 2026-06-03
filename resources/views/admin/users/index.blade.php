@@ -21,6 +21,7 @@
                 <th>ID</th>
                 <th>Tên</th>
                 <th>Email</th>
+                <th>Gói</th>
                 <th>Trạng thái</th>
                 <th>Hết hạn</th>
                 <th class="text-end">Thao tác</th>
@@ -32,6 +33,7 @@
                     <td>{{ $u->id }}</td>
                     <td>{{ $u->name }}</td>
                     <td>{{ $u->email }}</td>
+                    <td>{{ $u->subscriptionPlanLabel() ?? '—' }}</td>
                     <td>
                         @if($u->is_active && $u->hasActiveSubscription())
                             <span class="badge text-bg-success">Hoạt động</span>
@@ -50,7 +52,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="text-muted p-4">Chưa có user.</td></tr>
+                <tr><td colspan="7" class="text-muted p-4">Chưa có user.</td></tr>
             @endforelse
             </tbody>
         </table>

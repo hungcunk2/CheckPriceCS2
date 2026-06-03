@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\SubscriptionPlans;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,6 +24,7 @@ class User extends Authenticatable
         'email_verified_at',
         'is_active',
         'paid_until',
+        'subscription_plan',
         'notes',
     ];
 
@@ -62,6 +64,16 @@ class User extends Authenticatable
         }
 
         return $this->paid_until->isFuture();
+    }
+
+    public function subscriptionPlanLabel(): ?string
+    {
+        if ($this->subscription_plan === null || $this->subscription_plan === '') {
+            return null;
+        }
+
+        return SubscriptionPlans::get($this->subscription_plan)['name']
+            ?? strtoupper($this->subscription_plan);
     }
 }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\SubscriptionPlans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -75,10 +76,14 @@ class UserController extends Controller
             'password' => $passwordRule,
             'is_active' => ['sometimes', 'boolean'],
             'paid_until' => ['nullable', 'date'],
+            'subscription_plan' => ['nullable', 'string', 'in:'.implode(',', array_keys(SubscriptionPlans::PLANS))],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
+        if (($validated['subscription_plan'] ?? '') === '') {
+            $validated['subscription_plan'] = null;
+        }
 
         return $validated;
     }

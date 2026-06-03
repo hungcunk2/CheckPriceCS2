@@ -21,11 +21,12 @@
                     <span class="text-warning">Chờ admin kích hoạt gói</span>
                 @endif
             </li>
-            <li><strong>Gói:</strong>
+            <li><strong>Gói:</strong> {{ $user->subscriptionPlanLabel() ?? '—' }}</li>
+            <li><strong>Hết hạn:</strong>
                 @if($user->paid_until)
-                    đến {{ $user->paid_until->timezone(config('cs2price.timezone'))->format('d/m/Y H:i') }}
+                    {{ $user->paid_until->timezone(config('cs2price.timezone'))->format('d/m/Y H:i') }}
                 @else
-                    chưa gán hạn
+                    chưa gán
                 @endif
             </li>
         </ul>

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BuffAccountController;
 use App\Http\Controllers\Admin\EmpireProxyController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
+use App\Http\Controllers\Admin\PlanOrderController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\MemberAuthController;
@@ -104,6 +105,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/empire-proxy', [EmpireProxyController::class, 'edit'])->name('empire-proxy.edit');
         Route::put('/empire-proxy', [EmpireProxyController::class, 'update'])->name('empire-proxy.update');
         Route::post('/empire-proxy/test', [EmpireProxyController::class, 'test'])->name('empire-proxy.test');
+
+        Route::get('/don-thanh-toan', [PlanOrderController::class, 'index'])->name('plan-orders.index');
+        Route::post('/don-thanh-toan/{planOrder}/duyet', [PlanOrderController::class, 'confirm'])->name('plan-orders.confirm');
+        Route::post('/don-thanh-toan/{planOrder}/huy', [PlanOrderController::class, 'cancel'])->name('plan-orders.cancel');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

@@ -56,6 +56,16 @@
                                 <span>Buff & nguồn kho</span>
                             </a>
                         </li>
+                        <li class="nav-item {{ request()->routeIs('admin.plan-orders.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.plan-orders.index') }}" class="nav-link">
+                                <i class="fas fa-receipt"></i>
+                                <span>Đơn thanh toán</span>
+                                @php $pendingPlanOrders = \App\Models\PlanOrder::query()->where('status', 'pending')->count(); @endphp
+                                @if($pendingPlanOrders > 0)
+                                    <span class="badge rounded-pill text-bg-warning ms-1">{{ $pendingPlanOrders }}</span>
+                                @endif
+                            </a>
+                        </li>
                         <li class="nav-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.users.index') }}" class="nav-link">
                                 <i class="fas fa-users"></i>
