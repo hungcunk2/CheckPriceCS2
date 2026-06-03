@@ -1,0 +1,324 @@
+.lp-checkout-page {
+    padding: 2.5rem 0 5rem;
+    background-color: #0b1220;
+    background-image:
+        radial-gradient(ellipse 60% 50% at 20% 0%, rgba(96, 165, 250, 0.14), transparent),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(249, 115, 22, 0.1), transparent);
+}
+
+.lp-checkout-page .lp-container {
+    max-width: 56rem;
+}
+
+.lp-checkout-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    transition: color 0.15s;
+}
+
+.lp-checkout-back:hover {
+    color: #60a5fa;
+}
+
+.lp-checkout-header {
+    margin-bottom: 2rem;
+}
+
+.lp-checkout-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    background: rgba(249, 115, 22, 0.1);
+    border: 1px solid rgba(249, 115, 22, 0.35);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: #fb923c;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.lp-checkout-title {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: #f1f5f9;
+}
+
+.lp-checkout-subtitle {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.lp-checkout-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .lp-checkout-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.lp-checkout-card {
+    background: #0f172a;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+
+.lp-checkout-card h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin: 0 0 1.25rem;
+}
+
+.lp-checkout-plan-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #60a5fa;
+    margin-bottom: 0.25rem;
+}
+
+.lp-checkout-plan-slots {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.lp-checkout-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+}
+
+.lp-checkout-features li {
+    display: flex;
+    gap: 0.5rem;
+    color: #cbd5e1;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.lp-checkout-features .check {
+    color: #4ade80;
+    flex-shrink: 0;
+}
+
+.lp-checkout-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.lp-checkout-total-label {
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+.lp-checkout-total-amount {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #f97316;
+}
+
+.lp-checkout-cycles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.lp-checkout-cycle {
+    position: relative;
+}
+
+.lp-checkout-cycle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.lp-checkout-cycle label {
+    display: block;
+    text-align: center;
+    padding: 0.875rem 0.5rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.lp-checkout-cycle input:checked + label {
+    border-color: #60a5fa;
+    background: rgba(96, 165, 250, 0.12);
+}
+
+.lp-checkout-cycle-title {
+    display: block;
+    font-weight: 700;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.lp-checkout-cycle-price {
+    display: block;
+    color: #f97316;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    font-weight: 600;
+}
+
+.lp-checkout-cycle-save {
+    display: block;
+    font-size: 0.7rem;
+    color: #4ade80;
+    margin-top: 0.2rem;
+}
+
+.lp-checkout-bank {
+    background: rgba(96, 165, 250, 0.06);
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.lp-checkout-bank-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.lp-checkout-bank-row:last-child {
+    border-bottom: none;
+}
+
+.lp-checkout-bank-label {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.lp-checkout-bank-value {
+    color: #f1f5f9;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-all;
+}
+
+.lp-checkout-ref {
+    margin-bottom: 1.25rem;
+}
+
+.lp-checkout-ref-label {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.lp-checkout-ref-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #0b1220;
+    border: 1px dashed rgba(249, 115, 22, 0.5);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.lp-checkout-ref-code {
+    flex: 1;
+    font-family: ui-monospace, monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fb923c;
+    letter-spacing: 0.02em;
+}
+
+.lp-checkout-copy {
+    flex-shrink: 0;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0b1220;
+    background: #60a5fa;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+}
+
+.lp-checkout-copy:hover {
+    background: #93c5fd;
+}
+
+.lp-checkout-user {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+}
+
+.lp-checkout-user strong {
+    color: #e2e8f0;
+}
+
+.lp-checkout-note {
+    width: 100%;
+    background: #0b1220;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.5rem;
+    color: #e2e8f0;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    resize: vertical;
+    min-height: 4rem;
+}
+
+.lp-checkout-note::placeholder {
+    color: #64748b;
+}
+
+.lp-checkout-submit {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0b1220;
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.lp-checkout-submit:hover {
+    opacity: 0.92;
+}
+
+.lp-checkout-hint {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 1rem;
+    line-height: 1.5;
+}
+
+.lp-checkout-hint a {
+    color: #60a5fa;
+    text-decoration: none;
+}

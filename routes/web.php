@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Member\DashboardController;
 use App\Http\Controllers\Member\InventoryController as MemberInventoryController;
 use App\Http\Controllers\PublicInventoryController;
@@ -22,6 +23,8 @@ Route::post('/api/guest/check/start', [PublicInventoryController::class, 'guestC
 Route::post('/api/guest/check/prices', [PublicInventoryController::class, 'guestCheckPrices'])->name('api.guest.check.prices');
 Route::get('/api/guest/item-image', [PublicInventoryController::class, 'guestItemImage'])->name('api.guest.item-image');
 Route::get('/bang-gia', [PublicInventoryController::class, 'pricing'])->name('public.pricing');
+Route::get('/thanh-toan', [CheckoutController::class, 'show'])->name('public.checkout');
+Route::post('/thanh-toan', [CheckoutController::class, 'store'])->name('public.checkout.submit');
 Route::get('/kho-cong-khai', [PublicInventoryController::class, 'index'])->name('public.inventories');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')->name('blog.show');

@@ -131,10 +131,6 @@
         <p class="lp-pricing-note">
             * Gói Shop áp dụng chính sách fair use — chỉ ảnh hưởng khi phát hiện lạm dụng API.
         </p>
-
-        <p class="lp-pricing-footer-link">
-            <a href="{{ route('public.inventories') }}">Xem kho công khai</a>
-        </p>
     </div>
 </section>
 

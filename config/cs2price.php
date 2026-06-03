@@ -152,4 +152,14 @@ return [
 
     // Cache ảnh catalog CS2Cap theo market_hash_name (giây), mặc định 30 ngày.
     'cs2cap_catalog_image_cache_seconds' => (int) env('CS2CAP_CATALOG_IMAGE_CACHE_SECONDS', 86400 * 30),
+
+    /*
+    | Thanh toán chuyển khoản (trang /thanh-toan).
+    */
+    'payment' => [
+        'bank_name' => env('PAYMENT_BANK_NAME', ''),
+        'account_number' => env('PAYMENT_BANK_ACCOUNT', ''),
+        'account_holder' => env('PAYMENT_BANK_HOLDER', ''),
+        'transfer_prefix' => env('PAYMENT_TRANSFER_PREFIX', 'CPCS2'),
+    ],
 ];
