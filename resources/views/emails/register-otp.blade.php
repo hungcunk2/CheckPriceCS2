@@ -1,6 +1,5 @@
 @php
-    $siteUrl = config('site.url', url('/'));
-    $siteName = config('site.name', 'CheckPrice CS2');
+    $siteUrl = rtrim(config('site.url', url('/')), '/');
     $otpDigits = str_split(str_pad(preg_replace('/\D/', '', (string) $otpCode), 6, '0', STR_PAD_LEFT));
     $supportEmail = config('mail.from.address', 'support@checkpricecs2.io.vn');
 @endphp
@@ -9,7 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mã OTP — {{ $siteName }}</title>
+    <title>Mã OTP - CheckPriceCS2</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -31,6 +30,9 @@
                 width: 100% !important;
                 padding: 20px 15px !important;
             }
+            .otp-container {
+                gap: 6px !important;
+            }
             .btn-verify {
                 width: 100% !important;
             }
@@ -49,8 +51,8 @@
                         <td style="padding: 40px 40px 0 40px; text-align: center;">
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin-bottom: 8px;">
                                 <tr>
-                                    <td style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2;">
-                                        <span style="background: linear-gradient(135deg, #c9d9ff, #9ec5ff); -webkit-background-clip: text; background-clip: text; color: #9ec5ff;">CheckPrice</span><span style="background: linear-gradient(135deg, #ffb09a, #f78166); -webkit-background-clip: text; background-clip: text; color: #f78166;">CS2</span>
+                                    <td style="font-size: 24px; font-weight: 800; color: #F8FAFC; letter-spacing: -0.5px;">
+                                        CheckPrice<span style="background: linear-gradient(135deg, #ffb09a, #f78166); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: #f78166;">CS2</span>
                                     </td>
                                 </tr>
                             </table>
@@ -74,10 +76,10 @@
                                 Xác nhận đăng ký tài khoản
                             </h1>
                             <p style="margin: 0 0 24px 0; font-size: 15px; color: #94A3B8; text-align: center; line-height: 1.6;">
-                                Chào <strong style="color: #F8FAFC;">{{ $recipientName }}</strong>, đây là mã OTP xác thực của bạn. Mã này sẽ hết hiệu lực sau <strong style="color: #F8FAFC;">{{ $expiresMinutes }} phút</strong>.
+                                Chào bạn, đây là mã OTP xác thực của bạn. Mã này sẽ hết hiệu lực sau <strong style="color: #F8FAFC;">{{ $expiresMinutes }} phút</strong>.
                             </p>
 
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 28px auto;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" class="otp-container" style="margin: 0 auto 28px auto;">
                                 <tr>
                                     <td>
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; border-spacing: 10px 0;">
@@ -98,8 +100,8 @@
                                     <td>
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; border-spacing: 8px 0;">
                                             <tr>
-                                                <td style="background-color: rgba(88,166,255,0.12); border: 1px solid rgba(158,197,255,0.35); border-radius: 20px; padding: 6px 14px;">
-                                                    <span style="font-size: 13px; color: #9ec5ff;">&#9201; Hết hạn sau {{ $expiresMinutes }} phút</span>
+                                                <td style="background-color: rgba(96,165,250,0.10); border: 1px solid rgba(96,165,250,0.25); border-radius: 20px; padding: 6px 14px;">
+                                                    <span style="font-size: 13px; color: #60A5FA;">&#9201; Hết hạn sau {{ $expiresMinutes }} phút</span>
                                                 </td>
                                                 <td style="background-color: rgba(248,250,252,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 6px 14px;">
                                                     <span style="font-size: 13px; color: #94A3B8;">&#128274; Không chia sẻ mã này</span>
@@ -113,16 +115,13 @@
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 28px auto;">
                                 <tr>
                                     <td>
-                                        <a href="{{ $siteUrl }}/" class="btn-verify" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #58a6ff, #f78166); color: #0d1117; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; box-shadow: 0 4px 20px rgba(88,166,255,0.30);">
+                                        <a href="{{ $siteUrl }}/" class="btn-verify" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #60A5FA, #F97316); color: #ffffff; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; box-shadow: 0 4px 20px rgba(96,165,250,0.30);">
                                             Mở CheckPriceCS2 &rarr;
                                         </a>
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="margin: 0; font-size: 14px; color: #64748B; text-align: center; line-height: 1.5;">
-                                Hoặc nhập mã <strong style="color: #F8FAFC; letter-spacing: 2px;">{{ $otpCode }}</strong> trên trang đăng ký.
-                            </p>
                         </td>
                     </tr>
 
@@ -139,12 +138,10 @@
                     <tr>
                         <td style="padding: 24px 40px 40px 40px; text-align: center;">
                             <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569; line-height: 1.5;">
-                                Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này hoặc
-                                <a href="mailto:{{ $supportEmail }}" style="color: #9ec5ff; text-decoration: none;">liên hệ hỗ trợ</a>.
+                                Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này hoặc <a href="mailto:{{ $supportEmail }}" style="color: #60A5FA; text-decoration: none;">liên hệ hỗ trợ</a>.
                             </p>
                             <p style="margin: 0; font-size: 12px; color: #334155;">
-                                &copy; {{ date('Y') }} CheckPriceCS2. Bảo mật &middot;
-                                <a href="{{ $siteUrl }}/" style="color: #475569; text-decoration: none;">{{ parse_url($siteUrl, PHP_URL_HOST) ?: $siteUrl }}</a>
+                                &copy; {{ date('Y') }} CheckPriceCS2. Bảo mật &middot; <a href="{{ $siteUrl }}/privacy" style="color: #475569; text-decoration: none;">Chính sách bảo mật</a>
                             </p>
                         </td>
                     </tr>
