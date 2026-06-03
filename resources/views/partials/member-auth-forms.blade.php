@@ -110,83 +110,75 @@
             <div class="ma-alert ma-alert--danger">{{ $errors->first('email') }}</div>
         @endif
 
-        @if(! $otpSent)
-            <form method="POST" action="{{ route('register.send-otp') }}" novalidate>
-                @csrf
-                <input type="hidden" name="mode" value="register">
-                <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
-
-                <div class="ma-field">
-                    <div class="ma-input-wrap">
-                        <i class="fas fa-envelope ma-input-icon" aria-hidden="true"></i>
-                        <input type="email" name="email" class="ma-input @error('email') is-invalid @enderror"
-                               value="{{ $otpEmail }}" placeholder="Email" required autocomplete="email">
-                    </div>
-                </div>
-
-                <div class="ma-field">
-                    <div class="ma-input-wrap">
-                        <i class="fas fa-lock ma-input-icon" aria-hidden="true"></i>
-                        <input type="password" name="password" id="reg_password{{ $fid }}" class="ma-input @error('password') is-invalid @enderror"
-                               placeholder="Mật khẩu (tối thiểu 8 ký tự)" required minlength="8" autocomplete="new-password">
-                        <button type="button" class="ma-input-toggle" data-ma-toggle-password="reg_password{{ $fid }}" aria-label="Hiện mật khẩu">
-                            <i class="fas fa-eye-slash"></i>
-                        </button>
-                    </div>
-                    @error('password')<p class="ma-error">{{ $message }}</p>@enderror
-                </div>
-
-                <div class="ma-field">
-                    <div class="ma-input-wrap">
-                        <i class="fas fa-lock ma-input-icon" aria-hidden="true"></i>
-                        <input type="password" name="password_confirmation" id="reg_password_confirm{{ $fid }}" class="ma-input"
-                               placeholder="Nhập lại mật khẩu" required minlength="8" autocomplete="new-password">
-                        <button type="button" class="ma-input-toggle" data-ma-toggle-password="reg_password_confirm{{ $fid }}" aria-label="Hiện mật khẩu">
-                            <i class="fas fa-eye-slash"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <p class="ma-hint">Bấm <strong>Nhận OTP</strong> — hệ thống gửi mã 6 số tới email của bạn.</p>
-                <button type="submit" class="ma-btn-outline">Nhận OTP</button>
-            </form>
-        @else
+        @if($otpSent)
             <p class="ma-hint">
                 Mã OTP đã gửi tới <strong>{{ $otpService->maskEmail($otpEmail) }}</strong>
                 (hiệu lực {{ $otpService->ttlMinutes() }} phút).
             </p>
+        @endif
 
-            <form method="POST" action="{{ route('register.verify') }}" novalidate>
-                @csrf
-                <input type="hidden" name="mode" value="register">
-                <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
-                <input type="hidden" name="email" value="{{ $otpEmail }}">
+        <form method="POST" action="{{ route('register.verify') }}" novalidate>
+            @csrf
+            <input type="hidden" name="mode" value="register">
+            <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
 
-                <div class="ma-field">
-                    <div class="ma-input-wrap">
-                        <i class="fas fa-envelope ma-input-icon" aria-hidden="true"></i>
-                        <input type="email" class="ma-input" value="{{ $otpEmail }}" readonly>
-                    </div>
+            <div class="ma-field">
+                <div class="ma-input-wrap">
+                    <i class="fas fa-envelope ma-input-icon" aria-hidden="true"></i>
+                    <input type="email" name="email" class="ma-input @error('email') is-invalid @enderror"
+                           value="{{ $otpEmail }}" placeholder="Email" required autocomplete="email"
+                           @if($otpSent) readonly @endif>
                 </div>
+            </div>
 
-                <div class="ma-field">
-                    <label class="ma-hint ma-otp-label" for="reg_otp{{ $fid }}">Mã OTP (6 số)</label>
+            <div class="ma-field">
+                <div class="ma-input-wrap">
+                    <i class="fas fa-lock ma-input-icon" aria-hidden="true"></i>
+                    <input type="password" name="password" id="reg_password{{ $fid }}" class="ma-input @error('password') is-invalid @enderror"
+                           placeholder="Mật khẩu (tối thiểu 8 ký tự)" required minlength="8" autocomplete="new-password"
+                           @if($otpSent) readonly @endif>
+                    @unless($otpSent)
+                    <button type="button" class="ma-input-toggle" data-ma-toggle-password="reg_password{{ $fid }}" aria-label="Hiện mật khẩu">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                    @endunless
+                </div>
+                @error('password')<p class="ma-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="ma-field">
+                <div class="ma-input-wrap">
+                    <i class="fas fa-lock ma-input-icon" aria-hidden="true"></i>
+                    <input type="password" name="password_confirmation" id="reg_password_confirm{{ $fid }}" class="ma-input"
+                           placeholder="Nhập lại mật khẩu" required minlength="8" autocomplete="new-password"
+                           @if($otpSent) readonly @endif>
+                    @unless($otpSent)
+                    <button type="button" class="ma-input-toggle" data-ma-toggle-password="reg_password_confirm{{ $fid }}" aria-label="Hiện mật khẩu">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                    @endunless
+                </div>
+            </div>
+
+            <div class="ma-field">
+                <label class="ma-hint ma-otp-label" for="reg_otp{{ $fid }}">Mã OTP (6 số)</label>
+                <div class="ma-row-otp">
                     <input type="text" name="otp" id="reg_otp{{ $fid }}" class="ma-input ma-input--otp @error('otp') is-invalid @enderror"
-                           value="{{ old('otp') }}" required maxlength="6" minlength="6" pattern="\d{6}"
+                           value="{{ old('otp') }}" maxlength="6" minlength="6" pattern="\d{6}"
                            inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
-                    @error('otp')<p class="ma-error">{{ $message }}</p>@enderror
+                    <button type="submit" class="ma-btn-outline ma-btn-otp-send" formaction="{{ route('register.send-otp') }}"
+                            formnovalidate>Nhận OTP</button>
                 </div>
+                @error('otp')<p class="ma-error">{{ $message }}</p>@enderror
+                @unless($otpSent)
+                    <p class="ma-hint ma-hint--otp">Nhập email và mật khẩu, bấm <strong>Nhận OTP</strong> để nhận mã qua mail.</p>
+                @endunless
+            </div>
 
-                <button type="submit" class="ma-btn-primary lp-btn-primary">Hoàn tất đăng ký</button>
-            </form>
+            <button type="submit" class="ma-btn-primary lp-btn-primary">Đăng ký</button>
+        </form>
 
-            <form method="POST" action="{{ route('register.resend-otp') }}" class="ma-form-secondary">
-                @csrf
-                <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
-                <input type="hidden" name="email" value="{{ $otpEmail }}">
-                <button type="submit" class="ma-btn-outline">Gửi lại OTP</button>
-            </form>
-
+        @if($otpSent)
             <p class="ma-hint ma-hint--center">
                 <a href="{{ route('register.cancel', ['redirect_to' => $redirectTo]) }}" class="ma-switch-link">Đổi email khác</a>
             </p>

@@ -136,6 +136,30 @@
     font-variant-numeric: tabular-nums;
 }
 
+.ma-row-otp {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.ma-row-otp .ma-input--otp {
+    flex: 1;
+    min-width: 0;
+}
+
+.ma-row-otp .ma-btn-otp-send {
+    width: auto;
+    flex-shrink: 0;
+    padding: 0.85rem 1rem;
+    white-space: nowrap;
+    margin-top: 0;
+}
+
+.ma-hint--otp {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
 .ma-otp-label {
     display: block;
     margin-bottom: 0.4rem;
