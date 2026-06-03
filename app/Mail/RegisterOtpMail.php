@@ -20,7 +20,7 @@ class RegisterOtpMail extends Mailable
     public function build(): self
     {
         return $this
-            ->subject('Mã xác nhận đăng ký — '.config('site.name', 'CheckPrice CS2'))
+            ->subject('Mã OTP xác nhận đăng ký — CheckPriceCS2')
             ->view('emails.register-otp');
     }
 }

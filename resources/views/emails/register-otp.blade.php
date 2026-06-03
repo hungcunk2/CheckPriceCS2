@@ -1,26 +1,159 @@
+@php
+    $siteUrl = config('site.url', url('/'));
+    $siteName = config('site.name', 'CheckPrice CS2');
+    $otpDigits = str_split(str_pad(preg_replace('/\D/', '', (string) $otpCode), 6, '0', STR_PAD_LEFT));
+    $supportEmail = config('mail.from.address', 'support@checkpricecs2.io.vn');
+@endphp
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mã xác nhận đăng ký</title>
+    <title>Mã OTP — {{ $siteName }}</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        @media only screen and (max-width: 600px) {
+            .otp-box {
+                width: 40px !important;
+                height: 50px !important;
+                font-size: 20px !important;
+                line-height: 50px !important;
+            }
+            .container {
+                width: 100% !important;
+                padding: 20px 15px !important;
+            }
+            .btn-verify {
+                width: 100% !important;
+            }
+        }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
-    <h2 style="margin:0 0 8px 0;">Xác nhận đăng ký tài khoản</h2>
-    <p style="margin:0 0 10px 0;">
-        Xin chào <strong>{{ $recipientName }}</strong>,
-    </p>
-    <p style="margin:0 0 10px 0;">
-        Mã OTP để hoàn tất đăng ký trên {{ config('site.name', 'CheckPrice CS2') }}:
-    </p>
-    <div style="display:inline-block;padding:12px 16px;border:1px solid #ddd;border-radius:8px;background:#f8f9fa;margin:0 0 12px 0;">
-        <div style="font-size:22px;letter-spacing:4px;font-weight:700;">{{ $otpCode }}</div>
-    </div>
-    <p style="margin:0 0 10px 0;">
-        Mã có hiệu lực <strong>{{ $expiresMinutes }} phút</strong>. Không chia sẻ mã cho người khác.
-    </p>
-    <p style="margin:16px 0 0 0;color:#666;font-size:12px;">
-        Nếu bạn không yêu cầu đăng ký, hãy bỏ qua email này.
-    </p>
+<body style="margin: 0; padding: 0; background-color: #0B1220; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #0B1220;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="max-width: 600px; width: 100%; background-color: #0F172A; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);">
+
+                    <tr>
+                        <td style="padding: 40px 40px 0 40px; text-align: center;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin-bottom: 8px;">
+                                <tr>
+                                    <td style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2;">
+                                        <span style="background: linear-gradient(135deg, #c9d9ff, #9ec5ff); -webkit-background-clip: text; background-clip: text; color: #9ec5ff;">CheckPrice</span><span style="background: linear-gradient(135deg, #ffb09a, #f78166); -webkit-background-clip: text; background-clip: text; color: #f78166;">CS2</span>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 0; font-size: 13px; color: #64748B; letter-spacing: 2px; text-transform: uppercase;">Xác nhận bảo mật</p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 24px 40px 0 40px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td style="border-top: 1px solid rgba(255,255,255,0.06);"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 32px 40px 24px 40px;">
+                            <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #F8FAFC; text-align: center; line-height: 1.3;">
+                                Xác nhận đăng ký tài khoản
+                            </h1>
+                            <p style="margin: 0 0 24px 0; font-size: 15px; color: #94A3B8; text-align: center; line-height: 1.6;">
+                                Chào <strong style="color: #F8FAFC;">{{ $recipientName }}</strong>, đây là mã OTP xác thực của bạn. Mã này sẽ hết hiệu lực sau <strong style="color: #F8FAFC;">{{ $expiresMinutes }} phút</strong>.
+                            </p>
+
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 28px auto;">
+                                <tr>
+                                    <td>
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; border-spacing: 10px 0;">
+                                            <tr>
+                                                @foreach ($otpDigits as $digit)
+                                                <td class="otp-box" style="width: 52px; height: 64px; background-color: #1E293B; border: 2px solid #334155; border-radius: 12px; text-align: center; font-size: 24px; font-weight: 700; color: #F8FAFC; vertical-align: middle;">
+                                                    <span style="display: inline-block; line-height: 64px;">{{ $digit }}</span>
+                                                </td>
+                                                @endforeach
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 28px auto;">
+                                <tr>
+                                    <td>
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: separate; border-spacing: 8px 0;">
+                                            <tr>
+                                                <td style="background-color: rgba(88,166,255,0.12); border: 1px solid rgba(158,197,255,0.35); border-radius: 20px; padding: 6px 14px;">
+                                                    <span style="font-size: 13px; color: #9ec5ff;">&#9201; Hết hạn sau {{ $expiresMinutes }} phút</span>
+                                                </td>
+                                                <td style="background-color: rgba(248,250,252,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 6px 14px;">
+                                                    <span style="font-size: 13px; color: #94A3B8;">&#128274; Không chia sẻ mã này</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 28px auto;">
+                                <tr>
+                                    <td>
+                                        <a href="{{ $siteUrl }}/" class="btn-verify" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #58a6ff, #f78166); color: #0d1117; text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; box-shadow: 0 4px 20px rgba(88,166,255,0.30);">
+                                            Mở CheckPriceCS2 &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0; font-size: 14px; color: #64748B; text-align: center; line-height: 1.5;">
+                                Hoặc nhập mã <strong style="color: #F8FAFC; letter-spacing: 2px;">{{ $otpCode }}</strong> trên trang đăng ký.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 40px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td style="border-top: 1px solid rgba(255,255,255,0.06);"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 24px 40px 40px 40px; text-align: center;">
+                            <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569; line-height: 1.5;">
+                                Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này hoặc
+                                <a href="mailto:{{ $supportEmail }}" style="color: #9ec5ff; text-decoration: none;">liên hệ hỗ trợ</a>.
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #334155;">
+                                &copy; {{ date('Y') }} CheckPriceCS2. Bảo mật &middot;
+                                <a href="{{ $siteUrl }}/" style="color: #475569; text-decoration: none;">{{ parse_url($siteUrl, PHP_URL_HOST) ?: $siteUrl }}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>
