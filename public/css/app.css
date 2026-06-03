@@ -171,14 +171,19 @@ body.has-lp-nav .lp-nav .lp-btn-primary:hover,
     color: var(--lp-primary-fg, #0d1117);
 }
 
-body.has-lp-nav .lp-nav-auth-link {
+body.has-lp-nav .lp-nav .lp-nav-auth,
+body.has-lp-nav .lp-nav .lp-nav-auth-link {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: var(--lp-muted, #8b949e) !important;
 }
 
-body.has-lp-nav .lp-nav-auth-link:hover {
+body.has-lp-nav .lp-nav .lp-nav-auth-link {
+    color: var(--lp-muted, #8b949e) !important;
+    text-decoration: none !important;
+}
+
+body.has-lp-nav .lp-nav .lp-nav-auth-link:hover {
     color: var(--lp-fg, #f0f3f6) !important;
 }
 

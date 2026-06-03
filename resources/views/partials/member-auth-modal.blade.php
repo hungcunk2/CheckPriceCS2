@@ -150,7 +150,8 @@
         if (!modalEl || typeof bootstrap === 'undefined') return;
 
         document.querySelectorAll('[data-bs-target="#memberAuthModal"]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function (e) {
+                if (btn.getAttribute('href') === '#') e.preventDefault();
                 var tab = btn.getAttribute('data-auth-tab');
                 if (tab === 'register') {
                     var tabBtn = document.getElementById('auth-tab-register');
