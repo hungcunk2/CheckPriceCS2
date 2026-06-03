@@ -45,6 +45,63 @@ class Cs2CapCatalogService
     }
 
     /**
+     * @return array{catalog_image: string|null, steam_icon: string|null}
+     */
+    public function lookupItem(string $marketHashName): array
+    {
+        $marketHashName = trim($marketHashName);
+        if ($marketHashName === '') {
+            return ['catalog_image' => null, 'steam_icon' => null];
+        }
+
+        $processKey = 'cs2cap_item_lookup:v1:'.md5($marketHashName);
+        $cached = Cache::get($processKey);
+        if (is_array($cached)) {
+            return [
+                'catalog_image' => $cached['catalog_image'] ?? null,
+                'steam_icon' => $cached['steam_icon'] ?? null,
+            ];
+        }
+
+        $account = Cs2CapApiPool::next();
+        if ($account === null) {
+            return ['catalog_image' => null, 'steam_icon' => null];
+        }
+
+        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
+        $resp = Http::timeout(20)
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$account['api_key'],
+                'Accept' => 'application/json',
+            ])
+            ->get("{$base}/items", [
+                'market_hash_name' => $marketHashName,
+                'limit' => 1,
+            ]);
+
+        $this->handleRateLimit($resp, $account['label']);
+
+        if (! $resp->successful()) {
+            Cache::put($processKey, ['catalog_image' => null, 'steam_icon' => null], 3600);
+
+            return ['catalog_image' => null, 'steam_icon' => null];
+        }
+
+        $items = $resp->json('items') ?? [];
+        $first = is_array($items) ? ($items[0] ?? null) : null;
+        $result = [
+            'catalog_image' => is_array($first) && is_string($first['image_url'] ?? null) && trim($first['image_url']) !== ''
+                ? trim($first['image_url'])
+                : null,
+            'steam_icon' => is_array($first) ? ($first['icon_url'] ?? null) : null,
+        ];
+
+        Cache::put($processKey, $result, 86400);
+
+        return $result;
+    }
+
+    /**
      * Lấy image_url (CDN CS2Cap) theo market_hash_name.
      */
     public function imageUrlForHash(string $marketHashName): ?string
@@ -75,36 +132,8 @@ class Cs2CapCatalogService
             return $cached !== '' ? $cached : null;
         }
 
-        $account = Cs2CapApiPool::next();
-        if ($account === null) {
-            return null;
-        }
-
-        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
-        $resp = Http::timeout(20)
-            ->withHeaders([
-                'Authorization' => 'Bearer '.$account['api_key'],
-                'Accept' => 'application/json',
-            ])
-            ->get("{$base}/items", [
-                'market_hash_name' => $marketHashName,
-                'limit' => 1,
-            ]);
-
-        $this->handleRateLimit($resp, $account['label']);
-
-        if (! $resp->successful()) {
-            Cache::put($cacheKey, '', 3600);
-            ItemCatalogImage::query()->updateOrCreate(
-                ['market_hash_name' => $marketHashName],
-                ['image_url' => null, 'fetched_at' => now()]
-            );
-            return null;
-        }
-
-        $items = $resp->json('items') ?? [];
-        $first = is_array($items) ? ($items[0] ?? null) : null;
-        $imageUrl = is_array($first) ? ($first['image_url'] ?? null) : null;
+        $lookup = $this->lookupItem($marketHashName);
+        $imageUrl = $lookup['catalog_image'];
 
         if (is_string($imageUrl) && trim($imageUrl) !== '') {
             Cache::put($cacheKey, $imageUrl, $ttl);
@@ -112,6 +141,7 @@ class Cs2CapCatalogService
                 ['market_hash_name' => $marketHashName],
                 ['image_url' => $imageUrl, 'fetched_at' => now()]
             );
+
             return $imageUrl;
         }
 
@@ -120,6 +150,7 @@ class Cs2CapCatalogService
             ['market_hash_name' => $marketHashName],
             ['image_url' => null, 'fetched_at' => now()]
         );
+
         return null;
     }
 

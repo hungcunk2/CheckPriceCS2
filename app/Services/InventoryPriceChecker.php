@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Support\Buff163AccountPool;
 use App\Support\Currency;
+use App\Support\InventoryItemFilter;
 use App\Support\PricingTier;
 use App\Support\SellVenueCompare;
 use RuntimeException;
@@ -76,6 +77,12 @@ class InventoryPriceChecker
             return [];
         }
 
+        $steamItems = $this->steamItemsWorthPricing($steamItems);
+
+        if ($steamItems === []) {
+            return [];
+        }
+
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
 
         $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier);
@@ -109,7 +116,11 @@ class InventoryPriceChecker
             default => PricingTier::current(),
         };
 
-        $steamItems = $bundle['items'];
+        $steamItems = $this->steamItemsWorthPricing($bundle['items']);
+        if ($steamItems === []) {
+            throw new RuntimeException('Kho không có skin tradable đủ giá trị (≥ $'.InventoryItemFilter::minUsdUnitValue().').');
+        }
+
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
         $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier);
         $empirePrices = $this->empirePricesForItems($steamItems, $tier);
@@ -182,6 +193,28 @@ class InventoryPriceChecker
         }
 
         return $rows;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $steamItems
+     * @return list<array<string, mixed>>
+     */
+    public function steamItemsWorthPricing(array $steamItems): array
+    {
+        if ($steamItems === []) {
+            return [];
+        }
+
+        $keys = array_values(array_map(function (array $item) {
+            return [
+                'hash' => (string) ($item['market_hash_name'] ?? ''),
+                'phase' => isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null,
+            ];
+        }, $steamItems));
+
+        $cachedByKey = $this->dbPriceCache->getFresh('buff', $keys);
+
+        return InventoryItemFilter::filterSteamItemsExcludingKnownCheap($steamItems, $cachedByKey);
     }
 
     /**

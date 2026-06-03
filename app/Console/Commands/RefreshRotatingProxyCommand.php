@@ -17,7 +17,9 @@ class RefreshRotatingProxyCommand extends Command
             return self::SUCCESS;
         }
 
-        $url = $proxy->refreshProxyIfDue($this->option('force'));
+        $force = (bool) $this->option('force');
+        $status = $proxy->refreshProxyIfDueWithStatus($force);
+        $url = $status['url'];
 
         if ($url === null || $url === '') {
             $this->warn('Không lấy được proxy (xem log hoặc Admin → Proxy Empire).');
@@ -26,6 +28,23 @@ class RefreshRotatingProxyCommand extends Command
         }
 
         $this->line($url);
+        $this->comment(match ($status['source']) {
+            'api_fresh' => 'Nguồn: gọi API 5Stars.',
+            'api_throttled' => 'Nguồn: API từ chối đổi — giữ proxy cũ.',
+            'throttle_cache' => 'Nguồn: cache (chưa gọi API).',
+            'interval_cache' => 'Nguồn: cache (chưa đủ chu kỳ).',
+            default => 'Nguồn: '.$status['source'],
+        });
+        if ($status['message'] !== '') {
+            $this->comment($status['message']);
+        }
+
+        $exitIp = $proxy->probeExitIp($url);
+        if ($exitIp !== null) {
+            $this->line('IP ra ngoài (qua proxy): '.$exitIp);
+        } else {
+            $this->warn('Không đo được IP ra ngoài — kiểm tra whitelist VPS trên 5Stars.');
+        }
 
         return self::SUCCESS;
     }

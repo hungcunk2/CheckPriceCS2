@@ -51,28 +51,46 @@ class FiveStarsRotatingProxyService
      */
     public function refreshProxyIfDue(bool $force = false): ?string
     {
+        return $this->refreshProxyIfDueWithStatus($force)['url'];
+    }
+
+    /**
+     * @return array{url: string|null, source: string, message: string}
+     */
+    public function refreshProxyIfDueWithStatus(bool $force = false): array
+    {
         if (! $this->isEnabled()) {
-            return null;
+            return ['url' => null, 'source' => 'disabled', 'message' => 'Proxy Empire chưa bật hoặc thiếu key.'];
         }
 
-        if ($this->isThrottled()) {
-            return $this->cachedProxyUrl();
+        if (! $force && $this->isThrottled()) {
+            return [
+                'url' => $this->cachedProxyUrl(),
+                'source' => 'throttle_cache',
+                'message' => $this->throttleMessage(),
+            ];
         }
 
         if (! $force) {
             $lastFetch = (int) Cache::get(self::LAST_FETCH_KEY, 0);
             if ($lastFetch > 0 && (time() - $lastFetch) < $this->rotateIntervalSeconds()) {
-                return $this->cachedProxyUrl();
+                $wait = $this->rotateIntervalSeconds() - (time() - $lastFetch);
+
+                return [
+                    'url' => $this->cachedProxyUrl(),
+                    'source' => 'interval_cache',
+                    'message' => 'Chưa đủ '.$wait.'s kể từ lần gọi API trước (FIVESTARS_PROXY_ROTATE_SECONDS).',
+                ];
             }
         }
 
-        return $this->refreshProxy();
+        return $this->refreshProxyWithStatus($force);
     }
 
     /**
      * @return array{ok: bool, message: string, proxy_url: string|null, raw: array<string, mixed>|null, throttled?: bool}
      */
-    public function testFetch(): array
+    public function testFetch(bool $force = false): array
     {
         $settings = EmpireProxySetting::current();
         $key = trim((string) $settings->rotation_key);
@@ -80,7 +98,7 @@ class FiveStarsRotatingProxyService
             return ['ok' => false, 'message' => 'Chưa nhập key xoay.', 'proxy_url' => null, 'raw' => null];
         }
 
-        if ($this->isThrottled()) {
+        if (! $force && $this->isThrottled()) {
             $cached = $this->cachedProxyUrl();
             if ($cached !== null) {
                 return [
@@ -144,26 +162,79 @@ class FiveStarsRotatingProxyService
         ];
     }
 
-    private function refreshProxy(): ?string
+    /**
+     * @return array{url: string|null, source: string, message: string}
+     */
+    private function refreshProxyWithStatus(bool $force = false): array
     {
-        $result = $this->testFetch();
+        $previous = $this->cachedProxyUrl();
+        $result = $this->testFetch($force);
 
         if (! $result['ok'] || $result['proxy_url'] === null) {
             Log::warning('fivestars_proxy: refresh failed', ['message' => $result['message']]);
 
-            return $this->cachedProxyUrl();
+            return [
+                'url' => $this->cachedProxyUrl(),
+                'source' => 'error_cache',
+                'message' => $result['message'],
+            ];
+        }
+
+        if (! empty($result['throttled'])) {
+            Log::info('fivestars_proxy: throttled, kept cached proxy', ['message' => $result['message']]);
+
+            return [
+                'url' => $result['proxy_url'],
+                'source' => 'api_throttled',
+                'message' => $result['message'],
+            ];
         }
 
         $this->rememberProxy($result['proxy_url'], $result['message']);
         Cache::put(self::LAST_FETCH_KEY, time(), 86400);
+        Log::info('fivestars_proxy: new proxy', ['url' => $result['proxy_url']]);
 
-        if (! empty($result['throttled'])) {
-            Log::info('fivestars_proxy: throttled, kept cached proxy', ['message' => $result['message']]);
-        } else {
-            Log::info('fivestars_proxy: new proxy', ['url' => $result['proxy_url']]);
+        $changed = $previous === null || $previous !== $result['proxy_url'];
+        $hint = $changed
+            ? 'API trả cổng proxy mới.'
+            : 'API trả cùng host:port — bình thường với key xoay (IP ra ngoài đổi khi dùng proxy, không đổi trong URL).';
+
+        return [
+            'url' => $result['proxy_url'],
+            'source' => 'api_fresh',
+            'message' => trim($result['message'].' '.$hint),
+        ];
+    }
+
+    /** IP mà website nhìn thấy khi đi qua proxy (khác host:port trong URL proxy). */
+    public function probeExitIp(?string $proxyUrl = null): ?string
+    {
+        $proxyUrl ??= $this->cachedProxyUrl();
+        if ($proxyUrl === null || $proxyUrl === '') {
+            return null;
         }
 
-        return $result['proxy_url'];
+        try {
+            $ip = trim((string) Http::timeout(20)
+                ->withOptions(['proxy' => $proxyUrl])
+                ->get('https://api.ipify.org')
+                ->body());
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        } catch (\Throwable $e) {
+            Log::debug('fivestars_proxy: probe exit ip failed', ['error' => $e->getMessage()]);
+        }
+
+        return null;
+    }
+
+    private function throttleMessage(): string
+    {
+        $until = (int) Cache::get(self::WAIT_UNTIL_KEY, 0);
+        $left = max(0, $until - time());
+
+        return 'API 5Stars chưa cho đổi — còn ~'.$left.'s (giữ proxy trong cache).';
     }
 
     public function rememberProxy(string $url, string $message): void
@@ -192,6 +263,23 @@ class FiveStarsRotatingProxyService
     public function rotateIntervalSeconds(): int
     {
         return max(60, (int) config('cs2price.fivestars_proxy_rotate_seconds', 62));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function httpProxyOptions(): array
+    {
+        if (! $this->isEnabled()) {
+            return [];
+        }
+
+        $url = $this->currentProxyUrl();
+        if ($url === null || $url === '') {
+            return [];
+        }
+
+        return ['proxy' => $url];
     }
 
     private function cachedProxyUrl(): ?string

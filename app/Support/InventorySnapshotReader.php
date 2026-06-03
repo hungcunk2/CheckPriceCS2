@@ -23,7 +23,9 @@ class InventorySnapshotReader
             $items = is_array($items) ? $items : (array) $items;
         }
 
-        return InventoryItemFilter::onlyTradable($items);
+        $items = InventoryItemFilter::onlyTradable($items);
+
+        return InventoryItemFilter::onlyWorthListing($items);
     }
 
     public static function hasItems(object $inventory): bool

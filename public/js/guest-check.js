@@ -32,6 +32,46 @@
         return '¥' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function minItemUsd(state) {
+        var min = state.minItemUsd;
+        return min != null && !isNaN(min) ? Number(min) : 1;
+    }
+
+    function rowUnitUsd(row, rates) {
+        if (row.buff_price_usd != null && !isNaN(row.buff_price_usd)) {
+            return Number(row.buff_price_usd);
+        }
+        if (row.buff_price_cny != null && !isNaN(row.buff_price_cny)) {
+            var vnd = Math.round(row.buff_price_cny * rates.cny_to_vnd);
+            return rates.vnd_to_usd > 0 ? Math.round((vnd / rates.vnd_to_usd) * 100) / 100 : null;
+        }
+        if (row.empire_price_usd != null && !isNaN(row.empire_price_usd)) {
+            return Number(row.empire_price_usd);
+        }
+
+        return null;
+    }
+
+    function isWorthListingRow(row, state) {
+        var min = minItemUsd(state);
+        if (!min || min <= 0) {
+            return true;
+        }
+        var usd = rowUnitUsd(row, state.rates);
+        if (usd == null) {
+            return !state.pricingDone;
+        }
+
+        return usd >= min;
+    }
+
+    function pruneCheapRows(state) {
+        state.rows = state.rows.filter(function (row) {
+            return isWorthListingRow(row, state);
+        });
+        state.itemCount = state.rows.length;
+    }
+
     function priceCell(cny, rates) {
         if (cny == null || isNaN(cny)) {
             return '—';
@@ -459,6 +499,7 @@
             }
         });
 
+        pruneCheapRows(state);
         updateHeader(state);
     }
 
@@ -482,6 +523,7 @@
 
         return chain.then(function () {
             state.pricingDone = true;
+            pruneCheapRows(state);
             sortRows(state.rows);
             renderTableBody(state);
             updateHeader(state);
@@ -518,6 +560,7 @@
                 var state = {
                     token: data.token,
                     rates: data.rates || { cny_to_vnd: 3750, vnd_to_usd: 26700 },
+                    minItemUsd: data.min_item_usd != null ? data.min_item_usd : 1,
                     inventory: data.inventory || {},
                     itemCount: data.item_count || rows.length,
                     rows: rows,

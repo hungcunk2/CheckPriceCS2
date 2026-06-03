@@ -36,6 +36,8 @@ return [
     'cny_to_vnd' => (float) env('CNY_TO_VND', 3750),
     // 1 USD = N VND (bắc cầu: CNY → VND → USD).
     'vnd_to_usd' => (float) env('VND_TO_USD', 26700),
+    // Skin đơn giá Buff (USD) dưới ngưỡng: ẩn danh sách, không gọi API giá (trừ lần đầu chưa có cache).
+    'min_item_usd_value' => (float) env('MIN_ITEM_USD_VALUE', 1),
     // Item đã có giá: chỉ gọi Buff lại sau N giây (mặc định 4 giờ, khớp chu kỳ sync).
     'price_refresh_seconds' => (int) env('BUFF_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
     'price_cache_seconds' => (int) env('BUFF_PRICE_CACHE_SECONDS', 14400),
@@ -155,6 +157,9 @@ return [
 
     // Cache ảnh catalog CS2Cap theo market_hash_name (giây), mặc định 30 ngày.
     'cs2cap_catalog_image_cache_seconds' => (int) env('CS2CAP_CATALOG_IMAGE_CACHE_SECONDS', 86400 * 30),
+
+    // Khi bật proxy 5Stars: tải ảnh Steam CDN qua proxy và phục vụ /api/guest/item-image/stream.
+    'steam_item_image_via_proxy' => filter_var(env('STEAM_ITEM_IMAGE_VIA_PROXY', true), FILTER_VALIDATE_BOOL),
 
     /*
     | Thanh toán: cấu hình trong Admin → TK thanh toán (payment_settings).

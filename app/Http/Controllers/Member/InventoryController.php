@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Cs2CapCatalogService;
+use App\Services\ItemImageService;
 use App\Services\InventoryPriceChecker;
 use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
@@ -271,12 +271,12 @@ class InventoryController extends Controller
                 fetchMissing: false,
             );
             $inv->display_items = $this->priceHistory->enrichItems($items);
-            $hashes = array_values(array_unique(array_column($inv->display_items, 'market_hash_name')));
-            $catalogMap = app(Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
-            $inv->display_items = array_map(static function (array $item) use ($catalogMap) {
+            $images = app(ItemImageService::class);
+            $inv->display_items = array_map(static function (array $item) use ($images) {
                 $hash = (string) ($item['market_hash_name'] ?? '');
-                if ($hash !== '' && isset($catalogMap[$hash])) {
-                    $item['icon_url'] = $catalogMap[$hash];
+                $url = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
+                if ($url !== null) {
+                    $item['icon_url'] = $url;
                 }
 
                 return $item;

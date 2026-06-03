@@ -24,6 +24,7 @@ Route::get('/', [PublicInventoryController::class, 'landing'])->name('public.lan
 Route::post('/api/guest/check/start', [PublicInventoryController::class, 'guestCheckStart'])->name('api.guest.check.start');
 Route::post('/api/guest/check/prices', [PublicInventoryController::class, 'guestCheckPrices'])->name('api.guest.check.prices');
 Route::get('/api/guest/item-image', [PublicInventoryController::class, 'guestItemImage'])->name('api.guest.item-image');
+Route::get('/api/guest/item-image/stream', [PublicInventoryController::class, 'guestItemImageStream'])->name('api.guest.item-image.stream');
 Route::get('/bang-gia', [PublicInventoryController::class, 'pricing'])->name('public.pricing');
 Route::get('/thanh-toan', [CheckoutController::class, 'show'])->name('public.checkout');
 Route::post('/thanh-toan', [CheckoutController::class, 'store'])->name('public.checkout.submit');

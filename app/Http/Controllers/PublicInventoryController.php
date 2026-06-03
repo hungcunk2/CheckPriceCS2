@@ -13,6 +13,7 @@ use App\Support\InventoryWeaponStats;
 use App\Support\SiteMeta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -79,7 +80,7 @@ class PublicInventoryController extends Controller
 
         RateLimiter::hit($cooldownKey, $cooldownSeconds);
 
-        $steamItems = $bundle['items'];
+        $steamItems = $checker->steamItemsWorthPricing($bundle['items']);
         $token = (string) Str::uuid();
         $cacheMinutes = max(5, (int) config('cs2price.guest_check_cache_minutes', 15));
 
@@ -95,19 +96,17 @@ class PublicInventoryController extends Controller
             'steam_items' => $steamItems,
         ], now()->addMinutes($cacheMinutes));
 
-        // Preload ảnh catalog đã cache (DB) để hạn chế nháy logo.
-        $hashes = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
-        $catalogMap = app(\App\Services\Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
+        $images = app(\App\Services\ItemImageService::class);
 
-        $displayItems = array_map(static function (array $item) use ($catalogMap) {
+        $displayItems = array_map(static function (array $item) use ($images) {
             $hash = (string) ($item['market_hash_name'] ?? '');
-            $catalogUrl = $hash !== '' ? ($catalogMap[$hash] ?? null) : null;
+            $iconUrl = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
+
             return [
             'assetid' => $item['assetid'] ?? null,
             'name' => $item['name'] ?? '',
             'market_hash_name' => $item['market_hash_name'] ?? '',
-            // Thống nhất: ưu tiên icon_url = catalog nếu đã cache; nếu chưa có thì để null (JS sẽ hydrate).
-            'icon_url' => $catalogUrl,
+            'icon_url' => $iconUrl,
             'amount' => $item['amount'] ?? 1,
             'tradable' => $item['tradable'] ?? true,
             ];
@@ -120,6 +119,7 @@ class PublicInventoryController extends Controller
             'empire_usd_reference' => \App\Support\PricingTier::current()->usesCs2CapEmpireOnly(),
             'pricing_tier' => \App\Support\PricingTier::current()->value,
             'batch_size' => max(4, (int) config('cs2price.guest_check_batch_size', 12)),
+            'min_item_usd' => \App\Support\InventoryItemFilter::minUsdUnitValue(),
             'rates' => [
                 'cny_to_vnd' => ExchangeRateStore::cnyToVnd(),
                 'vnd_to_usd' => ExchangeRateStore::vndToUsd(),
@@ -178,7 +178,7 @@ class PublicInventoryController extends Controller
         ]);
     }
 
-    public function guestItemImage(Request $request, \App\Services\Cs2CapCatalogService $catalog): JsonResponse
+    public function guestItemImage(Request $request, \App\Services\ItemImageService $images): JsonResponse
     {
         $request->validate([
             'market_hash_name' => ['required', 'string', 'max:500'],
@@ -192,12 +192,28 @@ class PublicInventoryController extends Controller
         RateLimiter::hit($cooldownKey, 60);
 
         $name = trim((string) $request->input('market_hash_name'));
-        $url = $catalog->imageUrlForHash($name);
+        $resolved = $images->resolveForBrowser($name);
 
         return response()->json([
-            'ok' => $url !== null,
-            'image_url' => $url,
+            'ok' => $resolved['ok'],
+            'image_url' => $resolved['image_url'],
+            'source' => $resolved['source'],
         ]);
+    }
+
+    public function guestItemImageStream(Request $request, \App\Services\ItemImageService $images): Response
+    {
+        $request->validate([
+            'market_hash_name' => ['required', 'string', 'max:500'],
+        ]);
+
+        $cooldownKey = 'guest-item-image-stream:'.$request->ip();
+        if (RateLimiter::tooManyAttempts($cooldownKey, 120)) {
+            return response('Rate limited', 429);
+        }
+        RateLimiter::hit($cooldownKey, 60);
+
+        return $images->streamSteamImage((string) $request->query('market_hash_name'));
     }
 
     private function guestCheckCacheKey(string $token): string
@@ -255,14 +271,14 @@ class PublicInventoryController extends Controller
                 InventorySnapshotReader::itemsFromInventory($inv),
                 fetchMissing: false,
             );
-            // Preload ảnh catalog từ DB để render luôn (giảm nháy logo).
-            $hashes = array_values(array_unique(array_column($inv->display_items, 'market_hash_name')));
-            $catalogMap = app(\App\Services\Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
-            $inv->display_items = array_map(static function (array $item) use ($catalogMap) {
+            $images = app(\App\Services\ItemImageService::class);
+            $inv->display_items = array_map(static function (array $item) use ($images) {
                 $hash = (string) ($item['market_hash_name'] ?? '');
-                if ($hash !== '' && isset($catalogMap[$hash])) {
-                    $item['icon_url'] = $catalogMap[$hash];
+                $url = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
+                if ($url !== null) {
+                    $item['icon_url'] = $url;
                 }
+
                 return $item;
             }, $inv->display_items);
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
@@ -286,13 +302,14 @@ class PublicInventoryController extends Controller
             InventorySnapshotReader::itemsFromInventory($row),
             fetchMissing: true,
         );
-        $hashes = array_values(array_unique(array_column($items, 'market_hash_name')));
-        $catalogMap = app(\App\Services\Cs2CapCatalogService::class)->cachedImageUrlsForHashes($hashes);
-        $items = array_map(static function (array $item) use ($catalogMap) {
+        $images = app(\App\Services\ItemImageService::class);
+        $items = array_map(static function (array $item) use ($images) {
             $hash = (string) ($item['market_hash_name'] ?? '');
-            if ($hash !== '' && isset($catalogMap[$hash])) {
-                $item['icon_url'] = $catalogMap[$hash];
+            $url = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
+            if ($url !== null) {
+                $item['icon_url'] = $url;
             }
+
             return $item;
         }, $items);
 
