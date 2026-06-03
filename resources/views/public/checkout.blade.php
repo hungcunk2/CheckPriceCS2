@@ -115,26 +115,33 @@
                         </div>
                         <p style="color:#94a3b8;font-size:13px;margin:0 0 14px;">Admin duyệt trong 24h sau khi đối soát.</p>
 
-                        @if(($payment['configured'] ?? false) || session('success'))
-                            <div class="bank-panel" id="bankPanel">
-                                <p><strong>Chuyển khoản ngân hàng</strong></p>
-                                @if($payment['configured'] ?? false)
-                                    <p>Ngân hàng: {{ $payment['bank_name'] ?: '—' }}</p>
-                                    <p>Số TK: {{ $payment['account_number'] }}</p>
-                                    <p>Chủ TK: {{ $payment['account_holder'] }}</p>
-                                    <p>Số tiền: <strong id="bankAmount">—</strong></p>
-                                    <p>Nội dung CK: <strong id="bankRef">—</strong></p>
-                                    <div class="vietqr-wrap" id="vietqrWrap">
-                                        <img src="" alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
-                                    </div>
-                                    <p style="margin-top:8px;color:#64748b;font-size:12px;">
-                                        Quét VietQR hoặc CK thủ công. Mã nội dung = email trước @ + gói + tháng.
-                                    </p>
-                                @else
-                                    <p>Admin chưa cấu hình STK. Liên hệ hỗ trợ sau khi gửi đơn.</p>
-                                @endif
-                            </div>
-                        @endif
+                        <div class="bank-panel" id="bankPanel">
+                            @if($payment['configured'] ?? false)
+                                <p>Ngân hàng: {{ $payment['bank_name'] ?: '—' }}</p>
+                                <p>Số TK: {{ $payment['account_number'] }}</p>
+                                <p>Chủ TK: {{ $payment['account_holder'] }}</p>
+                                <p>Số tiền: <strong id="bankAmount">—</strong></p>
+                                <p>Nội dung CK: <strong id="bankRef">—</strong></p>
+                                <div class="vietqr-wrap" id="checkoutQrSection">
+                                    <img src="" alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
+                                </div>
+                                <p style="margin-top:8px;color:#64748b;font-size:12px;">
+                                    Quét VietQR hoặc CK thủ công. Mã nội dung = email trước @ + gói + tháng.
+                                </p>
+                            @else
+                                <p style="color:#94a3b8;">Admin chưa cấu hình STK. Vẫn có thể báo đã chuyển khoản bên dưới.</p>
+                                <p>Số tiền: <strong id="bankAmount">—</strong></p>
+                                <p>Nội dung CK: <strong id="bankRef">—</strong></p>
+                            @endif
+
+                            @if(session('success'))
+                                <p class="confirm-paid-done">✓ Đã gửi yêu cầu — admin sẽ duyệt trong 24h.</p>
+                            @else
+                                <button type="submit" class="confirm-paid-btn" id="confirm-paid-btn" disabled>
+                                    Đã thanh toán
+                                </button>
+                            @endif
+                        </div>
                     </section>
                 </div>
 
@@ -169,9 +176,11 @@
                             <div>Tổng cộng</div>
                             <div class="total-num" id="summary-total">—</div>
                         </div>
-                        <button type="submit" class="pay-btn" id="pay-btn" disabled>
-                            Thanh toán
-                        </button>
+                        @unless(session('success'))
+                            <button type="button" class="pay-btn" id="pay-btn" disabled>
+                                Thanh toán
+                            </button>
+                        @endunless
                         <p class="secure">🔒 Chuyển khoản an toàn · Admin duyệt tay</p>
                     </div>
                 </aside>
@@ -280,10 +289,12 @@
             discountRow.style.display = 'none';
         }
         document.getElementById('summary-total').textContent = fmt(total);
-        payBtn.textContent = 'Thanh toán ' + fmt(total);
+        if (payBtn) payBtn.textContent = 'Thanh toán ' + fmt(total);
 
         state.email = currentEmail();
-        payBtn.disabled = !state.email;
+        if (payBtn) payBtn.disabled = !state.email;
+        const confirmBtn = document.getElementById('confirm-paid-btn');
+        if (confirmBtn) confirmBtn.disabled = !state.email;
         syncHidden();
 
         for (const [id, cy] of Object.entries(cycles)) {
@@ -298,16 +309,27 @@
         if (bankRef) bankRef.textContent = ref || '—';
 
         const qrImg = document.getElementById('vietqrImg');
-        const qrWrap = document.getElementById('vietqrWrap');
-        if (qrImg && qrWrap && vietqr && state.email && ref) {
+        const qrSection = document.getElementById('checkoutQrSection');
+        if (qrImg && qrSection && vietqr && state.email && ref) {
             const src = buildVietQrUrl(total, ref);
             if (src) {
                 qrImg.src = src;
-                qrWrap.style.display = 'block';
+                qrSection.style.display = 'block';
             }
-        } else if (qrWrap) {
-            qrWrap.style.display = 'none';
+        } else if (qrSection) {
+            qrSection.style.display = 'none';
         }
+    }
+
+    if (payBtn) {
+        payBtn.addEventListener('click', function () {
+            if (payBtn.disabled) return;
+            const target = document.getElementById('checkoutQrSection')
+                || document.getElementById('bankPanel');
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
     }
 
     document.querySelectorAll('.plan-pick').forEach(function (el) {
