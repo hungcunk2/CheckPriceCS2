@@ -8,10 +8,6 @@
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Thêm user</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
 <div class="panel-admin rounded border">
     <div class="table-responsive">
         <table class="table table-sm table-hover mb-0 align-middle">
