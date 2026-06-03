@@ -14,7 +14,6 @@
         : "{$slotUsed}/{$slotLimit} kho";
 @endphp
 <p class="text-muted small mb-3">
-    Chỉ hiển thị kho đồ bạn đã thêm vào tài khoản này.
     Gói <strong>{{ $planLabel }}</strong> — {{ $slotText }}.
     <a href="{{ route('public.pricing') }}" class="text-decoration-none">Nâng cấp</a>
 </p>

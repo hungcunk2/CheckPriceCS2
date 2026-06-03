@@ -8,12 +8,10 @@
         Chưa có acc Buff hoạt động.
     </div>
 @endif
-@if($empireEnabled ?? false)
+@if(($empireEnabled ?? false) && $tableMode === 'admin')
     <div class="alert alert-info py-2 small mb-3">
         Empire đang bật — cột <strong>Empire</strong> / <strong>Nên bán</strong> trong bảng skin.
-        @if($tableMode === 'admin')
-            Kho chưa đồng bộ sau khi bật Empire: bấm <i class="fas fa-sync-alt"></i> trên từng kho.
-        @endif
+        Kho chưa đồng bộ sau khi bật Empire: bấm <i class="fas fa-sync-alt"></i> trên từng kho.
     </div>
 @endif
 
