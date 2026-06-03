@@ -116,6 +116,9 @@
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
                                 <p>Nội dung CK: <strong id="bankRef">—</strong></p>
                                 <div class="vietqr-wrap" id="checkoutQrSection" @if(empty($qrImageUrl)) style="display:none" @endif>
+                                    <p id="qrLoading" class="qr-loading" style="display:none;">
+                                        Xin vui lòng đợi hệ thống đang tạo mã QR
+                                    </p>
                                     <img alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img"
                                          width="280" height="280" decoding="async" fetchpriority="high"
                                          referrerpolicy="no-referrer"
@@ -246,6 +249,15 @@
         return qs ? (base + '?' + qs) : base;
     }
 
+    function setQrLoading(show) {
+        const loading = document.getElementById('qrLoading');
+        if (loading) loading.style.display = show ? 'block' : 'none';
+    }
+
+    function qrLoaded(qrImg) {
+        return qrImg.complete && qrImg.naturalWidth > 0;
+    }
+
     function syncQr(amount, addInfo) {
         const qrImg = document.getElementById('vietqrImg');
         const section = document.getElementById('checkoutQrSection');
@@ -255,21 +267,34 @@
         const url = (state.email && addInfo) ? buildVietQrUrl(amount, addInfo) : '';
         if (!url) {
             section.style.display = 'none';
+            setQrLoading(false);
             return;
         }
 
         section.style.display = 'block';
         if (errEl) errEl.style.display = 'none';
-        if (lastQrUrl === url) return;
+
+        if (lastQrUrl === url && qrLoaded(qrImg)) {
+            setQrLoading(false);
+            qrImg.style.opacity = '1';
+            return;
+        }
 
         lastQrUrl = url;
+        setQrLoading(true);
+        qrImg.style.opacity = '0';
         qrImg.classList.add('is-loading');
+
         qrImg.onload = function () {
             qrImg.classList.remove('is-loading');
+            qrImg.style.opacity = '1';
+            setQrLoading(false);
             if (errEl) errEl.style.display = 'none';
         };
         qrImg.onerror = function () {
             qrImg.classList.remove('is-loading');
+            qrImg.style.opacity = '0';
+            setQrLoading(false);
             if (errEl) errEl.style.display = 'block';
         };
         qrImg.src = url;
@@ -378,6 +403,17 @@
     if (emailInput && emailInput.type !== 'hidden') {
         emailInput.addEventListener('input', updateSummary);
     }
+
+    (function initQr() {
+        const qrImg = document.getElementById('vietqrImg');
+        const section = document.getElementById('checkoutQrSection');
+        if (!qrImg || !section || !qrImg.getAttribute('src')) return;
+        section.style.display = 'block';
+        if (!qrLoaded(qrImg)) {
+            setQrLoading(true);
+            qrImg.style.opacity = '0';
+        }
+    })();
 
     updateSummary();
 })();

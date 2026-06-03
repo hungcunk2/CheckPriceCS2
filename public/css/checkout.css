@@ -495,6 +495,15 @@
 .cp-checkout-v3 .vietqr-wrap {
     margin-top: 14px;
     text-align: center;
+    min-height: 120px;
+}
+
+.cp-checkout-v3 .qr-loading {
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 48px 16px;
+    margin: 0;
 }
 
 .cp-checkout-v3 .confirm-paid-btn {
