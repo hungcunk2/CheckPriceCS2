@@ -184,8 +184,9 @@
 @endsection
 
 @push('styles')
+<link rel="preconnect" href="https://img.vietqr.io" crossorigin>
 @if(!empty($qrImageUrl))
-    <link rel="preload" as="image" href="{{ $qrImageUrl }}">
+    <link rel="preload" as="image" href="{{ $qrImageUrl }}" crossorigin>
 @endif
 <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v={{ @filemtime(public_path('css/checkout.css')) ?: 1 }}">
 @endpush
@@ -194,7 +195,7 @@
 <script>
 (function () {
     const planData = @json($plansJson);
-    const qrProxyBase = @json(route('public.checkout.qr'));
+    const vietqr = @json($payment['vietqr'] ?? null);
     const paymentConfigured = @json($payment['configured'] ?? false);
     let lastQrUrl = @json($qrImageUrl ?? '');
     const cycles = {
@@ -228,21 +229,26 @@
         return local ? (local + plan + months) : '';
     }
 
-    function buildQrUrl() {
-        if (!paymentConfigured || !state.email) return '';
-        const u = new URL(qrProxyBase, window.location.origin);
-        u.searchParams.set('plan', state.plan);
-        u.searchParams.set('months', String(cycles[state.cycle].months));
-        u.searchParams.set('email', state.email);
-        return u.toString();
+    function buildVietQrUrl(amount, addInfo) {
+        if (!vietqr || !vietqr.bankId || !vietqr.account) return '';
+        const base = 'https://img.vietqr.io/image/'
+            + encodeURIComponent(vietqr.bankId) + '-'
+            + encodeURIComponent(vietqr.account) + '-'
+            + encodeURIComponent(vietqr.template || 'compact') + '.png';
+        const q = new URLSearchParams();
+        if (amount > 0) q.set('amount', String(amount));
+        if (addInfo) q.set('addInfo', addInfo.slice(0, 50));
+        if (vietqr.accountHolder) q.set('accountName', vietqr.accountHolder);
+        const qs = q.toString();
+        return qs ? (base + '?' + qs) : base;
     }
 
-    function syncQr() {
+    function syncQr(amount, addInfo) {
         const qrImg = document.getElementById('vietqrImg');
         const section = document.getElementById('checkoutQrSection');
         if (!qrImg || !section || !paymentConfigured) return;
 
-        const url = buildQrUrl();
+        const url = (state.email && addInfo) ? buildVietQrUrl(amount, addInfo) : '';
         if (!url) {
             section.style.display = 'none';
             return;
@@ -319,7 +325,7 @@
         const bankRef = document.getElementById('bankRef');
         if (bankAmount) bankAmount.textContent = fmt(total);
         if (bankRef) bankRef.textContent = ref || '—';
-        syncQr();
+        syncQr(total, ref);
     }
 
     if (lastQrUrl) {

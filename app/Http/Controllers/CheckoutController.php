@@ -8,9 +8,6 @@ use App\Models\User;
 use App\Support\SubscriptionPlans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -30,9 +27,13 @@ class CheckoutController extends Controller
         $planData = SubscriptionPlans::get($plan);
         $user = $this->resolveUser($request);
         $paymentSettings = PaymentSetting::current();
-        $qrImageUrl = ($paymentSettings->isConfigured() && $user !== null)
-            ? $this->qrProxyUrl($plan, $months, $user->email)
-            : null;
+        $qrImageUrl = null;
+        if ($paymentSettings->isConfigured() && $user !== null) {
+            $qrImageUrl = $paymentSettings->quickLinkImageUrl(
+                SubscriptionPlans::price($plan, $months),
+                SubscriptionPlans::transferReference($user->email, $plan, $months)
+            );
+        }
 
         $plansJson = [];
         foreach (SubscriptionPlans::PLANS as $key => $p) {
@@ -98,59 +99,6 @@ class CheckoutController extends Controller
         return redirect()
             ->route('public.checkout', ['plan' => $plan, 'months' => $months, 'email' => $user->email])
             ->with('success', 'Đã ghi nhận yêu cầu thanh toán. Admin sẽ kích hoạt gói trong vòng 24h sau khi xác nhận chuyển khoản.');
-    }
-
-    public function qrImage(Request $request): Response
-    {
-        $validated = $request->validate([
-            'plan' => ['required', 'string', 'in:'.implode(',', array_keys(SubscriptionPlans::PLANS))],
-            'months' => ['required', 'integer', 'in:'.implode(',', SubscriptionPlans::CYCLES)],
-            'email' => ['required', 'email', 'max:255'],
-        ]);
-
-        $plan = $validated['plan'];
-        $months = (int) $validated['months'];
-        $email = mb_strtolower(trim($validated['email']));
-
-        $settings = PaymentSetting::current();
-        if (! $settings->isConfigured()) {
-            abort(404);
-        }
-
-        $amount = SubscriptionPlans::price($plan, $months);
-        $reference = SubscriptionPlans::transferReference($email, $plan, $months);
-        $vietqrUrl = $settings->quickLinkImageUrl($amount, $reference);
-        if ($vietqrUrl === null) {
-            abort(404);
-        }
-
-        $png = Cache::remember(
-            $settings->orderQrCacheKey($amount, $reference),
-            60 * 60 * 24 * 7,
-            function () use ($vietqrUrl) {
-                $response = Http::timeout(20)->get($vietqrUrl);
-
-                return $response->successful() ? $response->body() : null;
-            }
-        );
-
-        if (! is_string($png) || $png === '') {
-            abort(502);
-        }
-
-        return response($png, 200, [
-            'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=604800',
-        ]);
-    }
-
-    private function qrProxyUrl(string $plan, int $months, string $email): string
-    {
-        return route('public.checkout.qr', [
-            'plan' => $plan,
-            'months' => $months,
-            'email' => $email,
-        ]);
     }
 
     private function resolveUser(Request $request): ?User
