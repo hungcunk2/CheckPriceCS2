@@ -91,16 +91,10 @@
         </form>
     </div>
 
-    <div class="d-flex flex-wrap gap-2">
-        <form method="POST" action="{{ route('admin.payment-settings.import-env') }}">
-            @csrf
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Nhập STK/tên từ .env</button>
-        </form>
-        <form method="POST" action="{{ route('admin.payment-settings.refresh-banks') }}">
-            @csrf
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Làm mới danh sách NH</button>
-        </form>
-    </div>
+    <form method="POST" action="{{ route('admin.payment-settings.refresh-banks') }}">
+        @csrf
+        <button type="submit" class="btn btn-outline-secondary btn-sm">Làm mới danh sách NH</button>
+    </form>
 </div>
 @endsection
 

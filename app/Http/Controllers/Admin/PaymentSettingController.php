@@ -50,21 +50,6 @@ class PaymentSettingController extends Controller
             ->with('success', 'Đã lưu cấu hình thanh toán ngân hàng.');
     }
 
-    public function importFromEnv(): RedirectResponse
-    {
-        $legacy = config('cs2price.payment', []);
-        $settings = PaymentSetting::current();
-        $settings->update([
-            'bank_display_name' => (string) ($legacy['bank_name'] ?? $settings->bank_display_name),
-            'account_number' => (string) ($legacy['account_number'] ?? $settings->account_number),
-            'account_holder' => (string) ($legacy['account_holder'] ?? $settings->account_holder),
-        ]);
-
-        return redirect()
-            ->route('admin.payment-settings.edit')
-            ->with('success', 'Đã nhập STK/tên từ .env (nếu có). Chọn ngân hàng (BIN) và lưu lại.');
-    }
-
     public function refreshBanks(VietQrService $vietQr): RedirectResponse
     {
         $vietQr->clearBanksCache();

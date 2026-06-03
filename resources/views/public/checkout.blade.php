@@ -111,34 +111,9 @@
                     <section class="card">
                         <div class="step">
                             <span class="step-num">4</span>
-                            <h2>Phương thức thanh toán</h2>
+                            <h2>Chuyển khoản ngân hàng</h2>
                         </div>
-                        <div class="method-list" id="methodList">
-                            <button type="button" class="method is-disabled" data-method="momo" disabled>
-                                <div class="method-icon">M</div>
-                                <div class="method-text">
-                                    <div class="method-label">MoMo</div>
-                                    <div class="method-desc">Đang phát triển</div>
-                                </div>
-                                <div class="radio"><div class="radio-inner"></div></div>
-                            </button>
-                            <button type="button" class="method active" data-method="bank">
-                                <div class="method-icon">🏦</div>
-                                <div class="method-text">
-                                    <div class="method-label">Chuyển khoản ngân hàng</div>
-                                    <div class="method-desc">Admin duyệt trong 24h</div>
-                                </div>
-                                <div class="radio"><div class="radio-inner"></div></div>
-                            </button>
-                            <button type="button" class="method is-disabled" data-method="card" disabled>
-                                <div class="method-icon">💳</div>
-                                <div class="method-text">
-                                    <div class="method-label">Thẻ Visa / Mastercard</div>
-                                    <div class="method-desc">Đang phát triển</div>
-                                </div>
-                                <div class="radio"><div class="radio-inner"></div></div>
-                            </button>
-                        </div>
+                        <p style="color:#94a3b8;font-size:13px;margin:0 0 14px;">Admin duyệt trong 24h sau khi đối soát.</p>
 
                         @if(($payment['configured'] ?? false) || session('success'))
                             <div class="bank-panel" id="bankPanel">
@@ -228,7 +203,6 @@
     let state = {
         plan: @json($planKey),
         cycle: @json($cycleKey),
-        method: 'bank',
         email: @json($initialEmail ?? ''),
     };
 
@@ -272,7 +246,6 @@
         document.getElementById('input_plan').value = state.plan;
         const months = cycles[state.cycle].months;
         document.getElementById('input_months').value = months;
-        document.getElementById('input_method').value = state.method;
         const url = new URL(window.location.href);
         url.searchParams.set('plan', state.plan);
         url.searchParams.set('months', months);
@@ -310,7 +283,7 @@
         payBtn.textContent = 'Thanh toán ' + fmt(total);
 
         state.email = currentEmail();
-        payBtn.disabled = !state.email || state.method !== 'bank';
+        payBtn.disabled = !state.email;
         syncHidden();
 
         for (const [id, cy] of Object.entries(cycles)) {
@@ -352,16 +325,6 @@
             state.cycle = el.dataset.cycle;
             document.querySelectorAll('.cycle-pick').forEach(function (b) {
                 b.classList.toggle('active', b.dataset.cycle === state.cycle);
-            });
-            updateSummary();
-        });
-    });
-
-    document.querySelectorAll('.method:not(.is-disabled)').forEach(function (el) {
-        el.addEventListener('click', function () {
-            state.method = el.dataset.method;
-            document.querySelectorAll('.method').forEach(function (b) {
-                b.classList.toggle('active', b.dataset.method === state.method && !b.disabled);
             });
             updateSummary();
         });

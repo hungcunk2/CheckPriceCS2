@@ -33,13 +33,8 @@ class PaymentSetting extends Model
             return $row;
         }
 
-        $legacy = config('cs2price.payment', []);
-
         return self::query()->create([
             'enabled' => true,
-            'bank_display_name' => (string) ($legacy['bank_name'] ?? ''),
-            'account_number' => (string) ($legacy['account_number'] ?? ''),
-            'account_holder' => (string) ($legacy['account_holder'] ?? ''),
             'qr_template' => 'compact',
         ]);
     }
