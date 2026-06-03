@@ -13,36 +13,40 @@
     $savings = [3 => 'Tiết kiệm 5%', 6 => 'Tiết kiệm 10%'];
 @endphp
 
-<section class="lp-checkout-page">
+<section class="lp-pricing-page lp-checkout-page">
     <div class="lp-container">
         <a href="{{ route('public.pricing') }}" class="lp-checkout-back">
             <i class="fas fa-arrow-left"></i> Quay lại bảng giá
         </a>
 
-        <div class="lp-checkout-header">
-            <span class="lp-checkout-badge">Thanh toán</span>
-            <h1 class="lp-checkout-title">Hoàn tất đăng ký gói {{ $plan['name'] }}</h1>
-            <p class="lp-checkout-subtitle">Chuyển khoản ngân hàng — admin duyệt tay sau khi đối soát (thường trong 24h).</p>
+        <div class="lp-pricing-header">
+            <span class="lp-pricing-badge">Thanh toán</span>
+            <h1 class="lp-pricing-title">Hoàn tất gói {{ $plan['name'] }}</h1>
+            <p class="lp-pricing-subtitle">
+                Chuyển khoản ngân hàng — admin duyệt sau khi đối soát (thường trong 24h).
+            </p>
         </div>
 
         <div class="lp-checkout-layout">
-            <div class="lp-checkout-card">
-                <h2>Tóm tắt đơn hàng</h2>
-                <div class="lp-checkout-plan-name">{{ $plan['name'] }}</div>
-                <div class="lp-checkout-plan-slots">{{ $plan['slots'] }}</div>
-                <ul class="lp-checkout-features">
+            <div class="lp-pricing-card lp-checkout-summary">
+                <div class="lp-pricing-plan">{{ $plan['name'] }}</div>
+                <div class="lp-pricing-price">
+                    <span class="lp-pricing-price-num" id="checkoutTotal">{{ \App\Support\SubscriptionPlans::formatVnd($amount) }}</span>
+                </div>
+                <div class="lp-pricing-tagline">{{ $plan['slots'] }}</div>
+                <div class="lp-pricing-divider"></div>
+                <ul class="lp-pricing-features">
                     @foreach($plan['features'] as $feature)
-                        <li><span class="check">✓</span> {{ $feature }}</li>
+                        <li><span class="lp-pricing-check">✓</span> {{ $feature }}</li>
                     @endforeach
                 </ul>
-                <div class="lp-checkout-total-row">
-                    <span class="lp-checkout-total-label">Tổng thanh toán</span>
-                    <span class="lp-checkout-total-amount" id="checkoutTotal">{{ \App\Support\SubscriptionPlans::formatVnd($amount) }}</span>
-                </div>
+                <p class="lp-checkout-summary-hint small text-muted mb-0">Tổng thanh toán theo chu kỳ bên phải.</p>
             </div>
 
-            <div class="lp-checkout-card">
-                <h2>Thông tin thanh toán</h2>
+            <div class="lp-pricing-card lp-checkout-payment">
+                <div class="lp-pricing-plan">Thông tin thanh toán</div>
+                <div class="lp-pricing-divider"></div>
+
                 @if($checkoutUser)
                     <p class="lp-checkout-user">
                         Tài khoản: <strong>{{ $checkoutUser->name }}</strong> — {{ $checkoutUser->email }}
@@ -59,12 +63,13 @@
                     @if($checkoutUser)
                         <input type="hidden" name="email" value="{{ $checkoutUser->email }}">
                     @else
-                        <label class="lp-checkout-ref-label" for="checkout_email">Email tài khoản</label>
-                        <input type="email" name="email" id="checkout_email" class="lp-checkout-note mb-3" required
+                        <label class="lp-checkout-label" for="checkout_email">Email tài khoản</label>
+                        <input type="email" name="email" id="checkout_email" class="lp-checkout-input" required
                                value="{{ old('email', request('email')) }}" placeholder="email@ban.com">
                         @error('email')<p class="text-danger small mb-2">{{ $message }}</p>@enderror
                     @endif
 
+                    <p class="lp-checkout-label mt-3 mb-2">Chu kỳ thanh toán</p>
                     <div class="lp-checkout-cycles" role="group" aria-label="Chu kỳ thanh toán">
                         @foreach(\App\Support\SubscriptionPlans::CYCLES as $cycle)
                             @php $cyclePrice = $plan['prices'][$cycle]; @endphp
@@ -102,36 +107,39 @@
                         </div>
                     </div>
 
-                    <div class="lp-checkout-ref">
-                        <div class="lp-checkout-ref-label">Nội dung chuyển khoản (bắt buộc đúng — vd. <code>trantuanhungpro2</code> = email trantuanhung@…, gói Pro, 2 tháng)</div>
-                        <div class="lp-checkout-ref-box">
-                            @if($reference)
-                                <code class="lp-checkout-ref-code" id="checkoutRef">{{ $reference }}</code>
-                                <button type="button" class="lp-checkout-copy" data-copy-target="checkoutRef">Sao chép</button>
-                            @else
-                                <code class="lp-checkout-ref-code" id="checkoutRef">Nhập email tài khoản và tải lại trang để lấy mã</code>
-                            @endif
-                        </div>
+                    <p class="lp-checkout-label">Nội dung chuyển khoản <span class="text-muted">(bắt buộc đúng)</span></p>
+                    <p class="lp-checkout-ref-example small text-muted mb-2">
+                        Ví dụ: <code>trantuanhungpro3</code> — email <code>trantuanhung@…</code>, gói Pro, 3 tháng.
+                    </p>
+                    <div class="lp-checkout-ref-box">
+                        @if($reference)
+                            <code class="lp-checkout-ref-code" id="checkoutRef">{{ $reference }}</code>
+                            <button type="button" class="lp-checkout-copy" data-copy-target="checkoutRef">Sao chép</button>
+                        @else
+                            <code class="lp-checkout-ref-code" id="checkoutRef">Nhập email để hiện mã</code>
+                        @endif
                     </div>
 
-                    <label class="lp-checkout-ref-label" for="member_note">Ghi chú (tuỳ chọn)</label>
-                    <textarea name="member_note" id="member_note" class="lp-checkout-note" rows="2"
-                              placeholder="VD: Đã chuyển lúc 14:30 ngày 03/06, tên TK người gửi...">{{ old('member_note') }}</textarea>
+                    <label class="lp-checkout-label mt-3" for="member_note">Ghi chú (tuỳ chọn)</label>
+                    <textarea name="member_note" id="member_note" class="lp-checkout-input" rows="2"
+                              placeholder="VD: Đã chuyển lúc 14:30, tên TK người gửi...">{{ old('member_note') }}</textarea>
 
-                    <button type="submit" class="lp-checkout-submit">Tôi đã chuyển khoản</button>
+                    <button type="submit" class="lp-pricing-btn is-primary mt-3">Tôi đã chuyển khoản</button>
                 </form>
 
-                <p class="lp-checkout-hint">
-                    Sau khi bấm xác nhận, đơn chờ admin duyệt. Cần hỗ trợ? Xem
-                    <a href="{{ route('public.pricing') }}">bảng giá</a> hoặc liên hệ qua kênh hỗ trợ của site.
+                <p class="lp-pricing-note mt-3 mb-0">
+                    Sau khi xác nhận, đơn chờ admin duyệt. <a href="{{ route('public.pricing') }}">Xem bảng giá</a>.
                 </p>
             </div>
         </div>
     </div>
 </section>
+
+@include('landing.footer')
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/pricing.css') }}?v={{ @filemtime(public_path('css/pricing.css')) ?: 1 }}">
 <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v={{ @filemtime(public_path('css/checkout.css')) ?: 1 }}">
 @endpush
 
@@ -168,9 +176,7 @@
     function updateTransferRef(months) {
         var ref = buildTransferRef(currentCheckoutEmail(), months);
         var el = document.getElementById('checkoutRef');
-        if (ref) {
-            el.textContent = ref;
-        }
+        if (ref) el.textContent = ref;
     }
 
     function updateFromCycle() {
