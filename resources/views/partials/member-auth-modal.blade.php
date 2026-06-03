@@ -2,7 +2,7 @@
     $authMode = request('forgot') ? 'forgot' : request('auth', session('auth_tab', 'login'));
 @endphp
 <div class="modal fade" id="memberAuthModal" tabindex="-1" aria-labelledby="memberAuthModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered ma-modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-lg ma-modal-dialog">
         <div class="modal-content ma-modal-content border-0">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>

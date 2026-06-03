@@ -8,7 +8,7 @@
     $showRegister = ! $showForgot && ($authMode === 'register' || $otpSent || $errors->has('password') || $errors->has('password_confirmation') || $errors->has('otp'));
     $redirectTo = $authRedirectTo ?? url()->current();
 @endphp
-<div class="ma-card ma-card--embedded">
+<div class="ma-card ma-card--embedded {{ ($formIdSuffix ?? '') === 'modal' ? 'ma-card--modal' : '' }}">
     <div class="ma-brand">
         <span class="lp-text-gradient-primary">CheckPrice</span><span class="lp-text-gradient-accent">CS2</span>
     </div>
@@ -71,9 +71,8 @@
 
     <div id="ma-panel-forgot{{ $fid }}" class="ma-panel {{ $showForgot ? '' : 'is-hidden' }}">
         <h2 class="ma-title">Quên mật khẩu</h2>
-        <p class="ma-subtitle">
-            Nhập email đăng ký — chúng tôi gửi mật khẩu tạm 6 số.
-            <button type="button" class="ma-switch-link" data-ma-switch="login" data-ma-scope="{{ $fid }}">Quay lại đăng nhập</button>
+        <p class="ma-subtitle ma-subtitle--cta">
+            <button type="button" class="ma-switch-link ma-switch-link--cta" data-ma-switch="login" data-ma-scope="{{ $fid }}">Quay lại đăng nhập</button>
         </p>
 
         <form method="POST" action="{{ route('password.forgot') }}" novalidate>
@@ -97,9 +96,9 @@
 
     <div id="ma-panel-register{{ $fid }}" class="ma-panel {{ ($showRegister && ! $showForgot) ? '' : 'is-hidden' }}">
         <h2 class="ma-title">Đăng ký</h2>
-        <p class="ma-subtitle">
+        <p class="ma-subtitle ma-subtitle--cta">
             Đã có tài khoản?
-            <button type="button" class="ma-switch-link" data-ma-switch="login" data-ma-scope="{{ $fid }}">Đăng nhập</button>
+            <button type="button" class="ma-switch-link ma-switch-link--cta" data-ma-switch="login" data-ma-scope="{{ $fid }}">Đăng nhập</button>
         </p>
 
         @if(session('register_otp_message'))
@@ -108,13 +107,6 @@
 
         @if($errors->has('email') && ! $otpSent)
             <div class="ma-alert ma-alert--danger">{{ $errors->first('email') }}</div>
-        @endif
-
-        @if($otpSent)
-            <p class="ma-hint">
-                Mã OTP đã gửi tới <strong>{{ $otpService->maskEmail($otpEmail) }}</strong>
-                (hiệu lực {{ $otpService->ttlMinutes() }} phút).
-            </p>
         @endif
 
         <form method="POST" action="{{ route('register.verify') }}" novalidate>
@@ -135,7 +127,7 @@
                 <div class="ma-input-wrap">
                     <i class="fas fa-lock ma-input-icon" aria-hidden="true"></i>
                     <input type="password" name="password" id="reg_password{{ $fid }}" class="ma-input @error('password') is-invalid @enderror"
-                           placeholder="Mật khẩu (tối thiểu 8 ký tự)" required minlength="8" autocomplete="new-password"
+                           placeholder="Mật khẩu" required minlength="8" autocomplete="new-password"
                            @if($otpSent) readonly @endif>
                     @unless($otpSent)
                     <button type="button" class="ma-input-toggle" data-ma-toggle-password="reg_password{{ $fid }}" aria-label="Hiện mật khẩu">
@@ -161,26 +153,23 @@
             </div>
 
             <div class="ma-field">
-                <label class="ma-hint ma-otp-label" for="reg_otp{{ $fid }}">Mã OTP (6 số)</label>
                 <div class="ma-row-otp">
                     <input type="text" name="otp" id="reg_otp{{ $fid }}" class="ma-input ma-input--otp @error('otp') is-invalid @enderror"
                            value="{{ old('otp') }}" maxlength="6" minlength="6" pattern="\d{6}"
-                           inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
+                           inputmode="numeric" autocomplete="one-time-code" placeholder="Mã OTP 6 số"
+                           aria-label="Mã OTP">
                     <button type="submit" class="ma-btn-outline ma-btn-otp-send" formaction="{{ route('register.send-otp') }}"
                             formnovalidate>Nhận OTP</button>
                 </div>
                 @error('otp')<p class="ma-error">{{ $message }}</p>@enderror
-                @unless($otpSent)
-                    <p class="ma-hint ma-hint--otp">Nhập email và mật khẩu, bấm <strong>Nhận OTP</strong> để nhận mã qua mail.</p>
-                @endunless
             </div>
 
             <button type="submit" class="ma-btn-primary lp-btn-primary">Đăng ký</button>
         </form>
 
         @if($otpSent)
-            <p class="ma-hint ma-hint--center">
-                <a href="{{ route('register.cancel', ['redirect_to' => $redirectTo]) }}" class="ma-switch-link">Đổi email khác</a>
+            <p class="ma-subtitle ma-subtitle--cta ma-subtitle--center">
+                <a href="{{ route('register.cancel', ['redirect_to' => $redirectTo]) }}" class="ma-switch-link ma-switch-link--cta">Đổi email khác</a>
             </p>
         @endif
     </div>

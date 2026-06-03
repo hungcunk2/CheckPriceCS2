@@ -315,16 +315,100 @@
     display: none;
 }
 
-/* Modal — to hơn, glass landing */
+/* Modal — rộng + chữ lớn */
 .ma-modal-dialog {
-    max-width: 34rem;
+    max-width: 42rem;
     margin: 1rem auto;
 }
 
 @media (min-width: 576px) {
     .ma-modal-dialog {
-        max-width: 38rem;
+        max-width: 46rem;
     }
+}
+
+@media (min-width: 992px) {
+    .ma-modal-dialog {
+        max-width: 48rem;
+    }
+}
+
+#memberAuthModal .ma-card--modal .ma-brand {
+    font-size: 2.25rem;
+    margin-bottom: 1.75rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-title {
+    font-size: 2rem;
+    margin-bottom: 0.65rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-subtitle,
+#memberAuthModal .ma-card--modal .ma-subtitle--cta {
+    font-size: 1.2rem;
+    margin-bottom: 1.85rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-footer-row {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-forgot-link {
+    font-size: 1rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-input {
+    padding: 1.05rem 1.1rem 1.05rem 3rem;
+    font-size: 1.0625rem;
+    border-radius: 0.875rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-input-icon {
+    left: 1.15rem;
+    font-size: 1.15rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-input--otp {
+    padding: 1.05rem 1rem;
+    font-size: 1.5rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-field {
+    margin-bottom: 1.35rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-btn-primary {
+    padding: 1.05rem 1.5rem;
+    font-size: 1.125rem;
+    border-radius: 0.875rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-btn-outline,
+#memberAuthModal .ma-card--modal .ma-btn-otp-send {
+    padding: 1rem 1.25rem;
+    font-size: 1.0625rem;
+    border-radius: 0.875rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-alert {
+    font-size: 1rem;
+    padding: 0.9rem 1.1rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-error {
+    font-size: 0.9375rem;
+}
+
+#memberAuthModal .ma-card--modal .ma-check input {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.ma-subtitle--center {
+    text-align: center;
+    margin-top: 1rem;
+    margin-bottom: 0;
 }
 
 #memberAuthModal .modal-content.ma-modal-content {
@@ -337,12 +421,12 @@
 }
 
 #memberAuthModal .modal-body {
-    padding: 1.75rem 1.75rem 2rem;
+    padding: 2rem 2rem 2.25rem;
 }
 
 @media (min-width: 576px) {
     #memberAuthModal .modal-body {
-        padding: 2rem 2.25rem 2.25rem;
+        padding: 2.25rem 2.5rem 2.5rem;
     }
 }
 
