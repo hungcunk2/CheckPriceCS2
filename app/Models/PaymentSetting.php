@@ -97,6 +97,11 @@ class PaymentSetting extends Model
         Cache::forget($this->staticQrCacheKey());
     }
 
+    public function orderQrCacheKey(int $amount, string $reference): string
+    {
+        return 'vietqr_order:'.md5($this->staticQrCacheKey().'|'.$amount.'|'.$reference);
+    }
+
     public function quickLinkImageUrl(?int $amount = null, ?string $addInfo = null): ?string
     {
         if (! $this->isConfigured()) {

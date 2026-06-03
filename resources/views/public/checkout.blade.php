@@ -115,13 +115,11 @@
                                 <p>Chủ TK: {{ $payment['account_holder'] }}</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
                                 <p>Nội dung CK: <strong id="bankRef">—</strong></p>
-                                @if(!empty($qrImageUrl))
-                                    <div class="vietqr-wrap" id="checkoutQrSection">
-                                        <img src="{{ $qrImageUrl }}" alt="Mã VietQR chuyển khoản" id="vietqrImg"
-                                             class="vietqr-img" width="280" height="280"
-                                             decoding="async" fetchpriority="high">
-                                    </div>
-                                @endif
+                                <div class="vietqr-wrap" id="checkoutQrSection" style="display:none">
+                                    <img alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img"
+                                         width="280" height="280" decoding="async" fetchpriority="high"
+                                         @if(!empty($qrImageUrl)) src="{{ $qrImageUrl }}" @endif>
+                                </div>
                             @else
                                 <p style="color:#94a3b8;">Chưa cấu hình STK.</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
@@ -196,6 +194,9 @@
 <script>
 (function () {
     const planData = @json($plansJson);
+    const qrProxyBase = @json(route('public.checkout.qr'));
+    const paymentConfigured = @json($payment['configured'] ?? false);
+    let lastQrUrl = @json($qrImageUrl ?? '');
     const cycles = {
         '1m': { label: '1 tháng', months: 1 },
         '3m': { label: '3 tháng', months: 3, savePct: 5 },
@@ -225,6 +226,36 @@
     function buildRef(email, plan, months) {
         const local = emailLocal(email);
         return local ? (local + plan + months) : '';
+    }
+
+    function buildQrUrl() {
+        if (!paymentConfigured || !state.email) return '';
+        const u = new URL(qrProxyBase, window.location.origin);
+        u.searchParams.set('plan', state.plan);
+        u.searchParams.set('months', String(cycles[state.cycle].months));
+        u.searchParams.set('email', state.email);
+        return u.toString();
+    }
+
+    function syncQr() {
+        const qrImg = document.getElementById('vietqrImg');
+        const section = document.getElementById('checkoutQrSection');
+        if (!qrImg || !section || !paymentConfigured) return;
+
+        const url = buildQrUrl();
+        if (!url) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+        if (lastQrUrl === url) return;
+
+        lastQrUrl = url;
+        qrImg.classList.add('is-loading');
+        qrImg.onload = function () { qrImg.classList.remove('is-loading'); };
+        qrImg.onerror = function () { qrImg.classList.remove('is-loading'); };
+        qrImg.src = url;
     }
 
     function currentEmail() {
@@ -288,6 +319,12 @@
         const bankRef = document.getElementById('bankRef');
         if (bankAmount) bankAmount.textContent = fmt(total);
         if (bankRef) bankRef.textContent = ref || '—';
+        syncQr();
+    }
+
+    if (lastQrUrl) {
+        const section = document.getElementById('checkoutQrSection');
+        if (section) section.style.display = 'block';
     }
 
     if (payBtn) {

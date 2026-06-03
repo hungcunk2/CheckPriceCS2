@@ -30,8 +30,8 @@ class CheckoutController extends Controller
         $planData = SubscriptionPlans::get($plan);
         $user = $this->resolveUser($request);
         $paymentSettings = PaymentSetting::current();
-        $qrImageUrl = $paymentSettings->isConfigured()
-            ? route('public.checkout.qr')
+        $qrImageUrl = ($paymentSettings->isConfigured() && $user !== null)
+            ? $this->qrProxyUrl($plan, $months, $user->email)
             : null;
 
         $plansJson = [];
@@ -100,23 +100,39 @@ class CheckoutController extends Controller
             ->with('success', 'Đã ghi nhận yêu cầu thanh toán. Admin sẽ kích hoạt gói trong vòng 24h sau khi xác nhận chuyển khoản.');
     }
 
-    public function qrImage(): Response
+    public function qrImage(Request $request): Response
     {
+        $validated = $request->validate([
+            'plan' => ['required', 'string', 'in:'.implode(',', array_keys(SubscriptionPlans::PLANS))],
+            'months' => ['required', 'integer', 'in:'.implode(',', SubscriptionPlans::CYCLES)],
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $plan = $validated['plan'];
+        $months = (int) $validated['months'];
+        $email = mb_strtolower(trim($validated['email']));
+
         $settings = PaymentSetting::current();
         if (! $settings->isConfigured()) {
             abort(404);
         }
 
-        $vietqrUrl = $settings->staticQuickLinkImageUrl();
+        $amount = SubscriptionPlans::price($plan, $months);
+        $reference = SubscriptionPlans::transferReference($email, $plan, $months);
+        $vietqrUrl = $settings->quickLinkImageUrl($amount, $reference);
         if ($vietqrUrl === null) {
             abort(404);
         }
 
-        $png = Cache::remember($settings->staticQrCacheKey(), 60 * 60 * 24 * 30, function () use ($vietqrUrl) {
-            $response = Http::timeout(20)->get($vietqrUrl);
+        $png = Cache::remember(
+            $settings->orderQrCacheKey($amount, $reference),
+            60 * 60 * 24 * 7,
+            function () use ($vietqrUrl) {
+                $response = Http::timeout(20)->get($vietqrUrl);
 
-            return $response->successful() ? $response->body() : null;
-        });
+                return $response->successful() ? $response->body() : null;
+            }
+        );
 
         if (! is_string($png) || $png === '') {
             abort(502);
@@ -124,7 +140,16 @@ class CheckoutController extends Controller
 
         return response($png, 200, [
             'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=2592000',
+            'Cache-Control' => 'public, max-age=604800',
+        ]);
+    }
+
+    private function qrProxyUrl(string $plan, int $months, string $email): string
+    {
+        return route('public.checkout.qr', [
+            'plan' => $plan,
+            'months' => $months,
+            'email' => $email,
         ]);
     }
 
