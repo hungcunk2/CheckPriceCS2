@@ -10,11 +10,29 @@
             <span class="lp-pricing-badge">Bảng giá</span>
             <h1 class="lp-pricing-title">Chọn gói phù hợp với bạn</h1>
             <p class="lp-pricing-subtitle">
-                Từ cá nhân flip 1–2 acc đến shop lớn quản lý hàng trăm kho — luôn có gói vừa túi.
+                Bắt đầu miễn phí trên trang chủ — nâng cấp khi cần theo dõi nhiều kho và Empire coin.
             </p>
         </div>
 
         <div class="lp-pricing-grid">
+            <div class="lp-pricing-card is-free">
+                <div class="lp-pricing-plan">Free</div>
+                <div class="lp-pricing-price">
+                    <span class="lp-pricing-price-num">0đ</span>
+                    <span class="lp-pricing-price-unit">/mãi mãi</span>
+                </div>
+                <div class="lp-pricing-slots">Không lưu kho</div>
+                <div class="lp-pricing-divider"></div>
+                <ul class="lp-pricing-features">
+                    <li><span class="lp-pricing-check">✓</span> Tra 1 kho trên trang chủ</li>
+                    <li><span class="lp-pricing-check">✓</span> Giá Buff163 + Empire (USD tham chiếu)</li>
+                    <li><span class="lp-pricing-check">✓</span> Cooldown ~5 phút / IP</li>
+                    <li><span class="lp-pricing-check">✓</span> Không cần đăng nhập Steam</li>
+                    <li><span class="lp-pricing-check is-muted">—</span> Không sync / không lưu kho</li>
+                </ul>
+                @include('public.partials.pricing-cta', ['plan' => 'Free', 'free' => true])
+            </div>
+
             <div class="lp-pricing-card">
                 <div class="lp-pricing-plan">Pro</div>
                 <div class="lp-pricing-price">
@@ -117,10 +135,8 @@
         </p>
 
         <p class="lp-pricing-free">
-            Tra giá nhanh trên trang chủ vẫn <strong>miễn phí</strong> — không cần gói.
-            <a href="{{ route('public.landing') }}#hero">Thử ngay</a>
-            ·
-            <a href="{{ route('public.inventories') }}">Xem bảng giá kho công khai</a>
+            <a href="{{ route('public.inventories') }}">Xem kho công khai</a>
+            (giá tham khảo, do admin bật hiển thị).
         </p>
     </div>
 </section>
