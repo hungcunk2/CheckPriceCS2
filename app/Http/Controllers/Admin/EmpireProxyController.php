@@ -43,6 +43,8 @@ class EmpireProxyController extends Controller
         ]);
 
         Cache::forget('fivestars_rotating_proxy:url');
+        Cache::forget('fivestars_rotating_proxy:last_fetch_at');
+        Cache::forget('fivestars_rotating_proxy:wait_until');
 
         return redirect()
             ->route('admin.empire-proxy.edit')
@@ -52,6 +54,9 @@ class EmpireProxyController extends Controller
     public function test(FiveStarsRotatingProxyService $proxy): RedirectResponse
     {
         $result = $proxy->testFetch();
+        if ($result['ok'] && $result['proxy_url'] && empty($result['throttled'])) {
+            Cache::put('fivestars_rotating_proxy:last_fetch_at', time(), 86400);
+        }
         $settings = EmpireProxySetting::current();
         $settings->update([
             'last_tested_at' => now(),

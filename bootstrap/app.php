@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
+        $schedule->command('cs2price:refresh-proxy')
+            ->everyThirtySeconds()
+            ->when(fn () => app(\App\Services\FiveStarsRotatingProxyService::class)->isEnabled())
+            ->withoutOverlapping(28)
+            ->runInBackground();
+
         if (! config('cs2price.price_auto_sync_enabled', true)) {
             return;
         }

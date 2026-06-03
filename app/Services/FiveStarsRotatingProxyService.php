@@ -18,6 +18,10 @@ class FiveStarsRotatingProxyService
 
     private const CACHE_KEY = 'fivestars_rotating_proxy:url';
 
+    private const LAST_FETCH_KEY = 'fivestars_rotating_proxy:last_fetch_at';
+
+    private const WAIT_UNTIL_KEY = 'fivestars_rotating_proxy:wait_until';
+
     public function isEnabled(): bool
     {
         $settings = EmpireProxySetting::current();
@@ -39,11 +43,34 @@ class FiveStarsRotatingProxyService
             return $cached;
         }
 
+        return $this->refreshProxyIfDue(true);
+    }
+
+    /**
+     * Cron / lệnh nền: lấy IP mới khi đủ FIVESTARS_PROXY_ROTATE_SECONDS (mặc định 62).
+     */
+    public function refreshProxyIfDue(bool $force = false): ?string
+    {
+        if (! $this->isEnabled()) {
+            return null;
+        }
+
+        if ($this->isThrottled()) {
+            return $this->cachedProxyUrl();
+        }
+
+        if (! $force) {
+            $lastFetch = (int) Cache::get(self::LAST_FETCH_KEY, 0);
+            if ($lastFetch > 0 && (time() - $lastFetch) < $this->rotateIntervalSeconds()) {
+                return $this->cachedProxyUrl();
+            }
+        }
+
         return $this->refreshProxy();
     }
 
     /**
-     * @return array{ok: bool, message: string, proxy_url: string|null, raw: array<string, mixed>|null}
+     * @return array{ok: bool, message: string, proxy_url: string|null, raw: array<string, mixed>|null, throttled?: bool}
      */
     public function testFetch(): array
     {
@@ -51,6 +78,19 @@ class FiveStarsRotatingProxyService
         $key = trim((string) $settings->rotation_key);
         if ($key === '') {
             return ['ok' => false, 'message' => 'Chưa nhập key xoay.', 'proxy_url' => null, 'raw' => null];
+        }
+
+        if ($this->isThrottled()) {
+            $cached = $this->cachedProxyUrl();
+            if ($cached !== null) {
+                return [
+                    'ok' => true,
+                    'message' => 'Đang chờ API 5Stars cho phép đổi proxy.',
+                    'proxy_url' => $cached,
+                    'raw' => null,
+                    'throttled' => true,
+                ];
+            }
         }
 
         try {
@@ -65,10 +105,27 @@ class FiveStarsRotatingProxyService
         }
 
         $status = (int) ($body['status'] ?? 0);
+        $message = trim((string) ($body['message'] ?? $body['comen'] ?? 'lỗi'));
+
         if ($status !== 100) {
+            $wait = $this->parseCooldownSeconds($message);
+            if ($wait !== null) {
+                $this->markThrottle($wait);
+                $cached = $this->cachedProxyUrl();
+                if ($cached !== null) {
+                    return [
+                        'ok' => true,
+                        'message' => 'Giữ proxy hiện tại — '.$message,
+                        'proxy_url' => $cached,
+                        'raw' => $body,
+                        'throttled' => true,
+                    ];
+                }
+            }
+
             return [
                 'ok' => false,
-                'message' => 'API status='.$status.' — '.($body['message'] ?? $body['comen'] ?? 'lỗi'),
+                'message' => 'API status='.$status.' — '.$message,
                 'proxy_url' => null,
                 'raw' => $body,
             ];
@@ -81,7 +138,7 @@ class FiveStarsRotatingProxyService
 
         return [
             'ok' => true,
-            'message' => trim((string) ($body['message'] ?? 'OK')),
+            'message' => $message,
             'proxy_url' => $url,
             'raw' => $body,
         ];
@@ -90,13 +147,21 @@ class FiveStarsRotatingProxyService
     private function refreshProxy(): ?string
     {
         $result = $this->testFetch();
+
         if (! $result['ok'] || $result['proxy_url'] === null) {
             Log::warning('fivestars_proxy: refresh failed', ['message' => $result['message']]);
 
-            return null;
+            return $this->cachedProxyUrl();
         }
 
         $this->rememberProxy($result['proxy_url'], $result['message']);
+        Cache::put(self::LAST_FETCH_KEY, time(), 86400);
+
+        if (! empty($result['throttled'])) {
+            Log::info('fivestars_proxy: throttled, kept cached proxy', ['message' => $result['message']]);
+        } else {
+            Log::info('fivestars_proxy: new proxy', ['url' => $result['proxy_url']]);
+        }
 
         return $result['proxy_url'];
     }
@@ -108,26 +173,54 @@ class FiveStarsRotatingProxyService
 
     public function cacheTtlSeconds(string $message): int
     {
-        $rotate = max(0, (int) config('cs2price.fivestars_proxy_rotate_seconds', 62));
+        $rotate = $this->rotateIntervalSeconds();
 
         $apiLifetime = null;
         if (preg_match('/die sau (\d+)s/i', $message, $m)) {
             $apiLifetime = max(1, (int) $m[1]);
         }
 
-        if ($rotate > 0) {
-            $ttl = $rotate;
-        } elseif ($apiLifetime !== null) {
-            $ttl = max(10, $apiLifetime - 2);
-        } else {
-            $ttl = 62;
-        }
+        $ttl = $rotate > 0 ? $rotate : 62;
 
         if ($apiLifetime !== null) {
             $ttl = min($ttl, max(10, $apiLifetime - 2));
         }
 
         return min($ttl, 3600);
+    }
+
+    public function rotateIntervalSeconds(): int
+    {
+        return max(60, (int) config('cs2price.fivestars_proxy_rotate_seconds', 62));
+    }
+
+    private function cachedProxyUrl(): ?string
+    {
+        $cached = Cache::get(self::CACHE_KEY);
+
+        return is_string($cached) && $cached !== '' ? $cached : null;
+    }
+
+    private function isThrottled(): bool
+    {
+        $until = (int) Cache::get(self::WAIT_UNTIL_KEY, 0);
+
+        return $until > time();
+    }
+
+    private function markThrottle(int $seconds): void
+    {
+        $seconds = max(1, $seconds);
+        Cache::put(self::WAIT_UNTIL_KEY, time() + $seconds, $seconds + 120);
+    }
+
+    private function parseCooldownSeconds(string $message): ?int
+    {
+        if (preg_match('/con\s+(\d+)\s*s/i', $message, $m)) {
+            return (int) $m[1];
+        }
+
+        return null;
     }
 
     /**
