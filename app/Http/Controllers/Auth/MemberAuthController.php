@@ -24,8 +24,8 @@ class MemberAuthController extends Controller
             return redirect()->route('member.dashboard');
         }
 
-        $mode = (string) $request->query('mode', session('auth_tab', 'login'));
-        if (! in_array($mode, ['login', 'register'], true)) {
+        $mode = (string) $request->query('mode', session('auth_tab', $request->has('forgot') ? 'forgot' : 'login'));
+        if (! in_array($mode, ['login', 'register', 'forgot'], true)) {
             $mode = 'login';
         }
 
@@ -184,14 +184,23 @@ class MemberAuthController extends Controller
 
         if ($to !== '' && str_starts_with($to, url('/'))) {
             $separator = str_contains($to, '?') ? '&' : '?';
+            $query = ['openAuth' => 1];
+            if ($mode === 'forgot') {
+                $query['forgot'] = 1;
+                $query['auth'] = 'forgot';
+            } else {
+                $query['auth'] = $mode;
+            }
 
-            return redirect()->to($to.$separator.http_build_query([
-                'openAuth' => 1,
-                'auth' => $mode,
-            ]))->with('auth_tab', $mode);
+            return redirect()->to($to.$separator.http_build_query($query))->with('auth_tab', $mode);
         }
 
-        return redirect()->route('login', ['mode' => $mode])->with('auth_tab', $mode);
+        $routeParams = ['mode' => $mode];
+        if ($mode === 'forgot') {
+            $routeParams['forgot'] = 1;
+        }
+
+        return redirect()->route('login', $routeParams)->with('auth_tab', $mode);
     }
 
     public function logout(Request $request): RedirectResponse

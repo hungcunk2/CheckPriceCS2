@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BuffAccountController;
 use App\Http\Controllers\Admin\EmpireProxyController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\Member\DashboardController;
@@ -28,6 +29,7 @@ Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::get('/dang-nhap', [MemberAuthController::class, 'showLogin'])->name('login');
 Route::get('/dang-ky', [MemberAuthController::class, 'showRegister'])->name('register');
+Route::post('/quen-mat-khau', [ForgotPasswordController::class, 'send'])->name('password.forgot');
 Route::post('/dang-nhap', [MemberAuthController::class, 'login'])->name('login.submit');
 Route::get('/dang-ky/huy', [MemberAuthController::class, 'registerCancel'])->name('register.cancel');
 Route::post('/dang-ky/gui-otp', [MemberAuthController::class, 'registerSendOtp'])->name('register.send-otp');

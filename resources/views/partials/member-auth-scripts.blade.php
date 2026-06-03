@@ -1,14 +1,22 @@
 <script>
 (function () {
+    function switchPanel(scope, target) {
+        var panels = ['login', 'register', 'forgot'];
+        panels.forEach(function (name) {
+            var el = document.getElementById('ma-panel-' + name + scope);
+            if (el) {
+                el.classList.toggle('is-hidden', name !== target);
+            }
+        });
+    }
+
     document.querySelectorAll('[data-ma-switch]').forEach(function (el) {
         el.addEventListener('click', function () {
             var target = el.getAttribute('data-ma-switch');
             var scope = el.getAttribute('data-ma-scope') || '';
-            var loginPanel = document.getElementById('ma-panel-login' + scope);
-            var registerPanel = document.getElementById('ma-panel-register' + scope);
-            if (!loginPanel || !registerPanel) return;
-            loginPanel.classList.toggle('is-hidden', target !== 'login');
-            registerPanel.classList.toggle('is-hidden', target !== 'register');
+            if (target) {
+                switchPanel(scope, target);
+            }
         });
     });
 
@@ -29,12 +37,20 @@
     @if(!empty($autoOpenModal))
     var modalEl = document.getElementById('memberAuthModal');
     if (modalEl && typeof bootstrap !== 'undefined') {
+        var authTab = @json(request('auth', session('auth_tab', request()->has('forgot') ? 'forgot' : 'login')));
+        var scope = '-modal';
+        if (authTab === 'register' || authTab === 'forgot' || authTab === 'login') {
+            switchPanel(scope, authTab);
+        }
+
         var shouldOpen = @json(
             $errors->any()
             || session('register_success')
             || session('register_otp_sent')
             || session('register_otp_message')
+            || session('forgot_success')
             || request()->has('auth')
+            || request()->has('forgot')
             || request()->query('openAuth')
         );
         if (shouldOpen) {
@@ -42,21 +58,9 @@
         }
 
         document.querySelectorAll('[data-open-auth-modal]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                if (btn.tagName === 'A' && btn.getAttribute('href') === '#') {
-                    e.preventDefault();
-                }
-                var tab = btn.getAttribute('data-auth-tab');
-                if (tab === 'register') {
-                    var scope = '-modal';
-                    var loginPanel = document.getElementById('ma-panel-login' + scope);
-                    var registerPanel = document.getElementById('ma-panel-register' + scope);
-                    if (loginPanel && registerPanel) {
-                        loginPanel.classList.add('is-hidden');
-                        registerPanel.classList.remove('is-hidden');
-                    }
-                }
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            btn.addEventListener('click', function () {
+                var tab = btn.getAttribute('data-auth-tab') || 'login';
+                switchPanel(scope, tab);
             });
         });
     }
