@@ -21,10 +21,6 @@
             <p class="subtitle">Chỉ vài bước để kích hoạt gói của bạn.</p>
         </header>
 
-        @if(session('success'))
-            <div class="alert-success">{{ session('success') }}</div>
-        @endif
-
         @if($errors->any())
             <div class="alert-success" style="border-color:rgba(248,113,113,0.4);color:#fca5a5;background:rgba(248,113,113,0.08);">
                 {{ $errors->first() }}
@@ -102,9 +98,8 @@
                             </p>
                         @endif
                         <label class="field" style="margin-top:14px">
-                            <span>Ghi chú (tuỳ chọn)</span>
-                            <input type="text" name="member_note" value="{{ old('member_note') }}"
-                                   placeholder="VD: Đã CK lúc 14:30, tên người gửi...">
+                            <span>Ghi chú</span>
+                            <input type="text" name="member_note" value="{{ old('member_note') }}">
                         </label>
                     </section>
 
@@ -113,8 +108,6 @@
                             <span class="step-num">4</span>
                             <h2>Chuyển khoản ngân hàng</h2>
                         </div>
-                        <p style="color:#94a3b8;font-size:13px;margin:0 0 14px;">Admin duyệt trong 24h sau khi đối soát.</p>
-
                         <div class="bank-panel" id="bankPanel">
                             @if($payment['configured'] ?? false)
                                 <p>Ngân hàng: {{ $payment['bank_name'] ?: '—' }}</p>
@@ -122,20 +115,21 @@
                                 <p>Chủ TK: {{ $payment['account_holder'] }}</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
                                 <p>Nội dung CK: <strong id="bankRef">—</strong></p>
-                                <div class="vietqr-wrap" id="checkoutQrSection">
-                                    <img src="" alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
+                                <div class="vietqr-wrap" id="checkoutQrSection" @if(empty($qrImageUrl)) style="display:none" @endif>
+                                    @if(!empty($qrImageUrl))
+                                        <img src="{{ $qrImageUrl }}" alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
+                                    @else
+                                        <img alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img" width="280" height="280">
+                                    @endif
                                 </div>
-                                <p style="margin-top:8px;color:#64748b;font-size:12px;">
-                                    Quét VietQR hoặc CK thủ công. Mã nội dung = email trước @ + gói + tháng.
-                                </p>
                             @else
-                                <p style="color:#94a3b8;">Admin chưa cấu hình STK. Vẫn có thể báo đã chuyển khoản bên dưới.</p>
+                                <p style="color:#94a3b8;">Chưa cấu hình STK.</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
                                 <p>Nội dung CK: <strong id="bankRef">—</strong></p>
                             @endif
 
                             @if(session('success'))
-                                <p class="confirm-paid-done">✓ Đã gửi yêu cầu — admin sẽ duyệt trong 24h.</p>
+                                <p class="confirm-paid-done">✓ Đã gửi yêu cầu.</p>
                             @else
                                 <button type="submit" class="confirm-paid-btn" id="confirm-paid-btn" disabled>
                                     Đã thanh toán
@@ -181,7 +175,6 @@
                                 Thanh toán
                             </button>
                         @endunless
-                        <p class="secure">🔒 Chuyển khoản an toàn · Admin duyệt tay</p>
                     </div>
                 </aside>
             </div>

@@ -4,20 +4,6 @@
 @section('page-title', 'Cài đặt thanh toán')
 
 @section('content')
-<div class="mb-3">
-    <p class="small text-muted mb-0">
-        Nhập ngân hàng, STK và tên chủ tài khoản. Trang <code>/thanh-toan</code> tự tạo mã VietQR
-        (số tiền + nội dung CK theo email/gói/tháng).
-    </p>
-</div>
-
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
-@endif
-
 <div class="col-lg-8 px-0">
     <div class="panel-admin rounded border p-4 mb-3">
         <form method="POST" action="{{ route('admin.payment-settings.update') }}">
@@ -73,7 +59,6 @@
                     <input type="text" name="account_holder" class="form-control"
                            value="{{ old('account_holder', $settings->account_holder) }}"
                            placeholder="NGUYEN VAN A" required>
-                    <div class="form-text">Không dấu, viết hoa.</div>
                     @error('account_holder')<div class="text-danger small">{{ $message }}</div>@enderror
                 </div>
             </div>

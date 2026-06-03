@@ -78,4 +78,37 @@ class PaymentSetting extends Model
         return preg_replace('/[^A-Z0-9 ]/', '', $name) ?? '';
     }
 
+    public function quickLinkImageUrl(?int $amount = null, ?string $addInfo = null): ?string
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $bankId = $this->vietqrBankId();
+        $account = preg_replace('/\s+/', '', (string) $this->account_number);
+        $template = in_array($this->qr_template, self::QR_TEMPLATES, true)
+            ? $this->qr_template
+            : 'compact';
+
+        $url = sprintf(
+            'https://img.vietqr.io/image/%s-%s-%s.png',
+            rawurlencode($bankId),
+            rawurlencode($account),
+            rawurlencode($template)
+        );
+
+        $query = array_filter([
+            'amount' => $amount > 0 ? $amount : null,
+            'addInfo' => $addInfo !== null && $addInfo !== ''
+                ? mb_substr($addInfo, 0, 50)
+                : null,
+            'accountName' => $this->vietqrAccountName() ?: null,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        if ($query === []) {
+            return $url;
+        }
+
+        return $url.'?'.http_build_query($query);
+    }
 }

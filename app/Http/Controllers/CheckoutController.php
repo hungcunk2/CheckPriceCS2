@@ -26,6 +26,14 @@ class CheckoutController extends Controller
 
         $planData = SubscriptionPlans::get($plan);
         $user = $this->resolveUser($request);
+        $paymentSettings = PaymentSetting::current();
+        $qrImageUrl = null;
+        if ($user !== null) {
+            $qrImageUrl = $paymentSettings->quickLinkImageUrl(
+                SubscriptionPlans::price($plan, $months),
+                SubscriptionPlans::transferReference($user->email, $plan, $months)
+            );
+        }
 
         $plansJson = [];
         foreach (SubscriptionPlans::PLANS as $key => $p) {
@@ -43,7 +51,8 @@ class CheckoutController extends Controller
             'months' => $months,
             'plansJson' => $plansJson,
             'checkoutUser' => $user,
-            'payment' => PaymentSetting::current()->forCheckout(),
+            'payment' => $paymentSettings->forCheckout(),
+            'qrImageUrl' => $qrImageUrl,
         ]);
     }
 
