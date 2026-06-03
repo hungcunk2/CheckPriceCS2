@@ -111,8 +111,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/cai-dat-thanh-toan', [PaymentSettingController::class, 'update'])->name('payment-settings.update');
         Route::post('/cai-dat-thanh-toan/import-env', [PaymentSettingController::class, 'importFromEnv'])->name('payment-settings.import-env');
         Route::post('/cai-dat-thanh-toan/refresh-banks', [PaymentSettingController::class, 'refreshBanks'])->name('payment-settings.refresh-banks');
-        Route::post('/cai-dat-thanh-toan/test-qr', [PaymentSettingController::class, 'testQr'])->name('payment-settings.test-qr');
-
         Route::get('/don-thanh-toan', [PlanOrderController::class, 'index'])->name('plan-orders.index');
         Route::post('/don-thanh-toan/{planOrder}/duyet', [PlanOrderController::class, 'confirm'])->name('plan-orders.confirm');
         Route::post('/don-thanh-toan/{planOrder}/huy', [PlanOrderController::class, 'cancel'])->name('plan-orders.cancel');
