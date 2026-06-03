@@ -156,7 +156,6 @@ html[data-currency="usd"] .price-col-label-vnd {
 }
 
 /* Nav + modal auth dùng landing.css — không áp nút tím app */
-body.has-lp-nav .lp-nav .lp-btn-ghost,
 body.has-lp-nav .lp-nav .lp-btn-primary,
 #memberAuthModal .lp-btn-primary {
     background: var(--lp-primary, #58a6ff);
@@ -170,6 +169,17 @@ body.has-lp-nav .lp-nav .lp-btn-primary:hover,
     background: var(--lp-primary, #58a6ff);
     border: none;
     color: var(--lp-primary-fg, #0d1117);
+}
+
+body.has-lp-nav .lp-nav-auth-link {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--lp-muted, #8b949e) !important;
+}
+
+body.has-lp-nav .lp-nav-auth-link:hover {
+    color: var(--lp-fg, #f0f3f6) !important;
 }
 
 .item-thumb {

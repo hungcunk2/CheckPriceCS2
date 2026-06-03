@@ -29,10 +29,13 @@
                         <a href="{{ route('member.dashboard') }}" class="lp-btn-ghost me-2">Tài khoản</a>
                     @endif
                 @else
-                    <button type="button" class="lp-btn-ghost lp-btn-nav-auth me-2" data-bs-toggle="modal" data-bs-target="#memberAuthModal"
-                            data-auth-tab="login">Đăng nhập</button>
-                    <button type="button" class="lp-btn-ghost lp-btn-nav-auth d-none d-sm-inline-flex" data-bs-toggle="modal"
-                            data-bs-target="#memberAuthModal" data-auth-tab="register">Đăng ký</button>
+                    <div class="lp-nav-auth me-2">
+                        <button type="button" class="lp-nav-auth-link" data-bs-toggle="modal" data-bs-target="#memberAuthModal"
+                                data-auth-tab="login">Đăng nhập</button>
+                        <span class="lp-nav-auth-sep" aria-hidden="true">·</span>
+                        <button type="button" class="lp-nav-auth-link" data-bs-toggle="modal" data-bs-target="#memberAuthModal"
+                                data-auth-tab="register">Đăng ký</button>
+                    </div>
                 @endauth
                 @if($showHeaderActions ?? false)
                     <div class="lp-nav-utilities">
