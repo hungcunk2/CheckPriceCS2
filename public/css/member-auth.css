@@ -21,12 +21,10 @@
     line-height: 1.2;
 }
 
-.ma-brand-check {
-    color: var(--ma-fg);
-}
-
-.ma-brand-cs2 {
-    margin-left: 0.1em;
+.ma-inline-brand {
+    font-weight: 700;
+    font-family: var(--lp-display, "Space Grotesk", sans-serif);
+    white-space: nowrap;
 }
 
 .ma-title {
@@ -43,6 +41,23 @@
     font-size: 0.875rem;
     color: var(--ma-muted);
     line-height: 1.5;
+}
+
+.ma-subtitle--cta {
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    margin-bottom: 1.75rem;
+}
+
+@media (min-width: 576px) {
+    .ma-subtitle--cta {
+        font-size: 1.125rem;
+    }
+}
+
+.ma-subtitle--cta .ma-switch-link--cta {
+    font-size: inherit;
+    font-weight: 700;
 }
 
 .ma-switch-link {

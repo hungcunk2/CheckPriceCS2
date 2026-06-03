@@ -10,14 +10,15 @@
 @endphp
 <div class="ma-card ma-card--embedded">
     <div class="ma-brand">
-        <span class="ma-brand-check">CheckPrice</span><span class="ma-brand-cs2 lp-text-gradient-primary">CS2</span>
+        <span class="lp-text-gradient-primary">CheckPrice</span><span class="lp-text-gradient-accent">CS2</span>
     </div>
 
     <div id="ma-panel-login{{ $fid }}" class="ma-panel {{ ($showRegister || $showForgot) ? 'is-hidden' : '' }}">
         <h2 class="ma-title">Đăng nhập</h2>
-        <p class="ma-subtitle">
-            Chưa có tài khoản?
-            <button type="button" class="ma-switch-link" data-ma-switch="register" data-ma-scope="{{ $fid }}">Đăng ký ngay</button>
+        <p class="ma-subtitle ma-subtitle--cta">
+            Chưa có tài khoản
+            <span class="ma-inline-brand"><span class="lp-text-gradient-primary">CheckPrice</span><span class="lp-text-gradient-accent">CS2</span></span>?
+            <button type="button" class="ma-switch-link ma-switch-link--cta" data-ma-switch="register" data-ma-scope="{{ $fid }}">Đăng ký ngay</button>
         </p>
 
         @if(session('register_success'))
