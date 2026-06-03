@@ -11,7 +11,7 @@
 
 <div class="mb-3">
 
-    <a href="{{ route('public.index') }}" class="text-decoration-none"><i class="fas fa-arrow-left"></i> Tất cả kho</a>
+    <a href="{{ route('public.inventories') }}" class="text-decoration-none"><i class="fas fa-arrow-left"></i> Tất cả kho</a>
 
 </div>
 

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Kho admin mặc định không hiện trên /bang-gia — bật thủ công trong form kho.
+     * Kho admin mặc định không hiện trên /kho-cong-khai — bật thủ công trong form kho.
      */
     public function up(): void
     {

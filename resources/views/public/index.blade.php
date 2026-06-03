@@ -5,13 +5,19 @@
 @section('content')
 @php use App\Support\Currency; @endphp
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-    <h2 class="h4 mb-0">Bảng giá kho CS2</h2>
-    <a href="{{ route('public.landing') }}" class="text-decoration-none small text-muted">
-        <i class="fas fa-arrow-left"></i> Trang chủ
-    </a>
+    <div>
+        <h2 class="h4 mb-1">Kho công khai</h2>
+        <p class="small text-muted mb-0">Giá skin theo Buff163 &amp; Empire — cập nhật định kỳ.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a href="{{ route('public.pricing') }}" class="btn btn-outline-primary btn-sm">Bảng giá gói</a>
+        <a href="{{ route('public.landing') }}" class="text-decoration-none small text-muted">
+            <i class="fas fa-arrow-left"></i> Trang chủ
+        </a>
+    </div>
 </div>
 
-<form action="{{ route('public.index') }}" method="get" class="row g-2 mb-4">
+<form action="{{ route('public.inventories') }}" method="get" class="row g-2 mb-4">
     <div class="col-md-9">
         <input
             type="search"

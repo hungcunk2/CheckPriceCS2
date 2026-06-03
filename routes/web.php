@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\Member\DashboardController;
+use App\Http\Controllers\Member\InventoryController as MemberInventoryController;
 use App\Http\Controllers\PublicInventoryController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAdmin;
@@ -20,7 +21,8 @@ Route::get('/', [PublicInventoryController::class, 'landing'])->name('public.lan
 Route::post('/api/guest/check/start', [PublicInventoryController::class, 'guestCheckStart'])->name('api.guest.check.start');
 Route::post('/api/guest/check/prices', [PublicInventoryController::class, 'guestCheckPrices'])->name('api.guest.check.prices');
 Route::get('/api/guest/item-image', [PublicInventoryController::class, 'guestItemImage'])->name('api.guest.item-image');
-Route::get('/bang-gia', [PublicInventoryController::class, 'index'])->name('public.index');
+Route::get('/bang-gia', [PublicInventoryController::class, 'pricing'])->name('public.pricing');
+Route::get('/kho-cong-khai', [PublicInventoryController::class, 'index'])->name('public.inventories');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')->name('blog.show');
 Route::get('/blog/{slug}', [BlogController::class, 'redirectFromSlug'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('blog.legacy');
@@ -40,8 +42,9 @@ Route::get('/dang-ky/xac-nhan-email', [MemberAuthController::class, 'registerCon
     ->name('register.confirm-email');
 Route::post('/dang-xuat', [MemberAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::middleware(['auth', EnsurePaidMember::class])->prefix('tai-khoan')->name('member.')->group(function () {
+Route::middleware('auth')->prefix('tai-khoan')->name('member.')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/kho', [MemberInventoryController::class, 'index'])->name('inventories.index');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {

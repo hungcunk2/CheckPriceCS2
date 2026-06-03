@@ -12,6 +12,12 @@ class EnsurePaidMember
     {
         $user = $request->user();
         if ($user === null || ! $user->hasActiveSubscription()) {
+            if ($user !== null) {
+                return redirect()
+                    ->route('member.dashboard')
+                    ->with('error', 'Tài khoản chưa được kích hoạt gói. Liên hệ admin.');
+            }
+
             return redirect()
                 ->route('login')
                 ->with('error', 'Cần đăng nhập tài khoản trả phí để dùng tính năng này.');

@@ -21,21 +21,19 @@
                 <a href="{{ $landingSection('how') }}">Cách dùng</a>
                 <a href="{{ route('blog.index') }}" @class(['is-active' => request()->routeIs('blog.*')])>Blog</a>
                 <a href="{{ $landingSection('faq') }}">FAQ</a>
-                <a href="{{ route('public.index') }}" @class(['is-active' => request()->routeIs('public.index', 'public.show')])>Bảng giá</a>
+                <a href="{{ route('public.pricing') }}" @class(['is-active' => request()->routeIs('public.pricing')])>Bảng giá</a>
             </div>
             <div class="lp-nav-right">
                 @auth
-                    @if(auth()->user()?->hasActiveSubscription())
-                        <a href="{{ route('member.dashboard') }}" class="lp-btn-ghost me-2">Tài khoản</a>
-                    @endif
+                    <a href="{{ route('member.dashboard') }}" class="lp-btn-ghost me-2">Tài khoản</a>
                 @endauth
                 @if($showHeaderActions ?? false)
                     <div class="lp-nav-utilities">
                         @include('partials.header-actions')
                     </div>
                 @endif
-                @if(auth()->check() && auth()->user()?->hasActiveSubscription())
-                    <a href="{{ route('member.dashboard') }}" class="lp-btn-primary lp-glow-blue">Xem kho ngay</a>
+                @auth
+                    <a href="{{ route('member.inventories.index') }}" class="lp-btn-primary lp-glow-blue">Xem kho ngay</a>
                 @else
                     <button type="button" class="lp-btn-primary lp-glow-blue" data-open-auth-modal
                             data-auth-tab="login" data-bs-toggle="modal" data-bs-target="#memberAuthModal">

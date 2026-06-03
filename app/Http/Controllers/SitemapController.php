@@ -17,9 +17,14 @@ class SitemapController extends Controller
                 'priority' => '1.0',
             ],
             [
-                'loc' => route('public.index'),
-                'changefreq' => 'hourly',
+                'loc' => route('public.pricing'),
+                'changefreq' => 'monthly',
                 'priority' => '0.9',
+            ],
+            [
+                'loc' => route('public.inventories'),
+                'changefreq' => 'hourly',
+                'priority' => '0.85',
             ],
             [
                 'loc' => route('blog.index'),

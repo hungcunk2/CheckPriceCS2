@@ -40,7 +40,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{ route('public.index') }}" class="nav-link" target="_blank">
+                            <a href="{{ route('public.inventories') }}" class="nav-link" target="_blank">
                                 <i class="fas fa-external-link-alt"></i>
                                 <span>Xem trang công khai</span>
                             </a>

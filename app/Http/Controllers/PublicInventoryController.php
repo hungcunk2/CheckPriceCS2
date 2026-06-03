@@ -228,6 +228,13 @@ class PublicInventoryController extends Controller
         return $minutes.' phút '.$remainingSeconds.' giây';
     }
 
+    public function pricing(): View
+    {
+        return view('public.pricing', [
+            'meta' => SiteMeta::forRequest('Bảng giá — CheckPrice CS2'),
+        ]);
+    }
+
     public function index(): View
     {
         $query = trim((string) request('q', ''));

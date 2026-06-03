@@ -16,8 +16,7 @@
                         <i class="fas fa-arrow-right"></i>
                     </button>
                 @else
-                    <a href="{{ auth()->user()?->hasActiveSubscription() ? route('member.dashboard') : route('login') }}"
-                       class="lp-btn-gradient lp-glow-blue">
+                    <a href="{{ route('member.inventories.index') }}" class="lp-btn-gradient lp-glow-blue">
                         Xem kho ngay
                         <i class="fas fa-arrow-right"></i>
                     </a>

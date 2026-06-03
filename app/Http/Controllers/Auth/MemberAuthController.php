@@ -185,7 +185,8 @@ class MemberAuthController extends Controller
 
         session()->forget(['register_otp_sent', 'register_otp_email', 'register_otp_message']);
 
-        return redirect()->route('public.landing')
+        return redirect()
+            ->route('member.inventories.index')
             ->with('register_magic_success', 'Đăng ký thành công! Bạn đã được đăng nhập. Admin sẽ kích hoạt gói để dùng đầy đủ tính năng thành viên.');
     }
 
