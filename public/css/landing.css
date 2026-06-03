@@ -107,7 +107,8 @@ body.landing h4 {
 
 .lp-muted { color: var(--lp-muted); }
 
-.lp-btn-primary {
+.lp-btn-primary,
+button.lp-btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -118,13 +119,19 @@ body.landing h4 {
     color: var(--lp-primary-fg);
     font-weight: 600;
     font-size: 0.875rem;
+    font-family: inherit;
+    line-height: 1.25;
     text-decoration: none;
     border: none;
     cursor: pointer;
     transition: opacity 0.2s;
 }
 
-.lp-btn-primary:hover { opacity: 0.9; color: var(--lp-primary-fg); }
+.lp-btn-primary:hover,
+button.lp-btn-primary:hover {
+    opacity: 0.9;
+    color: var(--lp-primary-fg);
+}
 
 .lp-btn-ghost {
     display: inline-flex;
@@ -394,7 +401,8 @@ body.has-lp-nav .modal-backdrop.show {
     background-color: #010409;
 }
 
-.lp-btn-gradient {
+.lp-btn-gradient,
+button.lp-btn-gradient {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -403,11 +411,14 @@ body.has-lp-nav .modal-backdrop.show {
     background: linear-gradient(135deg, var(--lp-primary), var(--lp-accent));
     color: var(--lp-primary-fg);
     font-weight: 600;
+    font-family: inherit;
     text-decoration: none;
+    cursor: pointer;
     transition: transform 0.2s;
 }
 
-.lp-btn-gradient:hover {
+.lp-btn-gradient:hover,
+button.lp-btn-gradient:hover {
     transform: scale(1.02);
     color: var(--lp-primary-fg);
 }

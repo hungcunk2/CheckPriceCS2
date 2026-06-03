@@ -9,10 +9,19 @@
                     <span class="lp-text-gradient-primary">kho đồ CS2</span> của bạn?
                 </h2>
                 <p>Miễn phí, không cần đăng nhập. Chỉ mất vài giây để biết kho đồ của bạn đáng giá bao nhiêu.</p>
-                <a href="#hero" class="lp-btn-gradient lp-glow-blue">
-                    Xem kho ngay
-                    <i class="fas fa-arrow-right"></i>
-                </a>
+                @guest
+                    <button type="button" class="lp-btn-gradient lp-glow-blue border-0" data-open-auth-modal
+                            data-auth-tab="login" data-bs-toggle="modal" data-bs-target="#memberAuthModal">
+                        Xem kho ngay
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                @else
+                    <a href="{{ auth()->user()?->hasActiveSubscription() ? route('member.dashboard') : route('login') }}"
+                       class="lp-btn-gradient lp-glow-blue">
+                        Xem kho ngay
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                @endguest
             </div>
         </div>
     </div>

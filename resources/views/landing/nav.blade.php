@@ -4,9 +4,6 @@
             ? '#'.$id
             : route('public.landing').'#'.$id;
     };
-    $checkNowUrl = request()->routeIs('public.landing')
-        ? '#hero'
-        : route('public.landing').'#hero';
 @endphp
 <header class="lp-nav-wrap">
     <div class="lp-container">
@@ -37,7 +34,14 @@
                         @include('partials.header-actions')
                     </div>
                 @endif
-                <a href="{{ $checkNowUrl }}" class="lp-btn-primary lp-glow-blue">Xem kho ngay</a>
+                @if(auth()->check() && auth()->user()?->hasActiveSubscription())
+                    <a href="{{ route('member.dashboard') }}" class="lp-btn-primary lp-glow-blue">Xem kho ngay</a>
+                @else
+                    <button type="button" class="lp-btn-primary lp-glow-blue" data-open-auth-modal
+                            data-auth-tab="login" data-bs-toggle="modal" data-bs-target="#memberAuthModal">
+                        Xem kho ngay
+                    </button>
+                @endif
             </div>
         </nav>
     </div>

@@ -304,3 +304,28 @@
     font-weight: 600;
     color: var(--ma-text);
 }
+
+.ma-card--embedded {
+    box-shadow: none;
+    padding: 0;
+    max-width: none;
+}
+
+.ma-modal-dialog {
+    max-width: 28rem;
+}
+
+.ma-modal-content {
+    background: var(--ma-card);
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 60px rgba(26, 43, 74, 0.2);
+}
+
+.ma-modal-content .modal-header .btn-close {
+    margin: 0.5rem 0.5rem 0 auto;
+}
+
+body.landing .modal-backdrop.show {
+    background-color: #010409;
+    opacity: 0.82;
+}
