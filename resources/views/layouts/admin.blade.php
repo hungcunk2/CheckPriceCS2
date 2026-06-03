@@ -78,6 +78,18 @@
                                 <span>User trả phí</span>
                             </a>
                         </li>
+                        @php
+                            $adminChatUnread = app(\App\Services\SupportChatService::class)->unreadCountForAdmin();
+                        @endphp
+                        <li class="nav-item {{ request()->routeIs('admin.support.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.support.index') }}" class="nav-link">
+                                <i class="fas fa-comments"></i>
+                                <span>Chat hỗ trợ</span>
+                                @if($adminChatUnread > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-1">{{ $adminChatUnread }}</span>
+                                @endif
+                            </a>
+                        </li>
                         <li class="nav-item {{ request()->routeIs('admin.empire-proxy.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.empire-proxy.edit') }}" class="nav-link">
                                 <i class="fas fa-network-wired"></i>

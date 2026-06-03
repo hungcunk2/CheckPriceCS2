@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Support\SubscriptionPlans;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -80,6 +81,11 @@ class User extends Authenticatable
     public function inventorySlotLimit(): ?int
     {
         return SubscriptionPlans::inventoryLimit($this->subscription_plan);
+    }
+
+    public function supportConversation(): HasOne
+    {
+        return $this->hasOne(SupportConversation::class);
     }
 }
 

@@ -293,31 +293,11 @@ class PublicInventoryController extends Controller
         ]);
     }
 
-    public function show(int $inventory): View
+    /** URL cũ /kho/{id} → danh sách kho công khai (không còn trang chi tiết riêng). */
+    public function redirectLegacyInventory(int $inventory): \Illuminate\Http\RedirectResponse
     {
-        $row = $this->store->findPublic($inventory);
-        abort_unless($row, 404);
+        abort_unless($this->store->findPublic($inventory), 404);
 
-        $items = EmpireItemEnricher::enrich(
-            InventorySnapshotReader::itemsFromInventory($row),
-            fetchMissing: true,
-        );
-        $images = app(\App\Services\ItemImageService::class);
-        $items = array_map(static function (array $item) use ($images) {
-            $hash = (string) ($item['market_hash_name'] ?? '');
-            $url = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
-            if ($url !== null) {
-                $item['icon_url'] = $url;
-            }
-
-            return $item;
-        }, $items);
-
-        return view('public.show', [
-            'inventory' => $row,
-            'items' => $items,
-            'weaponStats' => InventoryWeaponStats::summarize($items),
-            'meta' => SiteMeta::forInventory($row),
-        ]);
+        return redirect()->to(route('public.inventories').'#kho-'.$inventory, 301);
     }
 }

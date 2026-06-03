@@ -39,6 +39,20 @@
                                 <span>Thông tin gói</span>
                             </a>
                         </li>
+                        @php
+                            $memberChatUnread = auth()->check()
+                                ? app(\App\Services\SupportChatService::class)->unreadCountForMember(auth()->user())
+                                : 0;
+                        @endphp
+                        <li class="nav-item {{ request()->routeIs('member.support.*') ? 'active' : '' }}">
+                            <a href="{{ route('member.support.index') }}" class="nav-link">
+                                <i class="fas fa-comments"></i>
+                                <span>Chat với Admin</span>
+                                @if($memberChatUnread > 0)
+                                    <span class="badge rounded-pill text-bg-danger ms-1">{{ $memberChatUnread }}</span>
+                                @endif
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a href="{{ route('public.landing') }}#hero" class="nav-link" target="_blank">
                                 <i class="fas fa-search-dollar"></i>

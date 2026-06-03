@@ -16,7 +16,9 @@ php artisan storage:link 2>/dev/null || true
 # Đọc lại .env (sau khi sửa EMPIRE_ENABLED, API key, …)
 php artisan config:clear
 php artisan config:cache
+php artisan route:clear
 php artisan route:cache
+php artisan view:clear
 php artisan view:cache
 chown -R www-data:www-data storage bootstrap/cache
 

@@ -150,7 +150,7 @@ class InventoryController extends Controller
                 refreshSteam: true,
                 empireMode: 'admin',
             );
-            $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? true));
+            $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? false));
 
             if ($request->wantsJson()) {
                 $empireNote = '';
@@ -247,7 +247,7 @@ class InventoryController extends Controller
         try {
             $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'admin');
             $row = $this->store->find($id);
-            $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? true) : true);
+            $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
 
             return redirect()
                 ->route('admin.inventories.index')

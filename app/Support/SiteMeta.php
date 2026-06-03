@@ -92,8 +92,8 @@ class SiteMeta
         return self::make([
             'title' => $label.' — '.config('site.name'),
             'description' => $description,
-            'canonical' => route('public.show', $inventory->id),
-            'url' => route('public.show', $inventory->id),
+            'canonical' => route('public.inventories').'#kho-'.$inventory->id,
+            'url' => route('public.inventories').'#kho-'.$inventory->id,
             'type' => 'article',
             'image' => $image,
             'image_width' => is_string($avatar) && $avatar !== '' ? 184 : config('site.og_image_width'),

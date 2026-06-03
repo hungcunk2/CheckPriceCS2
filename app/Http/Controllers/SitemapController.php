@@ -42,15 +42,6 @@ class SitemapController extends Controller
             ];
         }
 
-        foreach ($store->publicInventories() as $inv) {
-            $urls[] = [
-                'loc' => route('public.show', $inv->id),
-                'changefreq' => 'daily',
-                'priority' => '0.8',
-                'lastmod' => $inv->last_checked_at ?? null,
-            ];
-        }
-
         return response()
             ->view('sitemap', ['urls' => $urls])
             ->header('Content-Type', 'application/xml; charset=UTF-8');

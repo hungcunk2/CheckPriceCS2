@@ -12,8 +12,10 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Admin\SupportChatController as AdminSupportChatController;
 use App\Http\Controllers\Member\DashboardController;
 use App\Http\Controllers\Member\InventoryController as MemberInventoryController;
+use App\Http\Controllers\Member\SupportChatController as MemberSupportChatController;
 use App\Http\Controllers\PublicInventoryController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAdmin;
@@ -32,7 +34,8 @@ Route::get('/kho-cong-khai', [PublicInventoryController::class, 'index'])->name(
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')->name('blog.show');
 Route::get('/blog/{slug}', [BlogController::class, 'redirectFromSlug'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('blog.legacy');
-Route::get('/kho/{inventory}', [PublicInventoryController::class, 'show'])->whereNumber('inventory')->name('public.show');
+Route::get('/kho/{inventory}', [PublicInventoryController::class, 'redirectLegacyInventory'])
+    ->whereNumber('inventory');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::get('/dang-nhap', [MemberAuthController::class, 'showLogin'])->name('login');
@@ -50,6 +53,9 @@ Route::post('/dang-xuat', [MemberAuthController::class, 'logout'])->name('logout
 
 Route::middleware('auth')->prefix('tai-khoan')->name('member.')->group(function () {
     Route::get('/thong-tin', DashboardController::class)->name('dashboard');
+    Route::get('/ho-tro', [MemberSupportChatController::class, 'index'])->name('support.index');
+    Route::get('/ho-tro/messages', [MemberSupportChatController::class, 'messages'])->name('support.messages');
+    Route::post('/ho-tro', [MemberSupportChatController::class, 'store'])->name('support.store');
 });
 
 Route::middleware(['auth', 'member'])->prefix('tai-khoan')->name('member.')->group(function () {
@@ -124,6 +130,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/don-thanh-toan', [PlanOrderController::class, 'index'])->name('plan-orders.index');
         Route::post('/don-thanh-toan/{planOrder}/duyet', [PlanOrderController::class, 'confirm'])->name('plan-orders.confirm');
         Route::post('/don-thanh-toan/{planOrder}/huy', [PlanOrderController::class, 'cancel'])->name('plan-orders.cancel');
+
+        Route::get('/ho-tro', [AdminSupportChatController::class, 'index'])->name('support.index');
+        Route::get('/ho-tro/{user}', [AdminSupportChatController::class, 'show'])->name('support.show')->whereNumber('user');
+        Route::get('/ho-tro/{user}/messages', [AdminSupportChatController::class, 'messages'])->name('support.messages')->whereNumber('user');
+        Route::post('/ho-tro/{user}', [AdminSupportChatController::class, 'store'])->name('support.store')->whereNumber('user');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

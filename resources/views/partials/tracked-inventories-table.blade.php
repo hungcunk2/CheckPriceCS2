@@ -133,7 +133,7 @@
                                 <i class="fas fa-chevron-down admin-inventory-chevron"></i>
                             </button>
                             @if($inv->is_public ?? false)
-                                <a href="{{ route('public.show', $inv->id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Xem trang công khai"><i class="fas fa-eye"></i></a>
+                                <a href="{{ route('public.inventories') }}#kho-{{ $inv->id }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Xem trên kho công khai"><i class="fas fa-eye"></i></a>
                             @endif
                             @if($tableMode === 'admin')
                                 <button type="button" class="btn btn-sm btn-outline-primary btn-refresh" data-id="{{ $inv->id }}" title="Check giá"><i class="fas fa-sync-alt"></i></button>

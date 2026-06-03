@@ -35,6 +35,7 @@
 
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('member.inventories.index') }}" class="btn btn-primary btn-sm">Kho đồ Steam</a>
+                <a href="{{ route('member.support.index') }}" class="btn btn-outline-primary btn-sm">Chat với Admin</a>
                 <a href="{{ route('public.pricing') }}" class="btn btn-outline-secondary btn-sm">Nâng cấp gói</a>
             </div>
         </div>
