@@ -2,136 +2,199 @@
 
 @section('content')
 @include('landing.nav')
-@include('partials.flash-alerts')
 
 @php
-    $cycleLabels = [
-        1 => '1 tháng',
-        3 => '3 tháng',
-        6 => '6 tháng',
-    ];
-    $savings = [3 => 'Tiết kiệm 5%', 6 => 'Tiết kiệm 10%'];
+    $cycleKey = match ($months) {
+        3 => '3m',
+        6 => '6m',
+        default => '1m',
+    };
+    $initialEmail = $checkoutUser?->email ?? old('email', request('email'));
 @endphp
 
-<section class="lp-pricing-page lp-checkout-page">
-    <div class="lp-container">
-        <a href="{{ route('public.pricing') }}" class="lp-checkout-back">
-            <i class="fas fa-arrow-left"></i> Quay lại bảng giá
-        </a>
+<section class="cp-checkout-v3">
+    <div class="container">
+        <header class="header">
+            <a href="{{ route('public.pricing') }}" class="back">← Quay lại bảng giá</a>
+            <span class="badge">Thanh toán</span>
+            <h1 class="cp-title">Hoàn tất đăng ký</h1>
+            <p class="subtitle">Chỉ vài bước để kích hoạt gói của bạn.</p>
+        </header>
 
-        <div class="lp-pricing-header">
-            <span class="lp-pricing-badge">Thanh toán</span>
-            <h1 class="lp-pricing-title">Hoàn tất gói {{ $plan['name'] }}</h1>
-            <p class="lp-pricing-subtitle">
-                Chuyển khoản ngân hàng — admin duyệt sau khi đối soát (thường trong 24h).
-            </p>
-        </div>
+        @if(session('success'))
+            <div class="alert-success">{{ session('success') }}</div>
+        @endif
 
-        <div class="lp-checkout-layout">
-            <div class="lp-pricing-card lp-checkout-summary">
-                <div class="lp-pricing-plan">{{ $plan['name'] }}</div>
-                <div class="lp-pricing-price">
-                    <span class="lp-pricing-price-num" id="checkoutTotal">{{ \App\Support\SubscriptionPlans::formatVnd($amount) }}</span>
-                </div>
-                <div class="lp-pricing-tagline">{{ $plan['slots'] }}</div>
-                <div class="lp-pricing-divider"></div>
-                <ul class="lp-pricing-features">
-                    @foreach($plan['features'] as $feature)
-                        <li><span class="lp-pricing-check">✓</span> {{ $feature }}</li>
-                    @endforeach
-                </ul>
-                <p class="lp-checkout-summary-hint small text-muted mb-0">Tổng thanh toán theo chu kỳ bên phải.</p>
+        @if($errors->any())
+            <div class="alert-success" style="border-color:rgba(248,113,113,0.4);color:#fca5a5;background:rgba(248,113,113,0.08);">
+                {{ $errors->first() }}
             </div>
+        @endif
 
-            <div class="lp-pricing-card lp-checkout-payment">
-                <div class="lp-pricing-plan">Thông tin thanh toán</div>
-                <div class="lp-pricing-divider"></div>
+        <form method="POST" action="{{ route('public.checkout.submit') }}" id="checkoutForm">
+            @csrf
+            <input type="hidden" name="plan" id="input_plan" value="{{ $planKey }}">
+            <input type="hidden" name="months" id="input_months" value="{{ $months }}">
+            <input type="hidden" name="payment_method" id="input_method" value="bank">
 
-                @if($checkoutUser)
-                    <p class="lp-checkout-user">
-                        Tài khoản: <strong>{{ $checkoutUser->name }}</strong> — {{ $checkoutUser->email }}
-                    </p>
-                @else
-                    <p class="lp-checkout-user">
-                        Dùng email đã <a href="{{ route('login', ['mode' => 'register']) }}">đăng ký</a> trên site.
-                    </p>
-                @endif
-
-                <form method="POST" action="{{ route('public.checkout.submit') }}" id="checkoutForm">
-                    @csrf
-                    <input type="hidden" name="plan" value="{{ $planKey }}">
-                    @if($checkoutUser)
-                        <input type="hidden" name="email" value="{{ $checkoutUser->email }}">
-                    @else
-                        <label class="lp-checkout-label" for="checkout_email">Email tài khoản</label>
-                        <input type="email" name="email" id="checkout_email" class="lp-checkout-input" required
-                               value="{{ old('email', request('email')) }}" placeholder="email@ban.com">
-                        @error('email')<p class="text-danger small mb-2">{{ $message }}</p>@enderror
-                    @endif
-
-                    <p class="lp-checkout-label mt-3 mb-2">Chu kỳ thanh toán</p>
-                    <div class="lp-checkout-cycles" role="group" aria-label="Chu kỳ thanh toán">
-                        @foreach(\App\Support\SubscriptionPlans::CYCLES as $cycle)
-                            @php $cyclePrice = $plan['prices'][$cycle]; @endphp
-                            <div class="lp-checkout-cycle">
-                                <input type="radio" name="months" id="months{{ $cycle }}" value="{{ $cycle }}"
-                                       data-price="{{ $cyclePrice }}"
-                                       @checked($months === $cycle)>
-                                <label for="months{{ $cycle }}">
-                                    <span class="lp-checkout-cycle-title">{{ $cycleLabels[$cycle] }}</span>
-                                    <span class="lp-checkout-cycle-price">{{ \App\Support\SubscriptionPlans::formatVnd($cyclePrice) }}</span>
-                                    @if(isset($savings[$cycle]))
-                                        <span class="lp-checkout-cycle-save">{{ $savings[$cycle] }}</span>
-                                    @endif
-                                </label>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="lp-checkout-bank">
-                        <div class="lp-checkout-bank-row">
-                            <span class="lp-checkout-bank-label">Ngân hàng</span>
-                            <span class="lp-checkout-bank-value">{{ $payment['bank_name'] ?: '—' }}</span>
+            <div class="layout">
+                <div class="main">
+                    <section class="card">
+                        <div class="step">
+                            <span class="step-num">1</span>
+                            <h2>Chọn gói</h2>
                         </div>
-                        <div class="lp-checkout-bank-row">
-                            <span class="lp-checkout-bank-label">Số tài khoản</span>
-                            <span class="lp-checkout-bank-value">{{ $payment['account_number'] ?: 'Liên hệ admin' }}</span>
+                        <div class="plan-grid" id="planGrid">
+                            @foreach(\App\Support\SubscriptionPlans::PLANS as $key => $p)
+                                <button type="button" class="plan-pick{{ $planKey === $key ? ' active' : '' }}"
+                                        data-plan="{{ $key }}">
+                                    <div class="plan-pick-name">{{ $p['name'] }}</div>
+                                    <div class="plan-pick-price">{{ number_format($p['prices'][1], 0, ',', '.') }}<span>đ/th</span></div>
+                                    <div class="plan-pick-slots">{{ $p['slots'] }}</div>
+                                </button>
+                            @endforeach
                         </div>
-                        <div class="lp-checkout-bank-row">
-                            <span class="lp-checkout-bank-label">Chủ tài khoản</span>
-                            <span class="lp-checkout-bank-value">{{ $payment['account_holder'] ?: '—' }}</span>
-                        </div>
-                        <div class="lp-checkout-bank-row">
-                            <span class="lp-checkout-bank-label">Số tiền</span>
-                            <span class="lp-checkout-bank-value" id="checkoutBankAmount">{{ \App\Support\SubscriptionPlans::formatVnd($amount) }}</span>
-                        </div>
-                    </div>
+                    </section>
 
-                    <p class="lp-checkout-label">Nội dung chuyển khoản <span class="text-muted">(bắt buộc đúng)</span></p>
-                    <p class="lp-checkout-ref-example small text-muted mb-2">
-                        Ví dụ: <code>trantuanhungpro3</code> — email <code>trantuanhung@…</code>, gói Pro, 3 tháng.
-                    </p>
-                    <div class="lp-checkout-ref-box">
-                        @if($reference)
-                            <code class="lp-checkout-ref-code" id="checkoutRef">{{ $reference }}</code>
-                            <button type="button" class="lp-checkout-copy" data-copy-target="checkoutRef">Sao chép</button>
+                    <section class="card">
+                        <div class="step">
+                            <span class="step-num">2</span>
+                            <h2>Chu kỳ thanh toán</h2>
+                        </div>
+                        <div class="cycle-grid" id="cycleGrid">
+                            <button type="button" class="cycle-pick{{ $cycleKey === '1m' ? ' active' : '' }}" data-cycle="1m">
+                                <div class="cycle-label">1 tháng</div>
+                                <div class="cycle-price" id="price-1m">—</div>
+                            </button>
+                            <button type="button" class="cycle-pick{{ $cycleKey === '3m' ? ' active' : '' }}" data-cycle="3m">
+                                <div class="cycle-label">3 tháng</div>
+                                <div class="cycle-price" id="price-3m">—</div>
+                                <div class="cycle-save">Tiết kiệm 5%</div>
+                            </button>
+                            <button type="button" class="cycle-pick{{ $cycleKey === '6m' ? ' active' : '' }}" data-cycle="6m">
+                                <div class="cycle-label">6 tháng</div>
+                                <div class="cycle-price" id="price-6m">—</div>
+                                <div class="cycle-save">Tiết kiệm 10%</div>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="step">
+                            <span class="step-num">3</span>
+                            <h2>Thông tin liên hệ</h2>
+                        </div>
+                        @if($checkoutUser)
+                            <p style="color:#94a3b8;font-size:14px;margin:0 0 10px;">
+                                Tài khoản: <strong style="color:#f8fafc">{{ $checkoutUser->email }}</strong>
+                            </p>
+                            <input type="hidden" name="email" id="checkout_email" value="{{ $checkoutUser->email }}">
                         @else
-                            <code class="lp-checkout-ref-code" id="checkoutRef">Nhập email để hiện mã</code>
+                            <label class="field">
+                                <span>Email đã đăng ký trên site</span>
+                                <input type="email" name="email" id="checkout_email" required
+                                       value="{{ $initialEmail }}" placeholder="ban@example.com"
+                                       autocomplete="email">
+                            </label>
+                            @error('email')<p class="field-error">{{ $message }}</p>@enderror
+                            <p style="color:#64748b;font-size:12px;margin-top:8px;">
+                                Chưa có tài khoản? <a href="{{ route('login', ['mode' => 'register']) }}" style="color:#60a5fa">Đăng ký</a>
+                            </p>
                         @endif
+                        <label class="field" style="margin-top:14px">
+                            <span>Ghi chú (tuỳ chọn)</span>
+                            <input type="text" name="member_note" value="{{ old('member_note') }}"
+                                   placeholder="VD: Đã CK lúc 14:30, tên người gửi...">
+                        </label>
+                    </section>
+
+                    <section class="card">
+                        <div class="step">
+                            <span class="step-num">4</span>
+                            <h2>Phương thức thanh toán</h2>
+                        </div>
+                        <div class="method-list" id="methodList">
+                            <button type="button" class="method is-disabled" data-method="momo" disabled>
+                                <div class="method-icon">M</div>
+                                <div class="method-text">
+                                    <div class="method-label">MoMo</div>
+                                    <div class="method-desc">Đang phát triển</div>
+                                </div>
+                                <div class="radio"><div class="radio-inner"></div></div>
+                            </button>
+                            <button type="button" class="method active" data-method="bank">
+                                <div class="method-icon">🏦</div>
+                                <div class="method-text">
+                                    <div class="method-label">Chuyển khoản ngân hàng</div>
+                                    <div class="method-desc">Admin duyệt trong 24h</div>
+                                </div>
+                                <div class="radio"><div class="radio-inner"></div></div>
+                            </button>
+                            <button type="button" class="method is-disabled" data-method="card" disabled>
+                                <div class="method-icon">💳</div>
+                                <div class="method-text">
+                                    <div class="method-label">Thẻ Visa / Mastercard</div>
+                                    <div class="method-desc">Đang phát triển</div>
+                                </div>
+                                <div class="radio"><div class="radio-inner"></div></div>
+                            </button>
+                        </div>
+
+                        @if(session('success'))
+                            <div class="bank-panel" id="bankPanel">
+                                <p><strong>Chuyển khoản theo thông tin sau:</strong></p>
+                                <p>Ngân hàng: {{ $payment['bank_name'] ?: '—' }}</p>
+                                <p>Số TK: {{ $payment['account_number'] ?: 'Liên hệ admin' }}</p>
+                                <p>Chủ TK: {{ $payment['account_holder'] ?: '—' }}</p>
+                                <p>Số tiền: <strong id="bankAmount">—</strong></p>
+                                <p>Nội dung CK: <strong id="bankRef">—</strong></p>
+                                <p style="margin-top:8px;color:#64748b;font-size:12px;">
+                                    Mã CK = phần email trước @ + gói + tháng (vd. trantuanhungpro3)
+                                </p>
+                            </div>
+                        @endif
+                    </section>
+                </div>
+
+                <aside class="summary">
+                    <div class="summary-inner">
+                        <h3>Đơn hàng</h3>
+                        <div class="row">
+                            <div>
+                                <div class="row-label" id="summary-plan-name">Gói {{ $plan['name'] }}</div>
+                                <div class="row-sub" id="summary-plan-slots">{{ $plan['slots'] }}</div>
+                            </div>
+                            <div class="row-val" id="summary-plan-price">—</div>
+                        </div>
+                        <div class="row">
+                            <div>
+                                <div class="row-label">Chu kỳ</div>
+                                <div class="row-sub" id="summary-cycle-label">—</div>
+                            </div>
+                            <div class="row-val" id="summary-cycle-mult">—</div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="row">
+                            <div class="row-label">Tạm tính</div>
+                            <div class="row-val" id="summary-subtotal">—</div>
+                        </div>
+                        <div class="row" id="summary-discount-row" style="display:none">
+                            <div class="row-label" style="color:#f97316" id="summary-discount-label">Giảm giá</div>
+                            <div class="row-val" style="color:#f97316" id="summary-discount">—</div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="row total">
+                            <div>Tổng cộng</div>
+                            <div class="total-num" id="summary-total">—</div>
+                        </div>
+                        <button type="submit" class="pay-btn" id="pay-btn" disabled>
+                            Thanh toán
+                        </button>
+                        <p class="secure">🔒 Chuyển khoản an toàn · Admin duyệt tay</p>
                     </div>
-
-                    <label class="lp-checkout-label mt-3" for="member_note">Ghi chú (tuỳ chọn)</label>
-                    <textarea name="member_note" id="member_note" class="lp-checkout-input" rows="2"
-                              placeholder="VD: Đã chuyển lúc 14:30, tên TK người gửi...">{{ old('member_note') }}</textarea>
-
-                    <button type="submit" class="lp-pricing-btn is-primary mt-3">Tôi đã chuyển khoản</button>
-                </form>
-
-                <p class="lp-pricing-note mt-3 mb-0">
-                    Sau khi xác nhận, đơn chờ admin duyệt. <a href="{{ route('public.pricing') }}">Xem bảng giá</a>.
-                </p>
+                </aside>
             </div>
-        </div>
+        </form>
     </div>
 </section>
 
@@ -139,81 +202,141 @@
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/pricing.css') }}?v={{ @filemtime(public_path('css/pricing.css')) ?: 1 }}">
 <link rel="stylesheet" href="{{ asset('css/checkout.css') }}?v={{ @filemtime(public_path('css/checkout.css')) ?: 1 }}">
 @endpush
 
 @push('scripts')
 <script>
 (function () {
-    const form = document.getElementById('checkoutForm');
-    const totalEl = document.getElementById('checkoutTotal');
-    const bankAmountEl = document.getElementById('checkoutBankAmount');
-    const planKey = @json($planKey);
-    const checkoutEmail = @json($checkoutUser?->email ?? old('email', request('email')));
+    const planData = @json($plansJson);
+    const cycles = {
+        '1m': { label: '1 tháng', months: 1 },
+        '3m': { label: '3 tháng', months: 3, savePct: 5 },
+        '6m': { label: '6 tháng', months: 6, savePct: 10 },
+    };
+    const cycleToMonths = { '1m': 1, '3m': 3, '6m': 6 };
+    const monthsToCycle = { 1: '1m', 3: '3m', 6: '6m' };
 
-    function formatVnd(n) {
+    let state = {
+        plan: @json($planKey),
+        cycle: @json($cycleKey),
+        method: 'bank',
+        email: @json($initialEmail ?? ''),
+    };
+
+    const form = document.getElementById('checkoutForm');
+    const payBtn = document.getElementById('pay-btn');
+    const emailInput = document.getElementById('checkout_email');
+
+    function fmt(n) {
         return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
     }
 
     function emailLocal(email) {
-        var part = (String(email || '').split('@')[0] || '').toLowerCase();
-        return part.replace(/[^a-z0-9]/g, '');
+        return (String(email || '').split('@')[0] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
-    function buildTransferRef(email, months) {
-        var local = emailLocal(email);
-        return local ? (local + planKey + months) : '';
+    function buildRef(email, plan, months) {
+        const local = emailLocal(email);
+        return local ? (local + plan + months) : '';
     }
 
-    function currentCheckoutEmail() {
-        var hidden = form.querySelector('input[name="email"][type="hidden"]');
-        if (hidden && hidden.value) return hidden.value;
-        var field = document.getElementById('checkout_email');
-        return field ? field.value : checkoutEmail;
+    function currentEmail() {
+        if (!emailInput) return state.email;
+        return emailInput.type === 'hidden' ? emailInput.value : emailInput.value.trim();
     }
 
-    function updateTransferRef(months) {
-        var ref = buildTransferRef(currentCheckoutEmail(), months);
-        var el = document.getElementById('checkoutRef');
-        if (ref) el.textContent = ref;
-    }
-
-    function updateFromCycle() {
-        const checked = form.querySelector('input[name="months"]:checked');
-        if (!checked) return;
-        const months = parseInt(checked.value, 10);
-        const price = parseInt(checked.dataset.price, 10);
-        totalEl.textContent = formatVnd(price);
-        bankAmountEl.textContent = formatVnd(price);
-        updateTransferRef(months);
+    function syncHidden() {
+        document.getElementById('input_plan').value = state.plan;
+        const months = cycles[state.cycle].months;
+        document.getElementById('input_months').value = months;
+        document.getElementById('input_method').value = state.method;
         const url = new URL(window.location.href);
+        url.searchParams.set('plan', state.plan);
         url.searchParams.set('months', months);
+        const em = currentEmail();
+        if (em) url.searchParams.set('email', em);
+        else url.searchParams.delete('email');
         window.history.replaceState({}, '', url);
     }
 
-    form.querySelectorAll('input[name="months"]').forEach(function (el) {
-        el.addEventListener('change', updateFromCycle);
-    });
+    function updateSummary() {
+        const p = planData[state.plan];
+        const c = cycles[state.cycle];
+        const months = c.months;
+        const subtotal = p.monthly * months;
+        const total = p.prices[months];
+        const discount = subtotal - total;
 
-    var emailField = document.getElementById('checkout_email');
-    if (emailField) {
-        emailField.addEventListener('input', function () {
-            var checked = form.querySelector('input[name="months"]:checked');
-            if (checked) updateTransferRef(parseInt(checked.value, 10));
-        });
+        document.getElementById('summary-plan-name').textContent = 'Gói ' + p.name;
+        document.getElementById('summary-plan-slots').textContent = p.slots;
+        document.getElementById('summary-plan-price').textContent = fmt(p.monthly) + '/th';
+        document.getElementById('summary-cycle-label').textContent = c.label;
+        document.getElementById('summary-cycle-mult').textContent = '×' + months;
+        document.getElementById('summary-subtotal').textContent = fmt(subtotal);
+
+        const discountRow = document.getElementById('summary-discount-row');
+        if (discount > 0) {
+            discountRow.style.display = 'flex';
+            document.getElementById('summary-discount-label').textContent =
+                'Giảm giá ' + (c.savePct || Math.round((discount / subtotal) * 100)) + '%';
+            document.getElementById('summary-discount').textContent = '−' + fmt(discount);
+        } else {
+            discountRow.style.display = 'none';
+        }
+        document.getElementById('summary-total').textContent = fmt(total);
+        payBtn.textContent = 'Thanh toán ' + fmt(total);
+
+        state.email = currentEmail();
+        payBtn.disabled = !state.email || state.method !== 'bank';
+        syncHidden();
+
+        for (const [id, cy] of Object.entries(cycles)) {
+            const el = document.getElementById('price-' + id);
+            if (el) el.textContent = fmt(p.prices[cy.months]);
+        }
+
+        const bankAmount = document.getElementById('bankAmount');
+        const bankRef = document.getElementById('bankRef');
+        if (bankAmount) bankAmount.textContent = fmt(total);
+        if (bankRef) bankRef.textContent = buildRef(state.email, state.plan, months) || '—';
     }
 
-    document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const id = btn.getAttribute('data-copy-target');
-            const text = document.getElementById(id).textContent.trim();
-            navigator.clipboard.writeText(text).then(function () {
-                btn.textContent = 'Đã copy';
-                setTimeout(function () { btn.textContent = 'Sao chép'; }, 2000);
+    document.querySelectorAll('.plan-pick').forEach(function (el) {
+        el.addEventListener('click', function () {
+            state.plan = el.dataset.plan;
+            document.querySelectorAll('.plan-pick').forEach(function (b) {
+                b.classList.toggle('active', b.dataset.plan === state.plan);
             });
+            updateSummary();
         });
     });
+
+    document.querySelectorAll('.cycle-pick').forEach(function (el) {
+        el.addEventListener('click', function () {
+            state.cycle = el.dataset.cycle;
+            document.querySelectorAll('.cycle-pick').forEach(function (b) {
+                b.classList.toggle('active', b.dataset.cycle === state.cycle);
+            });
+            updateSummary();
+        });
+    });
+
+    document.querySelectorAll('.method:not(.is-disabled)').forEach(function (el) {
+        el.addEventListener('click', function () {
+            state.method = el.dataset.method;
+            document.querySelectorAll('.method').forEach(function (b) {
+                b.classList.toggle('active', b.dataset.method === state.method && !b.disabled);
+            });
+            updateSummary();
+        });
+    });
+
+    if (emailInput && emailInput.type !== 'hidden') {
+        emailInput.addEventListener('input', updateSummary);
+    }
+
+    updateSummary();
 })();
 </script>
 @endpush

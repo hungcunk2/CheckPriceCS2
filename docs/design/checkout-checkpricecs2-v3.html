@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thanh toán — CheckPriceCS2</title>
+  <meta name="description" content="Hoàn tất đăng ký gói của bạn.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0B1220;
+      color: #F8FAFC;
+      min-height: 100vh;
+      padding: 48px 20px;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 20% 0%, rgba(96,165,250,0.15), transparent),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(249,115,22,0.12), transparent);
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1180px; margin: 0 auto; }
+
+    .header { text-align: center; margin-bottom: 40px; position: relative; }
+    .back {
+      position: absolute; left: 0; top: 8px;
+      color: #94A3B8; font-size: 14px;
+    }
+    .back:hover { color: #60A5FA; }
+    .badge {
+      display: inline-block; padding: 6px 14px;
+      background: rgba(96,165,250,0.1);
+      border: 1px solid rgba(96,165,250,0.3);
+      border-radius: 999px; font-size: 12px; color: #60A5FA;
+      margin-bottom: 16px; letter-spacing: 0.5px;
+      text-transform: uppercase; font-weight: 600;
+    }
+    h1 {
+      font-size: 40px; font-weight: 800; margin: 0 0 12px;
+      background: linear-gradient(135deg, #60A5FA 0%, #F97316 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #94A3B8; font-size: 15px; margin: 0; }
+
+    .layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .main { display: flex; flex-direction: column; gap: 18px; }
+
+    .card {
+      background: #0F172A;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 24px;
+    }
+    .step { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, #60A5FA, #F97316);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .step h2 { font-size: 16px; margin: 0; font-weight: 700; }
+
+    .plan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 700px) { .plan-grid { grid-template-columns: repeat(2, 1fr); } }
+    .plan-pick {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 14px; cursor: pointer;
+      text-align: left; transition: all 0.2s; color: #F8FAFC;
+      appearance: none; font-family: inherit;
+    }
+    .plan-pick:hover { border-color: rgba(96,165,250,0.4); }
+    .plan-pick.active {
+      border-color: transparent;
+      background:
+        linear-gradient(#0F172A, #0F172A) padding-box,
+        linear-gradient(135deg, #60A5FA, #F97316) border-box;
+      box-shadow: 0 0 24px rgba(96,165,250,0.18);
+    }
+    .plan-pick-name { font-size: 13px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .plan-pick.active .plan-pick-name { color: #60A5FA; }
+    .plan-pick-price { font-size: 18px; font-weight: 800; }
+    .plan-pick-price span { color: #94A3B8; font-size: 12px; font-weight: 500; }
+    .plan-pick-slots { color: #F97316; font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .cycle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .cycle-pick {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 16px; cursor: pointer;
+      text-align: center; transition: all 0.2s; color: #F8FAFC;
+      appearance: none; font-family: inherit;
+    }
+    .cycle-pick:hover { border-color: rgba(96,165,250,0.4); }
+    .cycle-pick.active {
+      border-color: transparent;
+      background:
+        linear-gradient(#0F172A, #0F172A) padding-box,
+        linear-gradient(135deg, #60A5FA, #F97316) border-box;
+    }
+    .cycle-label { font-size: 13px; color: #94A3B8; margin-bottom: 6px; font-weight: 600; }
+    .cycle-price { font-size: 18px; font-weight: 800; }
+    .cycle-save { color: #F97316; font-size: 11px; font-weight: 700; margin-top: 4px; }
+
+    .field { display: block; }
+    .field span { display: block; font-size: 13px; color: #94A3B8; margin-bottom: 8px; font-weight: 500; }
+    .field input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: #F8FAFC; font-size: 14px;
+      outline: none; transition: border-color 0.2s; font-family: inherit;
+    }
+    .field input:focus { border-color: #60A5FA; }
+
+    .method-list { display: flex; flex-direction: column; gap: 8px; }
+    .method {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px; border-radius: 12px; cursor: pointer;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: all 0.2s; color: #F8FAFC; text-align: left;
+      appearance: none; font-family: inherit; width: 100%;
+    }
+    .method:hover { border-color: rgba(96,165,250,0.4); }
+    .method.active {
+      border-color: transparent;
+      background:
+        linear-gradient(#0F172A, #0F172A) padding-box,
+        linear-gradient(135deg, #60A5FA, #F97316) border-box;
+    }
+    .method-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(96,165,250,0.15);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; color: #60A5FA; flex-shrink: 0;
+    }
+    .method-text { flex: 1; }
+    .method-label { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .method-desc { color: #94A3B8; font-size: 12px; }
+    .radio {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .method.active .radio { border-color: #60A5FA; }
+    .radio-inner {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, #60A5FA, #F97316);
+      display: none;
+    }
+    .method.active .radio-inner { display: block; }
+
+    .summary { position: relative; }
+    .summary-inner {
+      background: #0F172A;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 24px;
+      position: sticky; top: 24px;
+    }
+    .summary h3 { margin: 0 0 18px; font-size: 16px; font-weight: 700; }
+    .row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 8px 0; font-size: 14px;
+    }
+    .row-label { color: #CBD5E1; font-weight: 500; }
+    .row-sub { color: #64748B; font-size: 12px; margin-top: 2px; }
+    .row-val { color: #F8FAFC; font-weight: 600; }
+    .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 0; }
+    .row.total { font-size: 16px; font-weight: 700; padding: 12px 0; }
+    .total-num {
+      font-size: 22px; font-weight: 800;
+      background: linear-gradient(135deg, #60A5FA 0%, #F97316 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .pay-btn {
+      width: 100%; margin-top: 16px; padding: 14px;
+      border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #60A5FA 0%, #F97316 100%);
+      color: #fff; font-weight: 700; font-size: 15px;
+      box-shadow: 0 8px 24px rgba(249,115,22,0.25);
+      transition: opacity 0.2s, transform 0.2s; font-family: inherit;
+    }
+    .pay-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+    .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .secure { text-align: center; color: #64748B; font-size: 12px; margin: 12px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <a href="/" class="back">← Quay lại bảng giá</a>
+      <span class="badge">Thanh toán</span>
+      <h1>Hoàn tất đăng ký</h1>
+      <p class="subtitle">Chỉ vài bước để kích hoạt gói của bạn.</p>
+    </header>
+
+    <div class="layout">
+      <div class="main">
+        <section class="card">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h2>Chọn gói</h2>
+          </div>
+          <div class="plan-grid">
+            <button class="plan-pick" data-plan="pro" onclick="selectPlan('pro')">
+              <div class="plan-pick-name">Pro</div>
+              <div class="plan-pick-price">19.000<span>đ/th</span></div>
+              <div class="plan-pick-slots">3 kho theo dõi</div>
+            </button>
+            <button class="plan-pick" data-plan="plus" onclick="selectPlan('plus')">
+              <div class="plan-pick-name">Plus</div>
+              <div class="plan-pick-price">39.000<span>đ/th</span></div>
+              <div class="plan-pick-slots">20 kho theo dõi</div>
+            </button>
+            <button class="plan-pick active" data-plan="max" onclick="selectPlan('max')">
+              <div class="plan-pick-name">Max</div>
+              <div class="plan-pick-price">69.000<span>đ/th</span></div>
+              <div class="plan-pick-slots">50 kho theo dõi</div>
+            </button>
+            <button class="plan-pick" data-plan="shop" onclick="selectPlan('shop')">
+              <div class="plan-pick-name">Shop</div>
+              <div class="plan-pick-price">159.000<span>đ/th</span></div>
+              <div class="plan-pick-slots">Không giới hạn kho*</div>
+            </button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="step">
+            <span class="step-num">2</span>
+            <h2>Chu kỳ thanh toán</h2>
+          </div>
+          <div class="cycle-grid">
+            <button class="cycle-pick" data-cycle="1m" onclick="selectCycle('1m')">
+              <div class="cycle-label">1 tháng</div>
+              <div class="cycle-price" id="price-1m">69.000đ</div>
+            </button>
+            <button class="cycle-pick active" data-cycle="3m" onclick="selectCycle('3m')">
+              <div class="cycle-label">3 tháng</div>
+              <div class="cycle-price" id="price-3m">196.650đ</div>
+              <div class="cycle-save">Tiết kiệm 5%</div>
+            </button>
+            <button class="cycle-pick" data-cycle="6m" onclick="selectCycle('6m')">
+              <div class="cycle-label">6 tháng</div>
+              <div class="cycle-price" id="price-6m">372.600đ</div>
+              <div class="cycle-save">Tiết kiệm 10%</div>
+            </button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="step">
+            <span class="step-num">3</span>
+            <h2>Thông tin liên hệ</h2>
+          </div>
+          <label class="field">
+            <span>Email nhận hóa đơn &amp; kích hoạt</span>
+            <input type="email" id="email" placeholder="ban@example.com" oninput="updateEmail(this.value)">
+          </label>
+        </section>
+
+        <section class="card">
+          <div class="step">
+            <span class="step-num">4</span>
+            <h2>Phương thức thanh toán</h2>
+          </div>
+          <div class="method-list">
+            <button class="method active" data-method="momo" onclick="selectMethod('momo')">
+              <div class="method-icon">M</div>
+              <div class="method-text">
+                <div class="method-label">MoMo</div>
+                <div class="method-desc">Ví điện tử phổ biến nhất VN</div>
+              </div>
+              <div class="radio"><div class="radio-inner"></div></div>
+            </button>
+            <button class="method" data-method="bank" onclick="selectMethod('bank')">
+              <div class="method-icon">🏦</div>
+              <div class="method-text">
+                <div class="method-label">Chuyển khoản ngân hàng</div>
+                <div class="method-desc">VietQR — tự động xác nhận</div>
+              </div>
+              <div class="radio"><div class="radio-inner"></div></div>
+            </button>
+            <button class="method" data-method="card" onclick="selectMethod('card')">
+              <div class="method-icon">💳</div>
+              <div class="method-text">
+                <div class="method-label">Thẻ Visa / Mastercard</div>
+                <div class="method-desc">Thanh toán quốc tế qua Stripe</div>
+              </div>
+              <div class="radio"><div class="radio-inner"></div></div>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="summary">
+        <div class="summary-inner">
+          <h3>Đơn hàng</h3>
+          <div class="row">
+            <div>
+              <div class="row-label" id="summary-plan-name">Gói Max</div>
+              <div class="row-sub" id="summary-plan-slots">50 kho theo dõi</div>
+            </div>
+            <div class="row-val" id="summary-plan-price">69.000đ/th</div>
+          </div>
+          <div class="row">
+            <div>
+              <div class="row-label">Chu kỳ</div>
+              <div class="row-sub" id="summary-cycle-label">3 tháng</div>
+            </div>
+            <div class="row-val" id="summary-cycle-mult">×3</div>
+          </div>
+          <div class="divider"></div>
+          <div class="row">
+            <div class="row-label">Tạm tính</div>
+            <div class="row-val" id="summary-subtotal">207.000đ</div>
+          </div>
+          <div class="row" id="summary-discount-row">
+            <div class="row-label" style="color: #F97316;">Giảm giá 5%</div>
+            <div class="row-val" style="color: #F97316;" id="summary-discount">−10.350đ</div>
+          </div>
+          <div class="divider"></div>
+          <div class="row total">
+            <div>Tổng cộng</div>
+            <div class="total-num" id="summary-total">196.650đ</div>
+          </div>
+          <button class="pay-btn" id="pay-btn" disabled>Thanh toán 196.650đ</button>
+          <p class="secure">🔒 Giao dịch mã hóa SSL · Hoàn tiền trong 7 ngày</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const planData = {
+      pro: { name: 'Pro', price: 19000, slots: '3 kho theo dõi' },
+      plus: { name: 'Plus', price: 39000, slots: '20 kho theo dõi' },
+      max: { name: 'Max', price: 69000, slots: '50 kho theo dõi' },
+      shop: { name: 'Shop', price: 159000, slots: 'Không giới hạn kho*' },
+    };
+    const cycles = {
+      '1m': { label: '1 tháng', months: 1, discount: 0 },
+      '3m': { label: '3 tháng', months: 3, discount: 0.05 },
+      '6m': { label: '6 tháng', months: 6, discount: 0.1 },
+    };
+    let state = { plan: 'max', cycle: '3m', method: 'momo', email: '' };
+
+    function fmt(n) { return n.toLocaleString('vi-VN') + 'đ'; }
+
+    function updateSummary() {
+      const p = planData[state.plan];
+      const c = cycles[state.cycle];
+      const subtotal = p.price * c.months;
+      const discount = Math.round(subtotal * c.discount);
+      const total = subtotal - discount;
+
+      document.getElementById('summary-plan-name').textContent = 'Gói ' + p.name;
+      document.getElementById('summary-plan-slots').textContent = p.slots;
+      document.getElementById('summary-plan-price').textContent = fmt(p.price) + '/th';
+      document.getElementById('summary-cycle-label').textContent = c.label;
+      document.getElementById('summary-cycle-mult').textContent = '×' + c.months;
+      document.getElementById('summary-subtotal').textContent = fmt(subtotal);
+
+      const discountRow = document.getElementById('summary-discount-row');
+      if (discount > 0) {
+        discountRow.style.display = 'flex';
+        document.getElementById('summary-discount').textContent = '−' + fmt(discount);
+      } else {
+        discountRow.style.display = 'none';
+      }
+      document.getElementById('summary-total').textContent = fmt(total);
+
+      const btn = document.getElementById('pay-btn');
+      btn.textContent = 'Thanh toán ' + fmt(total);
+      btn.disabled = !state.email;
+
+      // Update cycle prices
+      for (const [id, cy] of Object.entries(cycles)) {
+        document.getElementById('price-' + id).textContent = fmt(p.price * cy.months * (1 - cy.discount));
+      }
+    }
+
+    function selectPlan(key) {
+      state.plan = key;
+      document.querySelectorAll('.plan-pick').forEach(el => el.classList.toggle('active', el.dataset.plan === key));
+      updateSummary();
+    }
+    function selectCycle(key) {
+      state.cycle = key;
+      document.querySelectorAll('.cycle-pick').forEach(el => el.classList.toggle('active', el.dataset.cycle === key));
+      updateSummary();
+    }
+    function selectMethod(key) {
+      state.method = key;
+      document.querySelectorAll('.method').forEach(el => el.classList.toggle('active', el.dataset.method === key));
+    }
+    function updateEmail(val) {
+      state.email = val.trim();
+      updateSummary();
+    }
+  </script>
+</body>
+</html>

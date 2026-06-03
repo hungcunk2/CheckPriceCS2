@@ -11,32 +11,36 @@ use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
-    public function show(Request $request): View|RedirectResponse
+    public function show(Request $request): View
     {
-        $plan = strtolower((string) $request->query('plan', ''));
+        $plan = strtolower((string) $request->query('plan', 'max'));
         if (! SubscriptionPlans::exists($plan)) {
-            return redirect()->route('public.pricing')
-                ->with('error', 'Gói không hợp lệ. Vui lòng chọn lại từ bảng giá.');
+            $plan = 'max';
         }
 
-        $months = (int) $request->query('months', 1);
+        $months = (int) $request->query('months', 3);
         if (! in_array($months, SubscriptionPlans::CYCLES, true)) {
-            $months = 1;
+            $months = 3;
         }
 
         $planData = SubscriptionPlans::get($plan);
-        $amount = SubscriptionPlans::price($plan, $months);
         $user = $this->resolveUser($request);
-        $reference = $user
-            ? SubscriptionPlans::transferReference($user->email, $plan, $months)
-            : null;
+
+        $plansJson = [];
+        foreach (SubscriptionPlans::PLANS as $key => $p) {
+            $plansJson[$key] = [
+                'name' => $p['name'],
+                'monthly' => $p['prices'][1],
+                'slots' => $p['slots'],
+                'prices' => $p['prices'],
+            ];
+        }
 
         return view('public.checkout', [
             'planKey' => $plan,
             'plan' => $planData,
             'months' => $months,
-            'amount' => $amount,
-            'reference' => $reference,
+            'plansJson' => $plansJson,
             'checkoutUser' => $user,
             'payment' => config('cs2price.payment'),
         ]);
@@ -48,6 +52,7 @@ class CheckoutController extends Controller
             'plan' => ['required', 'string', 'in:'.implode(',', array_keys(SubscriptionPlans::PLANS))],
             'months' => ['required', 'integer', 'in:'.implode(',', SubscriptionPlans::CYCLES)],
             'email' => ['required', 'email', 'max:255'],
+            'payment_method' => ['required', 'string', 'in:bank'],
             'member_note' => ['nullable', 'string', 'max:500'],
         ]);
 
