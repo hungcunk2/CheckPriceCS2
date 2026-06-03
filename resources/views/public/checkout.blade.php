@@ -115,10 +115,14 @@
                                 <p>Chủ TK: {{ $payment['account_holder'] }}</p>
                                 <p>Số tiền: <strong id="bankAmount">—</strong></p>
                                 <p>Nội dung CK: <strong id="bankRef">—</strong></p>
-                                <div class="vietqr-wrap" id="checkoutQrSection" style="display:none">
+                                <div class="vietqr-wrap" id="checkoutQrSection" @if(empty($qrImageUrl)) style="display:none" @endif>
                                     <img alt="Mã VietQR chuyển khoản" id="vietqrImg" class="vietqr-img"
                                          width="280" height="280" decoding="async" fetchpriority="high"
+                                         referrerpolicy="no-referrer"
                                          @if(!empty($qrImageUrl)) src="{{ $qrImageUrl }}" @endif>
+                                    <p id="qrLoadError" class="field-error" style="display:none;margin-top:8px;">
+                                        Không tải được QR. Chuyển khoản thủ công theo STK và nội dung CK phía trên.
+                                    </p>
                                 </div>
                             @else
                                 <p style="color:#94a3b8;">Chưa cấu hình STK.</p>
@@ -232,13 +236,12 @@
     function buildVietQrUrl(amount, addInfo) {
         if (!vietqr || !vietqr.bankId || !vietqr.account) return '';
         const base = 'https://img.vietqr.io/image/'
-            + encodeURIComponent(vietqr.bankId) + '-'
-            + encodeURIComponent(vietqr.account) + '-'
-            + encodeURIComponent(vietqr.template || 'compact') + '.png';
+            + vietqr.bankId + '-'
+            + vietqr.account + '-'
+            + (vietqr.template || 'compact') + '.png';
         const q = new URLSearchParams();
         if (amount > 0) q.set('amount', String(amount));
         if (addInfo) q.set('addInfo', addInfo.slice(0, 50));
-        if (vietqr.accountHolder) q.set('accountName', vietqr.accountHolder);
         const qs = q.toString();
         return qs ? (base + '?' + qs) : base;
     }
@@ -246,6 +249,7 @@
     function syncQr(amount, addInfo) {
         const qrImg = document.getElementById('vietqrImg');
         const section = document.getElementById('checkoutQrSection');
+        const errEl = document.getElementById('qrLoadError');
         if (!qrImg || !section || !paymentConfigured) return;
 
         const url = (state.email && addInfo) ? buildVietQrUrl(amount, addInfo) : '';
@@ -255,12 +259,19 @@
         }
 
         section.style.display = 'block';
+        if (errEl) errEl.style.display = 'none';
         if (lastQrUrl === url) return;
 
         lastQrUrl = url;
         qrImg.classList.add('is-loading');
-        qrImg.onload = function () { qrImg.classList.remove('is-loading'); };
-        qrImg.onerror = function () { qrImg.classList.remove('is-loading'); };
+        qrImg.onload = function () {
+            qrImg.classList.remove('is-loading');
+            if (errEl) errEl.style.display = 'none';
+        };
+        qrImg.onerror = function () {
+            qrImg.classList.remove('is-loading');
+            if (errEl) errEl.style.display = 'block';
+        };
         qrImg.src = url;
     }
 

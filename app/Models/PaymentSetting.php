@@ -69,7 +69,9 @@ class PaymentSetting extends Model
 
     public function vietqrBankId(): string
     {
-        return (string) ($this->bank_bin ?: $this->bank_code ?: '');
+        $code = trim((string) $this->bank_code);
+
+        return $code !== '' ? $code : (string) $this->bank_bin;
     }
 
     public function vietqrAccountName(): string
@@ -111,23 +113,23 @@ class PaymentSetting extends Model
 
         $url = sprintf(
             'https://img.vietqr.io/image/%s-%s-%s.png',
-            rawurlencode($bankId),
-            rawurlencode($account),
-            rawurlencode($template)
+            $bankId,
+            $account,
+            $template
         );
 
-        $query = array_filter([
-            'amount' => $amount > 0 ? $amount : null,
-            'addInfo' => $addInfo !== null && $addInfo !== ''
-                ? mb_substr($addInfo, 0, 50)
-                : null,
-            'accountName' => $this->vietqrAccountName() ?: null,
-        ], fn ($v) => $v !== null && $v !== '');
+        $query = [];
+        if ($amount > 0) {
+            $query['amount'] = (string) $amount;
+        }
+        if ($addInfo !== null && $addInfo !== '') {
+            $query['addInfo'] = mb_substr($addInfo, 0, 50);
+        }
 
         if ($query === []) {
             return $url;
         }
 
-        return $url.'?'.http_build_query($query);
+        return $url.'?'.http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     }
 }
