@@ -17,6 +17,43 @@ class Cs2CapService
      * @param  list<array<string, mixed>>  $steamItems  items có market_hash_name + phase|null
      * @return array<string, array{sell_min_price: float|null, sell_num: int|null, buff_url: string|null, error: string|null}>
      */
+    /**
+     * Empire tham khảo USD (guest) — provider csgoempire, có phase.
+     *
+     * @param  list<array<string, mixed>>  $steamItems
+     * @return array<string, array{empire_price_usd: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
+     */
+    public function getEmpireUsdPricesForSteamItems(array $steamItems): array
+    {
+        $currency = (string) config('cs2price.cs2cap_empire_currency', 'USD');
+        $results = [];
+
+        foreach ($steamItems as $item) {
+            $hash = trim((string) ($item['market_hash_name'] ?? ''));
+            if ($hash === '') {
+                continue;
+            }
+            $results[$hash] = $this->emptyEmpireRow();
+        }
+
+        foreach ($steamItems as $item) {
+            $hash = trim((string) ($item['market_hash_name'] ?? ''));
+            if ($hash === '') {
+                continue;
+            }
+            $phase = $item['phase'] ?? null;
+            $row = $this->fetchQuoteWithPool($hash, 'csgoempire', $currency, $phase);
+            $results[$hash] = [
+                'empire_price_usd' => $row['amount'] ?? null,
+                'listing_count' => $row['quantity'] ?? null,
+                'empire_url' => $row['url'] ?? null,
+                'error' => $row['error'] ?? null,
+            ];
+        }
+
+        return $results;
+    }
+
     public function getBuffPricesForSteamItems(array $steamItems): array
     {
         $currency = (string) config('cs2price.cs2cap_buff_currency', 'CNY');

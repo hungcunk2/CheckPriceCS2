@@ -14,7 +14,7 @@ class ItemPriceCacheStore
     }
 
     /**
-     * @param  'buff'|'empire'  $source
+     * @param  'buff'|'empire'|'empire_cs2cap'  $source
      * @param  list<array{hash: string, phase: string|null}>  $keys
      * @return array<string, array<string, mixed>> map key => payload
      */
@@ -60,7 +60,7 @@ class ItemPriceCacheStore
     }
 
     /**
-     * @param  'buff'|'empire'  $source
+     * @param  'buff'|'empire'|'empire_cs2cap'  $source
      * @param  array<string, array<string, mixed>>  $payloadByKey
      */
     public function putMany(string $source, array $payloadByKey, ?string $currency = null): void
@@ -79,6 +79,8 @@ class ItemPriceCacheStore
                 $price = isset($payload['sell_min_price']) ? (float) $payload['sell_min_price'] : null;
             } elseif ($source === 'empire') {
                 $price = isset($payload['market_value_coins']) ? (float) $payload['market_value_coins'] : null;
+            } elseif ($source === 'empire_cs2cap') {
+                $price = isset($payload['empire_price_usd']) ? (float) $payload['empire_price_usd'] : null;
             }
 
             ItemPriceCache::query()->updateOrCreate(

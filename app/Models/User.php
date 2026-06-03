@@ -20,6 +20,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'email_verified_at',
+        'is_active',
+        'paid_until',
+        'notes',
     ];
 
     /**
@@ -42,6 +46,22 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
+            'paid_until' => 'datetime',
         ];
     }
+
+    public function hasActiveSubscription(): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->paid_until === null) {
+            return true;
+        }
+
+        return $this->paid_until->isFuture();
+    }
 }
+

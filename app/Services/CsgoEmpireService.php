@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Support\Currency;
 use App\Support\CsgoEmpireApiPool;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -70,14 +71,14 @@ class CsgoEmpireService
                 usleep($delayMs * 1000);
             }
 
-            $price = $this->fetchPrice($hashName);
+            $price = $this->fetchPrice($hashName, $mode);
             $fetched++;
 
             $this->storePriceCache($hashName, $price);
             $results[$hashName] = $price;
         }
 
-        return $results;
+        return $this->retryPoolExhaustedPrices($results, $mode, $delayMs);
     }
 
     /**
@@ -228,7 +229,8 @@ class CsgoEmpireService
                 $perPage,
                 $maxPages,
                 $delayMs,
-                $accounts
+                $accounts,
+                $fetchMode
             );
         }
 
@@ -242,8 +244,7 @@ class CsgoEmpireService
                 break;
             }
 
-            $response = Http::timeout(45)
-                ->acceptJson()
+            $response = $this->empireHttp($fetchMode, 45)
                 ->withHeaders(CsgoEmpireApiPool::headers($account))
                 ->get(self::API_BASE, [
                     'per_page' => $perPage,
@@ -290,7 +291,9 @@ class CsgoEmpireService
         int $maxPages,
         int $delayMs,
         array $accounts,
+        string $fetchMode = 'sync',
     ): array {
+        $proxyOptions = $this->empireProxyOptions($fetchMode);
         $keyCount = count($accounts);
         $pages = range(1, $maxPages);
 
@@ -299,13 +302,16 @@ class CsgoEmpireService
                 usleep($delayMs * 1000);
             }
 
-            $responses = Http::pool(function (Pool $pool) use ($pageChunk, $accounts, $perPage) {
+            $responses = Http::pool(function (Pool $pool) use ($pageChunk, $accounts, $perPage, $proxyOptions) {
                 foreach ($pageChunk as $i => $page) {
                     $account = $accounts[$i % count($accounts)];
-                    $pool->as((string) $page)
+                    $pending = $pool->as((string) $page)
                         ->timeout(45)
-                        ->acceptJson()
-                        ->withHeaders(CsgoEmpireApiPool::headers($account))
+                        ->acceptJson();
+                    if ($proxyOptions !== []) {
+                        $pending = $pending->withOptions($proxyOptions);
+                    }
+                    $pending->withHeaders(CsgoEmpireApiPool::headers($account))
                         ->get(self::API_BASE, [
                             'per_page' => $perPage,
                             'page' => $page,
@@ -447,6 +453,14 @@ class CsgoEmpireService
                 $this->withFetchedAt($price),
                 $ttl
             );
+        } elseif ($this->isPoolExhaustedError($price)) {
+            $ttl = max(30, (int) config('cs2price.empire_pool_exhausted_retry_seconds', 70));
+            Cache::put(
+                $this->cacheKey($hashName),
+                $this->withFetchedAt($price),
+                $ttl
+            );
+            Log::warning('csgoempire.price', ['item' => $hashName, 'error' => $price['error']]);
         } elseif ($this->isTransientError($price)) {
             Cache::put(
                 $this->cacheKey($hashName),
@@ -455,6 +469,56 @@ class CsgoEmpireService
             );
             Log::warning('csgoempire.price', ['item' => $hashName, 'error' => $price['error']]);
         }
+    }
+
+    /**
+     * @param  array<string, array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>  $results
+     * @return array<string, array{market_value_coins: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
+     */
+    private function retryPoolExhaustedPrices(array $results, string $mode, int $delayMs): array
+    {
+        $waitSeconds = (int) config('cs2price.empire_pool_exhausted_retry_seconds', 70);
+        if ($waitSeconds <= 0) {
+            return $results;
+        }
+
+        $toRetry = [];
+        foreach ($results as $hashName => $price) {
+            if ($this->isPoolExhaustedError($price)) {
+                $toRetry[] = $hashName;
+            }
+        }
+
+        if ($toRetry === []) {
+            return $results;
+        }
+
+        Log::info('csgoempire: hết key khả dụng — chờ '.$waitSeconds.'s rồi quét lại', [
+            'items' => count($toRetry),
+            'mode' => $mode,
+        ]);
+
+        sleep($waitSeconds);
+
+        foreach ($toRetry as $i => $hashName) {
+            if ($i > 0) {
+                usleep($delayMs * 1000);
+            }
+
+            $price = $this->fetchPrice($hashName, $mode);
+            $this->storePriceCache($hashName, $price);
+            $results[$hashName] = $price;
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param  array{error: string|null, market_value_coins: float|null}  $price
+     */
+    public function isPoolExhaustedError(array $price): bool
+    {
+        return str_contains((string) ($price['error'] ?? ''), 'Hết API key Empire khả dụng');
     }
 
     public function isEnabled(): bool
@@ -522,8 +586,7 @@ class CsgoEmpireService
         }
 
         try {
-            $response = Http::timeout(20)
-                ->acceptJson()
+            $response = $this->empireHttp('member', 20)
                 ->withHeaders(CsgoEmpireApiPool::headers($account))
                 ->get(self::API_BASE, [
                     'per_page' => 50,
@@ -560,7 +623,10 @@ class CsgoEmpireService
      *   error: string|null
      * }
      */
-    private function fetchPrice(string $marketHashName): array
+    /**
+     * @param  'sync'|'admin'|'http'|'guest'|'member'  $mode
+     */
+    private function fetchPrice(string $marketHashName, string $mode = 'guest'): array
     {
         $tried = 0;
         $maxTries = max(1, count(CsgoEmpireApiPool::accounts()));
@@ -571,8 +637,7 @@ class CsgoEmpireService
                 break;
             }
 
-            $response = Http::timeout(20)
-                ->acceptJson()
+            $response = $this->empireHttp($mode, 20)
                 ->withHeaders(CsgoEmpireApiPool::headers($account))
                 ->get(self::API_BASE, [
                     'per_page' => 50,
@@ -597,6 +662,37 @@ class CsgoEmpireService
         }
 
         return $this->errorPrice('Hết API key Empire khả dụng — thử lại sau');
+    }
+
+    /**
+     * @param  'sync'|'admin'|'http'|'guest'|'member'  $mode
+     */
+    private function empireHttp(string $mode, int $timeoutSeconds = 20): PendingRequest
+    {
+        $pending = Http::timeout($timeoutSeconds)->acceptJson();
+        $options = $this->empireProxyOptions($mode);
+        if ($options !== []) {
+            $pending = $pending->withOptions($options);
+        }
+
+        return $pending;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function empireProxyOptions(string $mode): array
+    {
+        if (! in_array($mode, ['member', 'admin', 'sync', 'http'], true)) {
+            return [];
+        }
+
+        $url = app(FiveStarsRotatingProxyService::class)->currentProxyUrl();
+        if ($url === null || $url === '') {
+            return [];
+        }
+
+        return ['proxy' => $url];
     }
 
     /**

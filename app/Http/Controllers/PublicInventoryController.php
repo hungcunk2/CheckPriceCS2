@@ -27,6 +27,8 @@ class PublicInventoryController extends Controller
 
     public function landing(Request $request): View
     {
+        $cs2cap = app(\App\Services\Cs2CapService::class);
+
         return view('public.landing', [
             'meta' => SiteMeta::make([
                 'canonical' => route('public.landing'),
@@ -35,6 +37,7 @@ class PublicInventoryController extends Controller
             'checkResult' => null,
             'checkError' => null,
             'submittedUrl' => '',
+            'empireEnabled' => Cs2PriceFeatures::empireEnabled() || $cs2cap->isConfigured(),
         ]);
     }
 
@@ -113,7 +116,9 @@ class PublicInventoryController extends Controller
         return response()->json([
             'ok' => true,
             'token' => $token,
-            'empire_enabled' => Cs2PriceFeatures::empireEnabled(),
+            'empire_enabled' => Cs2PriceFeatures::empireEnabled() || app(\App\Services\Cs2CapService::class)->isConfigured(),
+            'empire_usd_reference' => \App\Support\PricingTier::current()->usesCs2CapEmpireOnly(),
+            'pricing_tier' => \App\Support\PricingTier::current()->value,
             'batch_size' => max(4, (int) config('cs2price.guest_check_batch_size', 12)),
             'rates' => [
                 'cny_to_vnd' => ExchangeRateStore::cnyToVnd(),
@@ -156,7 +161,7 @@ class PublicInventoryController extends Controller
         $steamItems = $cached['steam_items'] ?? [];
 
         try {
-            $rows = $checker->priceSteamItems($steamItems, 'guest', $hashes);
+            $rows = $checker->priceSteamItems($steamItems, null, $hashes);
         } catch (RuntimeException $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
         }

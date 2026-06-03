@@ -3,11 +3,16 @@
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\BuffAccountController;
+use App\Http\Controllers\Admin\EmpireProxyController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\MemberAuthController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\Member\DashboardController;
 use App\Http\Controllers\PublicInventoryController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsurePaidMember;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicInventoryController::class, 'landing'])->name('public.landing');
@@ -20,6 +25,18 @@ Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')
 Route::get('/blog/{slug}', [BlogController::class, 'redirectFromSlug'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('blog.legacy');
 Route::get('/kho/{inventory}', [PublicInventoryController::class, 'show'])->whereNumber('inventory')->name('public.show');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+
+Route::get('/dang-nhap', [MemberAuthController::class, 'showLogin'])->name('login');
+Route::post('/dang-nhap', [MemberAuthController::class, 'login'])->name('login.submit');
+Route::get('/dang-ky/huy', [MemberAuthController::class, 'registerCancel'])->name('register.cancel');
+Route::post('/dang-ky/gui-otp', [MemberAuthController::class, 'registerSendOtp'])->name('register.send-otp');
+Route::post('/dang-ky/gui-lai-otp', [MemberAuthController::class, 'registerResendOtp'])->name('register.resend-otp');
+Route::post('/dang-ky/xac-nhan', [MemberAuthController::class, 'registerVerify'])->name('register.verify');
+Route::post('/dang-xuat', [MemberAuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+Route::middleware(['auth', EnsurePaidMember::class])->prefix('tai-khoan')->name('member.')->group(function () {
+    Route::get('/', DashboardController::class)->name('dashboard');
+});
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
@@ -72,6 +89,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/buff-accounts/cs2cap-keys/{cs2capKey}', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'update'])->name('buff-accounts.cs2cap-keys.update');
         Route::delete('/buff-accounts/cs2cap-keys/{cs2capKey}', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'destroy'])->name('buff-accounts.cs2cap-keys.destroy');
         Route::post('/buff-accounts/cs2cap-keys/{cs2capKey}/probe', [\App\Http\Controllers\Admin\Cs2CapApiKeyController::class, 'probe'])->name('buff-accounts.cs2cap-keys.probe');
+        Route::get('/empire-proxy', [EmpireProxyController::class, 'edit'])->name('empire-proxy.edit');
+        Route::put('/empire-proxy', [EmpireProxyController::class, 'update'])->name('empire-proxy.update');
+        Route::post('/empire-proxy/test', [EmpireProxyController::class, 'test'])->name('empire-proxy.test');
+
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
         Route::post('/buff-accounts/{label}/probe', [BuffAccountController::class, 'probe'])
             ->where('label', '[a-zA-Z0-9\-]+')
             ->name('buff-accounts.probe');

@@ -13,6 +13,7 @@
     var itemImageUrl = form.getAttribute('data-item-image-url') || '';
     var placeholderImageUrl = form.getAttribute('data-placeholder-image-url') || '';
     var empireEnabled = form.getAttribute('data-empire-enabled') === '1';
+    var empireUsdReference = form.getAttribute('data-empire-usd-reference') === '1';
     var batchSize = parseInt(form.getAttribute('data-batch-size') || '12', 10) || 12;
 
     function csrfToken() {
@@ -246,6 +247,14 @@
             var empireCell = '—';
             if (row.empire_price_coins != null) {
                 empireCell = fmtNum(row.empire_price_coins) + 'c';
+                if (row.empire_price_cny != null) {
+                    empireCell += '<div class="lp-muted">≈' + fmtCny(row.empire_price_cny) + '</div>';
+                }
+            } else if (row.empire_price_usd != null) {
+                empireCell = '$' + Number(row.empire_price_usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (empireUsdReference) {
+                    empireCell += '<div class="lp-muted" style="font-size:0.7rem">CS2Cap · tham khảo</div>';
+                }
                 if (row.empire_price_cny != null) {
                     empireCell += '<div class="lp-muted">≈' + fmtCny(row.empire_price_cny) + '</div>';
                 }

@@ -32,6 +32,7 @@
             data-item-image-url="{{ route('api.guest.item-image') }}"
             data-placeholder-image-url="{{ asset('images/logo.png') }}"
             data-empire-enabled="{{ ($empireEnabled ?? false) ? '1' : '0' }}"
+            data-empire-usd-reference="1"
             data-batch-size="{{ config('cs2price.guest_check_batch_size', 12) }}"
         >
             @csrf

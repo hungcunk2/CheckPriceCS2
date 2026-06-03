@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Support\Buff163AccountPool;
+use App\Support\Currency;
+use App\Support\PricingTier;
 use App\Support\SellVenueCompare;
 use RuntimeException;
 
@@ -58,8 +60,10 @@ class InventoryPriceChecker
      * @param  list<string>|null  $onlyHashes
      * @return list<array<string, mixed>>
      */
-    public function priceSteamItems(array $steamItems, string $empireMode = 'guest', ?array $onlyHashes = null): array
+    public function priceSteamItems(array $steamItems, ?PricingTier $tier = null, ?array $onlyHashes = null): array
     {
+        $tier ??= PricingTier::current();
+
         if ($onlyHashes !== null) {
             $wanted = array_fill_keys($onlyHashes, true);
             $steamItems = array_values(array_filter(
@@ -74,10 +78,10 @@ class InventoryPriceChecker
 
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
 
-        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
-        $empirePrices = $this->empirePricesForItems($steamItems, $empireMode);
+        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier);
+        $empirePrices = $this->empirePricesForItems($steamItems, $tier);
 
-        return $this->buildItemRows($steamItems, $buffPrices, $empirePrices);
+        return $this->buildItemRows($steamItems, $buffPrices, $empirePrices, $tier);
     }
 
     /**
@@ -99,12 +103,18 @@ class InventoryPriceChecker
      */
     private function finalizeCheckResult(array $parsed, array $bundle, ?string $label, string $empireMode): array
     {
+        $tier = match ($empireMode) {
+            'admin', 'sync' => PricingTier::Admin,
+            'member' => PricingTier::Member,
+            default => PricingTier::current(),
+        };
+
         $steamItems = $bundle['items'];
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
-        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames);
-        $empirePrices = $this->empirePricesForItems($steamItems, $empireMode);
+        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier);
+        $empirePrices = $this->empirePricesForItems($steamItems, $tier);
 
-        $rows = $this->buildItemRows($steamItems, $buffPrices, $empirePrices);
+        $rows = $this->buildItemRows($steamItems, $buffPrices, $empirePrices, $tier);
 
         return $this->summarizeResult($parsed, $bundle, $label, $rows);
     }
@@ -115,7 +125,7 @@ class InventoryPriceChecker
      * @param  array<string, array<string, mixed>>  $empirePrices
      * @return list<array<string, mixed>>
      */
-    private function buildItemRows(array $steamItems, array $buffPrices, array $empirePrices): array
+    private function buildItemRows(array $steamItems, array $buffPrices, array $empirePrices, PricingTier $tier): array
     {
         $rows = [];
 
@@ -129,8 +139,17 @@ class InventoryPriceChecker
             $lineCny = $priceCny !== null ? $priceCny * $amount : null;
 
             $empireCoins = $empireRow['market_value_coins'] ?? null;
-            $empireCny = $this->empire->coinsToCny($empireCoins);
-            $empireUsd = $this->empire->coinsToUsd($empireCoins);
+            $empireUsdFromCs2cap = $empireRow['empire_price_usd'] ?? null;
+            if ($empireCoins !== null) {
+                $empireCny = $this->empire->coinsToCny($empireCoins);
+                $empireUsd = $this->empire->coinsToUsd($empireCoins);
+            } elseif ($empireUsdFromCs2cap !== null) {
+                $empireUsd = $empireUsdFromCs2cap;
+                $empireCny = Currency::usdToCny($empireUsd);
+            } else {
+                $empireCny = null;
+                $empireUsd = null;
+            }
             $lineEmpireCny = $empireCny !== null ? $empireCny * $amount : null;
 
             $rows[] = [
@@ -156,6 +175,7 @@ class InventoryPriceChecker
                 'empire_listing_count' => $empireRow['listing_count'] ?? null,
                 'empire_url' => $empireRow['empire_url'] ?? null,
                 'empire_error' => $empireRow['error'] ?? null,
+                'empire_price_source' => $tier->usesCs2CapEmpireOnly() ? 'cs2cap_usd' : 'empire_api',
                 'line_total_empire_cny' => $lineEmpireCny,
                 'best_sell_venue' => SellVenueCompare::bestVenue($priceCny, $empireCny),
             ];
@@ -169,7 +189,7 @@ class InventoryPriceChecker
      * @param  list<string>  $hashNames
      * @return array<string, array<string, mixed>>
      */
-    private function buffPricesForItems(array $steamItems, array $hashNames): array
+    private function buffPricesForItems(array $steamItems, array $hashNames, PricingTier $tier): array
     {
         // DB cache key: hash + phase (phase quan trọng cho Doppler/Gamma).
         $keys = array_values(array_map(function (array $item) {
@@ -203,14 +223,26 @@ class InventoryPriceChecker
             return $buffPrices;
         }
 
-        // Fetch only missing.
-        if (config('cs2price.cs2cap_use_buff', false)) {
-            $cs2cap = app(\App\Services\Cs2CapService::class);
-            if ($cs2cap->isConfigured()) {
-                $fetched = $cs2cap->getBuffPricesForSteamItems($missingSteamItems);
-                $this->dbPriceCache->putMany('buff', $this->mapBuffPayloadByKey($missingSteamItems, $fetched), 'CNY');
-                return $buffPrices + $fetched;
+        $cs2cap = app(Cs2CapService::class);
+        $useCs2cap = $tier->usesCs2CapEmpireOnly()
+            || (config('cs2price.cs2cap_use_buff', false) && $cs2cap->isConfigured());
+
+        if ($useCs2cap && $cs2cap->isConfigured()) {
+            $fetched = $cs2cap->getBuffPricesForSteamItems($missingSteamItems);
+            $this->dbPriceCache->putMany('buff', $this->mapBuffPayloadByKey($missingSteamItems, $fetched), 'CNY');
+
+            return $buffPrices + $fetched;
+        }
+
+        if ($tier->usesCs2CapEmpireOnly()) {
+            foreach ($missingSteamItems as $item) {
+                $hash = (string) ($item['market_hash_name'] ?? '');
+                if ($hash !== '') {
+                    $buffPrices[$hash] = ['sell_min_price' => null, 'sell_num' => null, 'buff_url' => null, 'error' => 'CS2Cap chưa cấu hình'];
+                }
             }
+
+            return $buffPrices;
         }
 
         $missingHashes = array_values(array_unique(array_column($missingSteamItems, 'market_hash_name')));
@@ -225,11 +257,17 @@ class InventoryPriceChecker
      * @param  list<string>  $hashNames
      * @return array<string, array<string, mixed>>
      */
-    private function empirePricesForItems(array $steamItems, string $empireMode): array
+    private function empirePricesForItems(array $steamItems, PricingTier $tier): array
     {
+        if ($tier->usesCs2CapEmpireOnly()) {
+            return $this->empireCs2CapUsdForItems($steamItems);
+        }
+
         if (! $this->empire->isEnabled()) {
             return [];
         }
+
+        $empireMode = $tier->empireMode();
 
         $queryNames = [];
         $keys = [];
@@ -269,11 +307,76 @@ class InventoryPriceChecker
                 continue;
             }
             [$hash, $phase] = $this->splitEmpireQueryName($q);
-            $payloadByKey[$this->dbPriceCache->key($hash, $phase)] = $fetched[$q];
+            $row = $fetched[$q];
+            // Không lưu DB lỗi "hết key" — lần quét sau (hoặc retry trong request) thử lại.
+            if ($this->empire->isPoolExhaustedError($row)) {
+                continue;
+            }
+            $payloadByKey[$this->dbPriceCache->key($hash, $phase)] = $row;
         }
-        $this->dbPriceCache->putMany('empire', $payloadByKey, 'COINS');
+        if ($payloadByKey !== []) {
+            $this->dbPriceCache->putMany('empire', $payloadByKey, 'COINS');
+        }
 
         return $result + $fetched;
+    }
+
+    /**
+     * Guest: Empire USD qua CS2Cap (không coin).
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function empireCs2CapUsdForItems(array $steamItems): array
+    {
+        $cs2cap = app(Cs2CapService::class);
+        if (! $cs2cap->isConfigured()) {
+            return [];
+        }
+
+        $keys = [];
+        foreach ($steamItems as $item) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            if ($hash === '') {
+                continue;
+            }
+            $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+            $keys[] = ['hash' => $hash, 'phase' => $phase];
+        }
+
+        $cachedByKey = $this->dbPriceCache->getFresh('empire_cs2cap', $keys);
+        $missingItems = [];
+        $result = [];
+
+        foreach ($steamItems as $item) {
+            $hash = (string) ($item['market_hash_name'] ?? '');
+            if ($hash === '') {
+                continue;
+            }
+            $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+            $key = $this->dbPriceCache->key($hash, $phase);
+            if (isset($cachedByKey[$key]) && ($cachedByKey[$key]['empire_price_usd'] ?? null) !== null) {
+                $result[$hash] = $cachedByKey[$key];
+            } else {
+                $missingItems[] = $item;
+            }
+        }
+
+        if ($missingItems !== []) {
+            $fetched = $cs2cap->getEmpireUsdPricesForSteamItems($missingItems);
+            $payloadByKey = [];
+            foreach ($missingItems as $item) {
+                $hash = (string) ($item['market_hash_name'] ?? '');
+                $phase = isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null;
+                if ($hash === '' || ! isset($fetched[$hash])) {
+                    continue;
+                }
+                $payloadByKey[$this->dbPriceCache->key($hash, $phase)] = $fetched[$hash];
+                $result[$hash] = $fetched[$hash];
+            }
+            $this->dbPriceCache->putMany('empire_cs2cap', $payloadByKey, 'USD');
+        }
+
+        return $result;
     }
 
     /**

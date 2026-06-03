@@ -61,6 +61,9 @@ return [
     'guest_check_batch_size' => (int) env('GUEST_CHECK_BATCH_SIZE', 12),
     'guest_check_cache_minutes' => (int) env('GUEST_CHECK_CACHE_MINUTES', 15),
 
+    'registration_otp_ttl_minutes' => (int) env('REGISTRATION_OTP_TTL_MINUTES', 10),
+    'registration_otp_resend_cooldown_seconds' => (int) env('REGISTRATION_OTP_RESEND_COOLDOWN', 60),
+
     'timezone' => env('APP_TIMEZONE', 'Asia/Ho_Chi_Minh'),
     'price_current_window_hours' => (int) env('BUFF_PRICE_CURRENT_WINDOW_HOURS', 2),
     'price_history_days' => (int) env('PRICE_HISTORY_DAYS', 90),
@@ -104,6 +107,8 @@ return [
     // Doppler/Gamma: cache "không có listing" ngắn để tự hồi nhanh khi có phase.
     'empire_phase_not_found_cache_seconds' => (int) env('EMPIRE_PHASE_NOT_FOUND_CACHE_SECONDS', 300),
     'empire_error_cache_seconds' => (int) env('EMPIRE_ERROR_CACHE_SECONDS', 300),
+    // Sau khi hết key Empire khả dụng, chờ N giây rồi quét lại các skin lỗi đó (0 = tắt).
+    'empire_pool_exhausted_retry_seconds' => (int) env('EMPIRE_POOL_EXHAUSTED_RETRY_SECONDS', 70),
     'empire_search_delay_ms' => (int) env('EMPIRE_SEARCH_DELAY_MS', 3500),
     // Tra nhanh trang chủ (giới hạn để không timeout).
     'empire_max_fetches_per_check' => (int) env('EMPIRE_MAX_FETCHES_PER_CHECK', 15),

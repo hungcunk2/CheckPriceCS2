@@ -56,6 +56,18 @@
                                 <span>Buff & nguồn kho</span>
                             </a>
                         </li>
+                        <li class="nav-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.users.index') }}" class="nav-link">
+                                <i class="fas fa-users"></i>
+                                <span>User trả phí</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{ request()->routeIs('admin.empire-proxy.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.empire-proxy.edit') }}" class="nav-link">
+                                <i class="fas fa-network-wired"></i>
+                                <span>Proxy Empire</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <form method="POST" action="{{ route('admin.logout') }}">
                                 @csrf

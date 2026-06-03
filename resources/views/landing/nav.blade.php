@@ -24,6 +24,14 @@
                 <a href="{{ route('public.index') }}" @class(['is-active' => request()->routeIs('public.index', 'public.show')])>Bảng giá</a>
             </div>
             <div class="lp-nav-right">
+                @auth
+                    @if(auth()->user()?->hasActiveSubscription())
+                        <a href="{{ route('member.dashboard') }}" class="lp-btn-ghost me-2">Tài khoản</a>
+                    @endif
+                @else
+                    <button type="button" class="lp-btn-ghost me-2" data-bs-toggle="modal" data-bs-target="#memberAuthModal"
+                            data-auth-tab="login">Đăng nhập</button>
+                @endauth
                 @if($showHeaderActions ?? false)
                     <div class="lp-nav-utilities">
                         @include('partials.header-actions')
