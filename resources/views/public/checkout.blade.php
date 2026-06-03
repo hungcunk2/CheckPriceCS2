@@ -103,7 +103,7 @@
                     </div>
 
                     <div class="lp-checkout-ref">
-                        <div class="lp-checkout-ref-label">Nội dung chuyển khoản (bắt buộc đúng)</div>
+                        <div class="lp-checkout-ref-label">Nội dung chuyển khoản (bắt buộc đúng — vd. <code>trantuanhungpro2</code> = email trantuanhung@…, gói Pro, 2 tháng)</div>
                         <div class="lp-checkout-ref-box">
                             @if($reference)
                                 <code class="lp-checkout-ref-code" id="checkoutRef">{{ $reference }}</code>
@@ -142,11 +142,35 @@
     const totalEl = document.getElementById('checkoutTotal');
     const bankAmountEl = document.getElementById('checkoutBankAmount');
     const planKey = @json($planKey);
-    const prefix = @json(strtoupper(config('cs2price.payment.transfer_prefix', 'CPCS2')));
-    const userId = @json($checkoutUser?->id);
+    const checkoutEmail = @json($checkoutUser?->email ?? old('email', request('email')));
 
     function formatVnd(n) {
         return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+    }
+
+    function emailLocal(email) {
+        var part = (String(email || '').split('@')[0] || '').toLowerCase();
+        return part.replace(/[^a-z0-9]/g, '');
+    }
+
+    function buildTransferRef(email, months) {
+        var local = emailLocal(email);
+        return local ? (local + planKey + months) : '';
+    }
+
+    function currentCheckoutEmail() {
+        var hidden = form.querySelector('input[name="email"][type="hidden"]');
+        if (hidden && hidden.value) return hidden.value;
+        var field = document.getElementById('checkout_email');
+        return field ? field.value : checkoutEmail;
+    }
+
+    function updateTransferRef(months) {
+        var ref = buildTransferRef(currentCheckoutEmail(), months);
+        var el = document.getElementById('checkoutRef');
+        if (ref) {
+            el.textContent = ref;
+        }
     }
 
     function updateFromCycle() {
@@ -156,10 +180,7 @@
         const price = parseInt(checked.dataset.price, 10);
         totalEl.textContent = formatVnd(price);
         bankAmountEl.textContent = formatVnd(price);
-        if (userId) {
-            document.getElementById('checkoutRef').textContent =
-                prefix + '-' + userId + '-' + planKey.toUpperCase() + '-' + months;
-        }
+        updateTransferRef(months);
         const url = new URL(window.location.href);
         url.searchParams.set('months', months);
         window.history.replaceState({}, '', url);
@@ -168,6 +189,14 @@
     form.querySelectorAll('input[name="months"]').forEach(function (el) {
         el.addEventListener('change', updateFromCycle);
     });
+
+    var emailField = document.getElementById('checkout_email');
+    if (emailField) {
+        emailField.addEventListener('input', function () {
+            var checked = form.querySelector('input[name="months"]:checked');
+            if (checked) updateTransferRef(parseInt(checked.value, 10));
+        });
+    }
 
     document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
         btn.addEventListener('click', function () {

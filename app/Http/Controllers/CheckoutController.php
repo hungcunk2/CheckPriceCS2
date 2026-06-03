@@ -28,7 +28,7 @@ class CheckoutController extends Controller
         $amount = SubscriptionPlans::price($plan, $months);
         $user = $this->resolveUser($request);
         $reference = $user
-            ? SubscriptionPlans::referenceCode($user->id, $plan, $months)
+            ? SubscriptionPlans::transferReference($user->email, $plan, $months)
             : null;
 
         return view('public.checkout', [
@@ -61,7 +61,7 @@ class CheckoutController extends Controller
         $plan = $validated['plan'];
         $months = (int) $validated['months'];
         $amount = SubscriptionPlans::price($plan, $months);
-        $reference = SubscriptionPlans::referenceCode($user->id, $plan, $months);
+        $reference = SubscriptionPlans::transferReference($user->email, $plan, $months);
 
         $hasPending = PlanOrder::query()
             ->where('user_id', $user->id)

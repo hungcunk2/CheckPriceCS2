@@ -160,6 +160,5 @@ return [
         'bank_name' => env('PAYMENT_BANK_NAME', ''),
         'account_number' => env('PAYMENT_BANK_ACCOUNT', ''),
         'account_holder' => env('PAYMENT_BANK_HOLDER', ''),
-        'transfer_prefix' => env('PAYMENT_TRANSFER_PREFIX', 'CPCS2'),
     ],
 ];

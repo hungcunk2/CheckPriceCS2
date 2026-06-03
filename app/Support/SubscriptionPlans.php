@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Str;
+
 final class SubscriptionPlans
 {
     /** @var array<string, array{name: string, slots: string, prices: array<int, int>, features: list<string>}> */
@@ -70,11 +72,20 @@ final class SubscriptionPlans
         return $data['prices'][$months] ?? null;
     }
 
-    public static function referenceCode(int $userId, string $plan, int $months): string
+    /**
+     * Nội dung CK: phần trước @ + gói + số tháng (vd. trantuanhung@gmail → Pro 2 tháng → trantuanhungpro2).
+     */
+    public static function transferReference(string $email, string $plan, int $months): string
     {
-        $prefix = config('cs2price.payment.transfer_prefix', 'CPCS2');
+        return self::emailLocalPart($email).strtolower($plan).$months;
+    }
 
-        return strtoupper($prefix).'-'.$userId.'-'.strtoupper($plan).'-'.$months;
+    public static function emailLocalPart(string $email): string
+    {
+        $local = Str::before(strtolower(trim($email)), '@');
+        $slug = preg_replace('/[^a-z0-9]/', '', $local) ?? '';
+
+        return $slug !== '' ? $slug : 'user';
     }
 
     public static function formatVnd(int $amount): string

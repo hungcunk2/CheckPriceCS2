@@ -6,7 +6,7 @@
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <p class="text-muted small mb-0">
-        User báo đã chuyển khoản trên <code>/thanh-toan</code> — đối soát mã <code>CPCS2-...</code> rồi bấm <strong>Duyệt</strong>.
+        User báo đã chuyển khoản trên <code>/thanh-toan</code> — đối soát nội dung CK (vd. <code>trantuanhungpro3</code>) rồi bấm <strong>Duyệt</strong>.
     </p>
     <div class="btn-group btn-group-sm">
         <a href="{{ route('admin.plan-orders.index', ['status' => 'pending']) }}"
