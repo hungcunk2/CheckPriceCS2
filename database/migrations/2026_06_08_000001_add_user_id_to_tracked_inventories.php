@@ -8,9 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('tracked_inventories', 'user_id')) {
+            return;
+        }
+
         Schema::table('tracked_inventories', function (Blueprint $table) {
             $table->foreignId('user_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
-            $table->index('user_id');
         });
     }
 

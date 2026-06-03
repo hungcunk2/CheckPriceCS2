@@ -14,6 +14,7 @@ use App\Support\EmpireItemEnricher;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
+use App\Support\MemberInventorySchema;
 use App\Support\SubscriptionPlans;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -32,8 +33,11 @@ class InventoryController extends Controller
 
     public function index(): View
     {
-        $user = auth()->user();
-        assert($user instanceof User);
+        if (! MemberInventorySchema::isReady()) {
+            return view('member.inventories.setup-required');
+        }
+
+        $user = $this->requireUser();
 
         $inventories = $this->mapInventories($this->store->forUser($user->id));
         $limit = $user->inventorySlotLimit();
@@ -51,8 +55,11 @@ class InventoryController extends Controller
 
     public function create(): View|RedirectResponse
     {
-        $user = auth()->user();
-        assert($user instanceof User);
+        if (! MemberInventorySchema::isReady()) {
+            return redirect()->route('member.inventories.index');
+        }
+
+        $user = $this->requireUser();
 
         if (! $this->canAddInventory($user)) {
             return redirect()
@@ -65,8 +72,11 @@ class InventoryController extends Controller
 
     public function store(Request $request, InventoryPriceChecker $checker): RedirectResponse
     {
-        $user = auth()->user();
-        assert($user instanceof User);
+        if (! MemberInventorySchema::isReady()) {
+            return redirect()->route('member.inventories.index');
+        }
+
+        $user = $this->requireUser();
 
         if (! $this->canAddInventory($user)) {
             return back()->with('error', $this->slotLimitMessage($user));
@@ -108,10 +118,7 @@ class InventoryController extends Controller
 
         $validated = $this->validateForm($request);
 
-        $user = auth()->user();
-        assert($user instanceof User);
-
-        $this->store->upsertForUser($user->id, [
+        $this->store->upsertForUser($this->requireUser()->id, [
             'label' => $validated['label'],
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public'),
@@ -133,10 +140,7 @@ class InventoryController extends Controller
             return redirect()->route('member.inventories.index')->with('error', 'Không tìm thấy kho.');
         }
 
-        $user = auth()->user();
-        assert($user instanceof User);
-
-        $this->store->deleteForUser($inventory, $user->id);
+        $this->store->deleteForUser($inventory, $this->requireUser()->id);
 
         return redirect()
             ->route('member.inventories.index')
@@ -159,10 +163,7 @@ class InventoryController extends Controller
                 refreshSteam: true,
                 empireMode: 'member',
             );
-            $user = auth()->user();
-            assert($user instanceof User);
-
-            $this->persister->persistForUser($result, $user->id, $inventory, (bool) ($row->is_public ?? false));
+            $this->persister->persistForUser($result, $this->requireUser()->id, $inventory, (bool) ($row->is_public ?? false));
 
             if ($request->wantsJson()) {
                 $empireNote = '';
@@ -214,8 +215,23 @@ class InventoryController extends Controller
         }
     }
 
+    private function requireUser(): User
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            abort(403, 'Cần đăng nhập.');
+        }
+
+        return $user;
+    }
+
     private function findOwned(int $id): ?object
     {
+        if (! MemberInventorySchema::isReady()) {
+            return null;
+        }
+
         $userId = auth()->id();
         if ($userId === null) {
             return null;
@@ -311,10 +327,8 @@ class InventoryController extends Controller
         try {
             $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'member');
             $row = $this->findOwned($id);
-            $user = auth()->user();
-            assert($user instanceof User);
 
-            $this->persister->persistForUser($result, $user->id, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->persister->persistForUser($result, $this->requireUser()->id, $id, $row ? (bool) ($row->is_public ?? false) : false);
 
             return redirect()
                 ->route('member.inventories.index')
