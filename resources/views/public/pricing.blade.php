@@ -10,7 +10,7 @@
             <span class="lp-pricing-badge">Bảng giá</span>
             <h1 class="lp-pricing-title">Chọn gói phù hợp với bạn</h1>
             <p class="lp-pricing-subtitle">
-                Bắt đầu miễn phí trên trang chủ — nâng cấp khi cần theo dõi nhiều kho và Empire coin.
+                Từ cá nhân flip 1–2 acc đến shop lớn quản lý hàng trăm kho — luôn có gói vừa túi.
             </p>
         </div>
 
@@ -19,18 +19,17 @@
                 <div class="lp-pricing-plan">Free</div>
                 <div class="lp-pricing-price">
                     <span class="lp-pricing-price-num">0đ</span>
-                    <span class="lp-pricing-price-unit">/mãi mãi</span>
                 </div>
-                <div class="lp-pricing-slots">Không lưu kho</div>
+                <div class="lp-pricing-tagline">Dùng thử cơ bản</div>
                 <div class="lp-pricing-divider"></div>
                 <ul class="lp-pricing-features">
-                    <li><span class="lp-pricing-check">✓</span> Tra 1 kho trên trang chủ</li>
-                    <li><span class="lp-pricing-check">✓</span> Giá Buff163 + Empire (USD tham chiếu)</li>
-                    <li><span class="lp-pricing-check">✓</span> Cooldown ~5 phút / IP</li>
+                    <li><span class="lp-pricing-check">✓</span> Tra kho trên trang chủ</li>
+                    <li><span class="lp-pricing-check">✓</span> Giới hạn theo IP (cooldown)</li>
                     <li><span class="lp-pricing-check">✓</span> Không cần đăng nhập Steam</li>
-                    <li><span class="lp-pricing-check is-muted">—</span> Không sync / không lưu kho</li>
+                    <li><span class="lp-pricing-check">✓</span> Giá Empire tương đối USD</li>
+                    <li><span class="lp-pricing-check is-muted">—</span> Không lưu kho, không lịch sử</li>
                 </ul>
-                @include('public.partials.pricing-cta', ['plan' => 'Free', 'free' => true])
+                @include('public.partials.pricing-cta', ['plan' => 'Free', 'free' => true, 'label' => 'Dùng miễn phí'])
             </div>
 
             <div class="lp-pricing-card">
@@ -39,13 +38,13 @@
                     <span class="lp-pricing-price-num">19.000đ</span>
                     <span class="lp-pricing-price-unit">/tháng</span>
                 </div>
-                <div class="lp-pricing-slots">3 kho theo dõi</div>
+                <div class="lp-pricing-tagline">3 kho theo dõi</div>
                 <div class="lp-pricing-divider"></div>
                 <ul class="lp-pricing-features">
                     <li><span class="lp-pricing-check">✓</span> Lưu &amp; theo dõi 3 kho</li>
                     <li><span class="lp-pricing-check">✓</span> Sync tự động mỗi 8h</li>
                     <li><span class="lp-pricing-check">✓</span> Refresh tay ~10 lần/ngày</li>
-                    <li><span class="lp-pricing-check">✓</span> Empire coin đầy đủ</li>
+                    <li><span class="lp-pricing-check">✓</span> Empire coin tích lũy</li>
                     <li><span class="lp-pricing-check">✓</span> Lịch sử giá cơ bản</li>
                 </ul>
                 @include('public.partials.pricing-cta', ['plan' => 'Pro'])
@@ -57,13 +56,13 @@
                     <span class="lp-pricing-price-num">39.000đ</span>
                     <span class="lp-pricing-price-unit">/tháng</span>
                 </div>
-                <div class="lp-pricing-slots">20 kho theo dõi</div>
+                <div class="lp-pricing-tagline">20 kho theo dõi</div>
                 <div class="lp-pricing-divider"></div>
                 <ul class="lp-pricing-features">
                     <li><span class="lp-pricing-check">✓</span> Lưu &amp; theo dõi 20 kho</li>
                     <li><span class="lp-pricing-check">✓</span> Sync tự động mỗi 4h</li>
                     <li><span class="lp-pricing-check">✓</span> Refresh tay ~30 lần/ngày</li>
-                    <li><span class="lp-pricing-check">✓</span> Empire coin + ưu tiên queue</li>
+                    <li><span class="lp-pricing-check">✓</span> Empire coin + ưu đãi</li>
                     <li><span class="lp-pricing-check">✓</span> Lịch sử giá chi tiết</li>
                 </ul>
                 @include('public.partials.pricing-cta', ['plan' => 'Plus'])
@@ -76,13 +75,13 @@
                     <span class="lp-pricing-price-num">69.000đ</span>
                     <span class="lp-pricing-price-unit">/tháng</span>
                 </div>
-                <div class="lp-pricing-slots">50 kho theo dõi</div>
+                <div class="lp-pricing-tagline">50 kho theo dõi</div>
                 <div class="lp-pricing-divider"></div>
                 <ul class="lp-pricing-features">
                     <li><span class="lp-pricing-check">✓</span> Lưu &amp; theo dõi 50 kho</li>
                     <li><span class="lp-pricing-check">✓</span> Sync tự động mỗi 2h</li>
                     <li><span class="lp-pricing-check">✓</span> Refresh tay ~80 lần/ngày</li>
-                    <li><span class="lp-pricing-check">✓</span> Empire coin + ưu tiên cao</li>
+                    <li><span class="lp-pricing-check">✓</span> Empire coin + ưu đãi cao</li>
                     <li><span class="lp-pricing-check">✓</span> Hỗ trợ ưu tiên</li>
                 </ul>
                 @include('public.partials.pricing-cta', ['plan' => 'Max', 'primary' => true])
@@ -94,13 +93,13 @@
                     <span class="lp-pricing-price-num">159.000đ</span>
                     <span class="lp-pricing-price-unit">/tháng</span>
                 </div>
-                <div class="lp-pricing-slots">Không giới hạn kho*</div>
+                <div class="lp-pricing-tagline">Không giới hạn kho*</div>
                 <div class="lp-pricing-divider"></div>
                 <ul class="lp-pricing-features">
                     <li><span class="lp-pricing-check">✓</span> Không giới hạn số kho</li>
                     <li><span class="lp-pricing-check">✓</span> Sync tự động mỗi 1h</li>
                     <li><span class="lp-pricing-check">✓</span> Refresh tay không giới hạn*</li>
-                    <li><span class="lp-pricing-check">✓</span> +2–3 tài khoản phụ</li>
+                    <li><span class="lp-pricing-check">✓</span> Giá Empire &amp; Buff163 chính xác sau mỗi Sync</li>
                     <li><span class="lp-pricing-check">✓</span> Hỗ trợ trực tiếp 1:1</li>
                 </ul>
                 @include('public.partials.pricing-cta', ['plan' => 'Shop'])
@@ -131,12 +130,10 @@
 
         <p class="lp-pricing-note">
             * Gói Shop áp dụng chính sách fair use — chỉ ảnh hưởng khi phát hiện lạm dụng API.
-            99% người dùng không bao giờ chạm tới giới hạn này.
         </p>
 
-        <p class="lp-pricing-free">
+        <p class="lp-pricing-footer-link">
             <a href="{{ route('public.inventories') }}">Xem kho công khai</a>
-            (giá tham khảo, do admin bật hiển thị).
         </p>
     </div>
 </section>
