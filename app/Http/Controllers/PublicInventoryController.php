@@ -89,7 +89,7 @@ class PublicInventoryController extends Controller
             'parsed' => $parsed,
             'bundle' => [
                 'steam_persona_name' => $bundle['steam_persona_name'] ?? null,
-                'steam_avatar_url' => $bundle['steam_avatar_url'] ?? null,
+                'steam_avatar_url' => $avatarDisplay ?? $bundle['steam_avatar_url'] ?? null,
                 'inventory_source' => $bundle['inventory_source'] ?? null,
                 'inventory_fallback_message' => $bundle['inventory_fallback_message'] ?? null,
             ],
@@ -99,18 +99,23 @@ class PublicInventoryController extends Controller
         $images = app(\App\Services\ItemImageService::class);
 
         $displayItems = array_map(static function (array $item) use ($images) {
-            $hash = (string) ($item['market_hash_name'] ?? '');
-            $iconUrl = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
+            $item = $images->enrichItemRowForDisplay($item);
 
             return [
-            'assetid' => $item['assetid'] ?? null,
-            'name' => $item['name'] ?? '',
-            'market_hash_name' => $item['market_hash_name'] ?? '',
-            'icon_url' => $iconUrl,
-            'amount' => $item['amount'] ?? 1,
-            'tradable' => $item['tradable'] ?? true,
+                'assetid' => $item['assetid'] ?? null,
+                'name' => $item['name'] ?? '',
+                'market_hash_name' => $item['market_hash_name'] ?? '',
+                'icon_url' => $item['icon_url'] ?? null,
+                'steam_icon_hint' => $item['steam_icon_hint'] ?? '',
+                'amount' => $item['amount'] ?? 1,
+                'tradable' => $item['tradable'] ?? true,
             ];
         }, $steamItems);
+
+        $avatarDisplay = $images->avatarUrlForDisplay(
+            $parsed['steam_id'],
+            $bundle['steam_avatar_url'] ?? null,
+        );
 
         return response()->json([
             'ok' => true,
@@ -127,7 +132,7 @@ class PublicInventoryController extends Controller
             'inventory' => [
                 'label' => $bundle['steam_persona_name'] ?? $parsed['label'] ?? 'Steam',
                 'steam_persona_name' => $bundle['steam_persona_name'] ?? null,
-                'steam_avatar_url' => $bundle['steam_avatar_url'] ?? null,
+                'steam_avatar_url' => $avatarDisplay ?? $bundle['steam_avatar_url'] ?? null,
                 'steam_id' => $parsed['steam_id'],
                 'url' => $parsed['url'],
             ],
@@ -166,6 +171,9 @@ class PublicInventoryController extends Controller
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
         }
 
+        $images = app(\App\Services\ItemImageService::class);
+        $rows = array_map(fn (array $row) => $images->enrichItemRowForDisplay($row), $rows);
+
         $totalItems = count($steamItems);
 
         return response()->json([
@@ -192,7 +200,11 @@ class PublicInventoryController extends Controller
         RateLimiter::hit($cooldownKey, 60);
 
         $name = trim((string) $request->input('market_hash_name'));
-        $resolved = $images->resolveForBrowser($name);
+        $iconHint = $request->query('icon');
+        $resolved = $images->resolveForBrowser(
+            $name,
+            is_string($iconHint) ? $iconHint : null,
+        );
 
         return response()->json([
             'ok' => $resolved['ok'],
@@ -213,7 +225,27 @@ class PublicInventoryController extends Controller
         }
         RateLimiter::hit($cooldownKey, 60);
 
-        return $images->streamSteamImage((string) $request->query('market_hash_name'));
+        $iconHint = $request->query('icon');
+
+        return $images->streamSteamImage(
+            (string) $request->query('market_hash_name'),
+            is_string($iconHint) ? $iconHint : null,
+        );
+    }
+
+    public function guestSteamAvatarStream(Request $request, \App\Services\ItemImageService $images): Response
+    {
+        $request->validate([
+            'steam_id' => ['required', 'string', 'regex:/^\d{17}$/'],
+        ]);
+
+        $cooldownKey = 'guest-steam-avatar-stream:'.$request->ip();
+        if (RateLimiter::tooManyAttempts($cooldownKey, 120)) {
+            return response('Rate limited', 429);
+        }
+        RateLimiter::hit($cooldownKey, 60);
+
+        return $images->streamSteamAvatar((string) $request->query('steam_id'));
     }
 
     private function guestCheckCacheKey(string $token): string
@@ -272,15 +304,10 @@ class PublicInventoryController extends Controller
                 fetchMissing: false,
             );
             $images = app(\App\Services\ItemImageService::class);
-            $inv->display_items = array_map(static function (array $item) use ($images) {
-                $hash = (string) ($item['market_hash_name'] ?? '');
-                $url = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
-                if ($url !== null) {
-                    $item['icon_url'] = $url;
-                }
-
-                return $item;
-            }, $inv->display_items);
+            $inv->display_items = array_map(
+                fn (array $item) => $images->enrichItemRowForDisplay($item),
+                $inv->display_items,
+            );
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
             return $inv;

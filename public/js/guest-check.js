@@ -276,8 +276,9 @@
     function rowHtml(row, rates) {
         // Ưu tiên ảnh Catalog CS2Cap nếu server đã có cache; nếu chưa có thì placeholder rồi hydrate.
         var iconSrc = row.icon_url ? escapeHtml(row.icon_url) : (placeholderImageUrl ? escapeHtml(placeholderImageUrl) : '');
+        var steamHint = row.steam_icon_hint ? (' data-steam-icon="' + escapeHtml(row.steam_icon_hint) + '"') : '';
         var icon = '<img src="' + iconSrc + '" alt="" class="lp-check-item-thumb" loading="lazy" referrerpolicy="no-referrer" ' +
-            'data-hash="' + escapeHtml(row.market_hash_name) + '" ' +
+            'data-hash="' + escapeHtml(row.market_hash_name) + '"' + steamHint + ' ' +
             'onerror="window.__cpcs2_onItemImgError && window.__cpcs2_onItemImgError(this)">';
         var buffCell = row.buff_price_cny != null ? fmtCny(row.buff_price_cny) : '<span class="lp-price-pending lp-muted">…</span>';
         var buffErr = row.buff_error ? '<div class="small" style="color:var(--lp-accent)">' + escapeHtml(row.buff_error) + '</div>' : '';
@@ -350,7 +351,12 @@
                 }
                 return;
             }
-            fetch(itemImageUrl + '?market_hash_name=' + encodeURIComponent(hash), {
+            var iconHint = imgEl.getAttribute('data-steam-icon') || '';
+            var imgQuery = '?market_hash_name=' + encodeURIComponent(hash);
+            if (iconHint) {
+                imgQuery += '&icon=' + encodeURIComponent(iconHint);
+            }
+            fetch(itemImageUrl + imgQuery, {
                 method: 'GET',
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             }).then(function (r) { return r.json(); })

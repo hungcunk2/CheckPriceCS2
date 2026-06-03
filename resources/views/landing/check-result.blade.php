@@ -16,8 +16,9 @@
     <div id="ket-qua-tra-gia" class="lp-check-result lp-glass-strong rounded-3 p-4 sm:p-6 mt-4 text-start">
         <div class="lp-check-result-header d-flex flex-wrap justify-content-between align-items-start gap-4 mb-4 pb-4" style="border-bottom:1px solid var(--lp-border)">
             <div class="d-flex align-items-center gap-3 min-w-0">
-                @if(!empty($inv->steam_avatar_url))
-                    <img src="{{ $inv->steam_avatar_url }}" alt="" class="lp-check-avatar" width="56" height="56">
+                @php $checkAvatar = \App\Support\InventoryDisplay::avatarUrl((object) $inv); @endphp
+                @if($checkAvatar)
+                    <img src="{{ $checkAvatar }}" alt="" class="lp-check-avatar" width="56" height="56" referrerpolicy="no-referrer">
                 @else
                     <div class="lp-check-avatar lp-check-avatar--placeholder"><i class="fab fa-steam"></i></div>
                 @endif

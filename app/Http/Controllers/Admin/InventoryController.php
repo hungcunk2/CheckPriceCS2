@@ -37,15 +37,10 @@ class InventoryController extends Controller
             );
             $inv->display_items = $this->priceHistory->enrichItems($items);
             $images = app(ItemImageService::class);
-            $inv->display_items = array_map(static function (array $item) use ($images) {
-                $hash = (string) ($item['market_hash_name'] ?? '');
-                $url = $images->iconUrlForDisplay($hash, $item['icon_url'] ?? null);
-                if ($url !== null) {
-                    $item['icon_url'] = $url;
-                }
-
-                return $item;
-            }, $inv->display_items);
+            $inv->display_items = array_map(
+                fn (array $item) => $images->enrichItemRowForDisplay($item),
+                $inv->display_items,
+            );
             $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
 
             return $inv;

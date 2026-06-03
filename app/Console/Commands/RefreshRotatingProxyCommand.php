@@ -13,7 +13,9 @@ class RefreshRotatingProxyCommand extends Command
 
     public function handle(FiveStarsRotatingProxyService $proxy): int
     {
-        if (! $proxy->isEnabled()) {
+        if (! $proxy->isConfigured()) {
+            $this->warn('Chưa nhập key xoay 5Stars (Admin → Proxy Empire).');
+
             return self::SUCCESS;
         }
 

@@ -22,11 +22,16 @@ class FiveStarsRotatingProxyService
 
     private const WAIT_UNTIL_KEY = 'fivestars_rotating_proxy:wait_until';
 
+    /** Đã nhập key xoay 5Stars (dùng cho ảnh Steam / cron refresh). */
+    public function isConfigured(): bool
+    {
+        return trim((string) EmpireProxySetting::current()->rotation_key) !== '';
+    }
+
+    /** Bật proxy cho API Empire (checkbox Admin). */
     public function isEnabled(): bool
     {
-        $settings = EmpireProxySetting::current();
-
-        return $settings->enabled && trim((string) $settings->rotation_key) !== '';
+        return EmpireProxySetting::current()->enabled && $this->isConfigured();
     }
 
     /**
@@ -34,7 +39,7 @@ class FiveStarsRotatingProxyService
      */
     public function currentProxyUrl(): ?string
     {
-        if (! $this->isEnabled()) {
+        if (! $this->isConfigured()) {
             return null;
         }
 
@@ -59,8 +64,8 @@ class FiveStarsRotatingProxyService
      */
     public function refreshProxyIfDueWithStatus(bool $force = false): array
     {
-        if (! $this->isEnabled()) {
-            return ['url' => null, 'source' => 'disabled', 'message' => 'Proxy Empire chưa bật hoặc thiếu key.'];
+        if (! $this->isConfigured()) {
+            return ['url' => null, 'source' => 'disabled', 'message' => 'Chưa nhập key xoay 5Stars.'];
         }
 
         if (! $force && $this->isThrottled()) {
@@ -270,7 +275,7 @@ class FiveStarsRotatingProxyService
      */
     public function httpProxyOptions(): array
     {
-        if (! $this->isEnabled()) {
+        if (! $this->isConfigured()) {
             return [];
         }
 

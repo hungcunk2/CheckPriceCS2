@@ -26,8 +26,9 @@ class InventoryDisplay
 
     public static function avatarUrl(object $inventory): ?string
     {
-        $url = trim((string) ($inventory->steam_avatar_url ?? ''));
-
-        return $url !== '' ? $url : null;
+        return app(\App\Services\ItemImageService::class)->avatarUrlForDisplay(
+            (string) ($inventory->steam_id ?? ''),
+            $inventory->steam_avatar_url ?? null,
+        );
     }
 }

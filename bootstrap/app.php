@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule) {
         $schedule->command('cs2price:refresh-proxy')
             ->everyThirtySeconds()
-            ->when(fn () => app(\App\Services\FiveStarsRotatingProxyService::class)->isEnabled())
+            ->when(fn () => app(\App\Services\FiveStarsRotatingProxyService::class)->isConfigured())
             ->withoutOverlapping(28)
             ->runInBackground();
 

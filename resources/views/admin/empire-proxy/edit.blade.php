@@ -14,7 +14,8 @@
                 <div class="mb-3 form-check form-switch">
                     <input type="checkbox" name="enabled" value="1" class="form-check-input" id="enabled"
                            @checked(old('enabled', $settings->enabled))>
-                    <label class="form-check-label" for="enabled">Bật proxy Empire</label>
+                    <label class="form-check-label" for="enabled">Bật proxy Empire (API giá)</label>
+                    <div class="form-text">Ảnh Steam/avatar: chỉ cần <strong>Key xoay</strong> + <code>STEAM_ITEM_IMAGE_VIA_PROXY=true</code>. Checkbox này chỉ bật proxy cho Empire API.</div>
                 </div>
 
                 <div class="mb-3">

@@ -141,7 +141,12 @@
                     imgEl.src = window.__cpcs2PlaceholderImg || imgEl.src;
                     return;
                 }
-                fetch(endpoint + '?market_hash_name=' + encodeURIComponent(hash), {
+                var iconHint = imgEl.getAttribute('data-steam-icon') || '';
+                var imgQuery = '?market_hash_name=' + encodeURIComponent(hash);
+                if (iconHint) {
+                    imgQuery += '&icon=' + encodeURIComponent(iconHint);
+                }
+                fetch(endpoint + imgQuery, {
                     method: 'GET',
                     headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 }).then(function (r) { return r.json(); })

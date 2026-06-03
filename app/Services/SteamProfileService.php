@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -46,7 +47,7 @@ class SteamProfileService
         }
 
         try {
-            $response = Http::timeout(15)->get(
+            $response = $this->http()->get(
                 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/',
                 ['key' => $apiKey, 'steamids' => $steamId]
             );
@@ -75,7 +76,7 @@ class SteamProfileService
     private function fetchFromXml(string $steamId): ?array
     {
         try {
-            $response = Http::timeout(15)
+            $response = $this->http()
                 ->withHeaders(['User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'])
                 ->get("https://steamcommunity.com/profiles/{$steamId}/?xml=1");
         } catch (ConnectionException) {
@@ -126,5 +127,19 @@ class SteamProfileService
             'steam_persona_name' => null,
             'steam_avatar_url' => null,
         ];
+    }
+
+    private function http(): PendingRequest
+    {
+        $request = Http::timeout(15);
+        $proxy = app(FiveStarsRotatingProxyService::class);
+        if ($proxy->isConfigured()) {
+            $options = $proxy->httpProxyOptions();
+            if ($options !== []) {
+                return $request->withOptions($options);
+            }
+        }
+
+        return $request;
     }
 }
