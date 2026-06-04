@@ -30,6 +30,7 @@ if [ -f "$APP_DIR/.env" ]; then
   grep -q '^DB_DATABASE=' .env && sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|" .env || echo "DB_DATABASE=${DB_NAME}" >> .env
   php artisan config:clear
   php artisan config:cache
+  php artisan migrate --force --no-interaction
   chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 fi
 

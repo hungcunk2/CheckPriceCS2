@@ -8,12 +8,28 @@ use App\Services\FiveStarsRotatingProxyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class EmpireProxyController extends Controller
 {
-    public function edit(): View
+    private function missingTableRedirect(): ?RedirectResponse
     {
+        if (Schema::hasTable('empire_proxy_settings')) {
+            return null;
+        }
+
+        return redirect()
+            ->route('admin.inventories.index')
+            ->with('error', 'Thiếu bảng empire_proxy_settings. Trên VPS chạy: php artisan migrate --force');
+    }
+
+    public function edit(): View|RedirectResponse
+    {
+        if ($redirect = $this->missingTableRedirect()) {
+            return $redirect;
+        }
+
         $settings = EmpireProxySetting::current();
 
         return view('admin.empire-proxy.edit', [
@@ -23,6 +39,10 @@ class EmpireProxyController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+        if ($redirect = $this->missingTableRedirect()) {
+            return $redirect;
+        }
+
         $validated = $request->validate([
             'enabled' => ['sometimes', 'boolean'],
             'rotation_key' => ['nullable', 'string', 'max:128'],
@@ -53,23 +73,35 @@ class EmpireProxyController extends Controller
 
     public function test(FiveStarsRotatingProxyService $proxy): RedirectResponse
     {
-        $result = $proxy->testFetch();
-        if ($result['ok'] && $result['proxy_url'] && empty($result['throttled'])) {
-            Cache::put('fivestars_rotating_proxy:last_fetch_at', time(), 86400);
-        }
-        $settings = EmpireProxySetting::current();
-        $settings->update([
-            'last_tested_at' => now(),
-            'last_test_message' => ($result['ok'] ? 'OK: ' : 'Lỗi: ').($result['message'] ?? '')
-                .($result['proxy_url'] ? ' — '.$result['proxy_url'] : ''),
-        ]);
-
-        if ($result['ok'] && $result['proxy_url']) {
-            $proxy->rememberProxy($result['proxy_url'], (string) ($result['message'] ?? ''));
+        if ($redirect = $this->missingTableRedirect()) {
+            return $redirect;
         }
 
-        return redirect()
-            ->route('admin.empire-proxy.edit')
-            ->with($result['ok'] ? 'success' : 'error', $settings->last_test_message);
+        try {
+            $result = $proxy->testFetch();
+            if ($result['ok'] && $result['proxy_url'] && empty($result['throttled'])) {
+                Cache::put('fivestars_rotating_proxy:last_fetch_at', time(), 86400);
+            }
+            $settings = EmpireProxySetting::current();
+            $settings->update([
+                'last_tested_at' => now(),
+                'last_test_message' => ($result['ok'] ? 'OK: ' : 'Lỗi: ').($result['message'] ?? '')
+                    .($result['proxy_url'] ? ' — '.$result['proxy_url'] : ''),
+            ]);
+
+            if ($result['ok'] && $result['proxy_url']) {
+                $proxy->rememberProxy($result['proxy_url'], (string) ($result['message'] ?? ''));
+            }
+
+            return redirect()
+                ->route('admin.empire-proxy.edit')
+                ->with($result['ok'] ? 'success' : 'error', $settings->last_test_message);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('admin.empire-proxy.edit')
+                ->with('error', 'Lỗi kiểm tra proxy: '.$e->getMessage());
+        }
     }
 }

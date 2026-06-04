@@ -66,7 +66,16 @@
                             <a href="{{ route('admin.plan-orders.index') }}" class="nav-link">
                                 <i class="fas fa-receipt"></i>
                                 <span>Đơn thanh toán</span>
-                                @php $pendingPlanOrders = \App\Models\PlanOrder::query()->where('status', 'pending')->count(); @endphp
+                                @php
+                                    $pendingPlanOrders = 0;
+                                    if (\Illuminate\Support\Facades\Schema::hasTable('plan_orders')) {
+                                        try {
+                                            $pendingPlanOrders = (int) \App\Models\PlanOrder::query()->where('status', 'pending')->count();
+                                        } catch (\Throwable) {
+                                            $pendingPlanOrders = 0;
+                                        }
+                                    }
+                                @endphp
                                 @if($pendingPlanOrders > 0)
                                     <span class="badge rounded-pill text-bg-warning ms-1">{{ $pendingPlanOrders }}</span>
                                 @endif

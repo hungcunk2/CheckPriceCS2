@@ -66,7 +66,7 @@ return [
     'registration_otp_ttl_minutes' => (int) env('REGISTRATION_OTP_TTL_MINUTES', 10),
     'registration_otp_resend_cooldown_seconds' => (int) env('REGISTRATION_OTP_RESEND_COOLDOWN', 60),
 
-    'timezone' => env('APP_TIMEZONE', 'Asia/Ho_Chi_Minh'),
+    'timezone' => env('APP_TIMEZONE') ?: 'Asia/Ho_Chi_Minh',
     'price_current_window_hours' => (int) env('BUFF_PRICE_CURRENT_WINDOW_HOURS', 2),
     'price_history_days' => (int) env('PRICE_HISTORY_DAYS', 90),
     'price_history_max_points' => (int) env('PRICE_HISTORY_MAX_POINTS', 3000),
