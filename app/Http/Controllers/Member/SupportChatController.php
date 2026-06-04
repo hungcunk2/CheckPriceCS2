@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
+use App\Models\SupportMessage;
+use App\Services\SupportChatAttachmentStorage;
 use App\Services\SupportChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class SupportChatController extends Controller
 {
     public function __construct(
         private SupportChatService $chat,
+        private SupportChatAttachmentStorage $attachments,
     ) {}
 
     public function index(): View
@@ -51,16 +55,38 @@ class SupportChatController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'body' => ['required', 'string', 'min:1', 'max:5000'],
+            'body' => ['nullable', 'string', 'max:5000'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
         ]);
 
-        $user = auth()->user();
-        $message = $this->chat->postMemberMessage($user, $validated['body']);
-        $message->load('conversation.user');
+        $body = trim((string) ($validated['body'] ?? ''));
+        if ($body === '' && ! $request->hasFile('image')) {
+            return response()->json(['ok' => false, 'message' => 'Nhập tin nhắn hoặc chọn ảnh.'], 422);
+        }
+
+        try {
+            $user = auth()->user();
+            $message = $this->chat->postMemberMessage($user, $body !== '' ? $body : null, $request->file('image'));
+            $message->load('conversation.user');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['ok' => false, 'message' => $e->getMessage() ?: 'Không gửi được tin nhắn.'], 422);
+        }
 
         return response()->json([
             'ok' => true,
             'message' => $this->chat->serializeMessages(collect([$message]), 'member')[0],
         ]);
+    }
+
+    public function attachment(SupportMessage $message): Response
+    {
+        $user = auth()->user();
+        if (! $this->chat->memberCanViewMessage($user, $message)) {
+            abort(404);
+        }
+
+        return $this->attachments->stream($message);
     }
 }

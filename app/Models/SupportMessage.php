@@ -18,7 +18,14 @@ class SupportMessage extends Model
         'sender',
         'admin_username',
         'body',
+        'attachment_path',
+        'attachment_mime',
     ];
+
+    public function hasAttachment(): bool
+    {
+        return trim((string) ($this->attachment_path ?? '')) !== '';
+    }
 
     protected function casts(): array
     {

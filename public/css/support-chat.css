@@ -18,8 +18,44 @@
     border-radius: 0.75rem;
     font-size: 0.925rem;
     line-height: 1.45;
-    white-space: pre-wrap;
     word-break: break-word;
+}
+
+.support-chat-text {
+    white-space: pre-wrap;
+}
+
+.support-chat-image-link {
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.support-chat-image {
+    display: block;
+    max-width: min(280px, 100%);
+    max-height: 220px;
+    width: auto;
+    height: auto;
+    border-radius: 0.5rem;
+    object-fit: contain;
+    cursor: zoom-in;
+}
+
+.support-chat-preview {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.support-chat-preview-img {
+    max-width: 120px;
+    max-height: 80px;
+    border-radius: 0.35rem;
+    object-fit: cover;
+}
+
+#support-chat-attach {
+    flex-shrink: 0;
 }
 
 .support-chat-bubble.mine {

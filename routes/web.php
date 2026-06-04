@@ -56,6 +56,7 @@ Route::middleware('auth')->prefix('tai-khoan')->name('member.')->group(function 
     Route::get('/thong-tin', DashboardController::class)->name('dashboard');
     Route::get('/ho-tro', [MemberSupportChatController::class, 'index'])->name('support.index');
     Route::get('/ho-tro/messages', [MemberSupportChatController::class, 'messages'])->name('support.messages');
+    Route::get('/ho-tro/anh/{message}', [MemberSupportChatController::class, 'attachment'])->name('support.attachment')->whereNumber('message');
     Route::post('/ho-tro', [MemberSupportChatController::class, 'store'])->name('support.store');
 });
 
@@ -135,6 +136,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/don-thanh-toan/{planOrder}/huy', [PlanOrderController::class, 'cancel'])->name('plan-orders.cancel');
 
         Route::get('/ho-tro', [AdminSupportChatController::class, 'index'])->name('support.index');
+        Route::get('/ho-tro/anh/{message}', [AdminSupportChatController::class, 'attachment'])->name('support.attachment')->whereNumber('message');
         Route::get('/ho-tro/{user}', [AdminSupportChatController::class, 'show'])->name('support.show')->whereNumber('user');
         Route::get('/ho-tro/{user}/messages', [AdminSupportChatController::class, 'messages'])->name('support.messages')->whereNumber('user');
         Route::post('/ho-tro/{user}', [AdminSupportChatController::class, 'store'])->name('support.store')->whereNumber('user');

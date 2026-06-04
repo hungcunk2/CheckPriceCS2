@@ -16,15 +16,25 @@
         <span class="small text-muted ms-2" id="support-chat-status"></span>
     </div>
     <div class="support-chat-messages flex-grow-1 px-3 py-3" id="support-chat-messages" aria-live="polite"></div>
-    <form class="support-chat-form border-top p-3" id="support-chat-form">
+    <form class="support-chat-form border-top p-3" id="support-chat-form" enctype="multipart/form-data">
+        <div id="support-chat-preview" class="support-chat-preview d-none mb-2">
+            <img src="" alt="Xem trước" id="support-chat-preview-img" class="support-chat-preview-img">
+            <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="support-chat-preview-clear" title="Bỏ ảnh">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
         <div class="input-group">
+            <button type="button" class="btn btn-outline-secondary" id="support-chat-attach" title="Gửi ảnh">
+                <i class="fas fa-image"></i>
+            </button>
+            <input type="file" class="d-none" id="support-chat-image" accept="image/jpeg,image/png,image/webp,image/gif">
             <textarea class="form-control" name="body" id="support-chat-input" rows="2" maxlength="5000"
-                      placeholder="Nhập tin nhắn…" required></textarea>
+                      placeholder="Nhập tin nhắn…"></textarea>
             <button type="submit" class="btn btn-primary" id="support-chat-send">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
-        <div class="form-text">Tối đa 5000 ký tự. Admin thường phản hồi trong giờ làm việc.</div>
+        <div class="form-text">Có thể gửi ảnh (JPG, PNG, WebP, GIF — tối đa 5MB) kèm hoặc không kèm chữ.</div>
     </form>
 </div>
 

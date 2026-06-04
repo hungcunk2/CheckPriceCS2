@@ -5,19 +5,25 @@ namespace App\Services;
 use App\Models\SupportConversation;
 use App\Models\SupportMessage;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 class SupportChatService
 {
+    public function __construct(
+        private SupportChatAttachmentStorage $attachments,
+    ) {}
+
     public function conversationForUser(int $userId): SupportConversation
     {
         return SupportConversation::query()->firstOrCreate(['user_id' => $userId]);
     }
 
-    public function postMemberMessage(User $user, string $body): SupportMessage
+    public function postMemberMessage(User $user, ?string $body, ?UploadedFile $image = null): SupportMessage
     {
         $conversation = $this->conversationForUser($user->id);
-        $message = $this->createMessage($conversation, SupportMessage::SENDER_MEMBER, null, $body);
+        $message = $this->createMessage($conversation, SupportMessage::SENDER_MEMBER, null, $body, $image);
         $conversation->update([
             'last_message_at' => $message->created_at,
             'member_last_read_at' => $message->created_at,
@@ -26,10 +32,10 @@ class SupportChatService
         return $message;
     }
 
-    public function postAdminMessage(User $user, string $adminUsername, string $body): SupportMessage
+    public function postAdminMessage(User $user, string $adminUsername, ?string $body, ?UploadedFile $image = null): SupportMessage
     {
         $conversation = $this->conversationForUser($user->id);
-        $message = $this->createMessage($conversation, SupportMessage::SENDER_ADMIN, $adminUsername, $body);
+        $message = $this->createMessage($conversation, SupportMessage::SENDER_ADMIN, $adminUsername, $body, $image);
         $conversation->update([
             'last_message_at' => $message->created_at,
             'admin_last_read_at' => $message->created_at,
@@ -131,24 +137,60 @@ class SupportChatService
                 'id' => $m->id,
                 'sender' => $m->sender,
                 'sender_label' => $label,
-                'body' => $m->body,
+                'body' => $m->body ?? '',
+                'image_url' => $this->attachmentUrl($m, $viewer),
                 'created_at' => $m->created_at?->timezone(config('cs2price.timezone'))->format('d/m/Y H:i'),
                 'is_mine' => $isMine,
             ];
         })->values()->all();
     }
 
+    public function memberCanViewMessage(User $user, SupportMessage $message): bool
+    {
+        $message->loadMissing('conversation');
+
+        return (int) ($message->conversation?->user_id ?? 0) === (int) $user->id;
+    }
+
+    private function attachmentUrl(SupportMessage $message, string $viewer): ?string
+    {
+        if (! $message->hasAttachment() || ! $this->attachments->hasAttachment($message)) {
+            return null;
+        }
+
+        return $viewer === 'admin'
+            ? route('admin.support.attachment', $message)
+            : route('member.support.attachment', $message);
+    }
+
     private function createMessage(
         SupportConversation $conversation,
         string $sender,
         ?string $adminUsername,
-        string $body,
+        ?string $body,
+        ?UploadedFile $image = null,
     ): SupportMessage {
+        $text = trim((string) $body);
+        $attachmentPath = null;
+        $attachmentMime = null;
+
+        if ($image !== null) {
+            $stored = $this->attachments->store($conversation, $image);
+            $attachmentPath = $stored['path'];
+            $attachmentMime = $stored['mime'];
+        }
+
+        if ($text === '' && $attachmentPath === null) {
+            throw new RuntimeException('Tin nhắn trống.');
+        }
+
         return SupportMessage::query()->create([
             'support_conversation_id' => $conversation->id,
             'sender' => $sender,
             'admin_username' => $adminUsername,
-            'body' => trim($body),
+            'body' => $text !== '' ? $text : null,
+            'attachment_path' => $attachmentPath,
+            'attachment_mime' => $attachmentMime,
         ]);
     }
 }

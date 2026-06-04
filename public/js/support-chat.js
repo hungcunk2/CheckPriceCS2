@@ -11,11 +11,17 @@
     var input = document.getElementById('support-chat-input');
     var sendBtn = document.getElementById('support-chat-send');
     var statusEl = document.getElementById('support-chat-status');
+    var attachBtn = document.getElementById('support-chat-attach');
+    var imageInput = document.getElementById('support-chat-image');
+    var previewWrap = document.getElementById('support-chat-preview');
+    var previewImg = document.getElementById('support-chat-preview-img');
+    var previewClear = document.getElementById('support-chat-preview-clear');
     var messagesUrl = root.getAttribute('data-messages-url') || '';
     var postUrl = root.getAttribute('data-post-url') || '';
     var pollMs = 5000;
     var lastId = 0;
     var polling = true;
+    var pendingFile = null;
 
     function csrfToken() {
         var meta = document.querySelector('meta[name="csrf-token"]');
@@ -37,6 +43,19 @@
         return div.innerHTML;
     }
 
+    function renderMessageBody(msg) {
+        var html = '';
+        if (msg.image_url) {
+            html += '<a href="' + escapeHtml(msg.image_url) + '" target="_blank" rel="noopener noreferrer" class="support-chat-image-link">' +
+                '<img src="' + escapeHtml(msg.image_url) + '" alt="Ảnh đính kèm" class="support-chat-image" loading="lazy">' +
+                '</a>';
+        }
+        if (msg.body) {
+            html += '<div class="support-chat-text">' + escapeHtml(msg.body) + '</div>';
+        }
+        return html || '<span class="text-muted">(Ảnh)</span>';
+    }
+
     function renderMessage(msg) {
         var wrap = document.createElement('div');
         wrap.className = 'support-chat-bubble ' + (msg.is_mine ? 'mine' : 'theirs');
@@ -44,7 +63,7 @@
         wrap.innerHTML =
             '<div class="support-chat-meta">' + escapeHtml(msg.sender_label || '') +
             ' · ' + escapeHtml(msg.created_at || '') + '</div>' +
-            escapeHtml(msg.body || '');
+            renderMessageBody(msg);
         return wrap;
     }
 
@@ -83,6 +102,28 @@
         }
     }
 
+    function clearPreview() {
+        pendingFile = null;
+        if (imageInput) {
+            imageInput.value = '';
+        }
+        if (previewWrap) {
+            previewWrap.classList.add('d-none');
+        }
+        if (previewImg) {
+            previewImg.removeAttribute('src');
+        }
+    }
+
+    function setPreview(file) {
+        if (!file || !previewWrap || !previewImg) {
+            return;
+        }
+        pendingFile = file;
+        previewImg.src = URL.createObjectURL(file);
+        previewWrap.classList.remove('d-none');
+    }
+
     function fetchMessages(afterId) {
         var url = messagesUrl + (messagesUrl.indexOf('?') >= 0 ? '&' : '?') + 'after_id=' + (afterId || 0);
         return fetch(url, {
@@ -113,19 +154,28 @@
             });
     }
 
-    function postMessage(body) {
+    function postMessage(body, file) {
+        var fd = new FormData();
+        if (body) {
+            fd.append('body', body);
+        }
+        if (file) {
+            fd.append('image', file);
+        }
+
         return fetch(postUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 Accept: 'application/json',
                 'X-CSRF-TOKEN': csrfToken(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ body: body }),
+            body: fd,
         }).then(function (r) {
-            return r.json();
+            return r.json().then(function (data) {
+                return { ok: r.ok, data: data };
+            });
         });
     }
 
@@ -145,25 +195,50 @@
         poll();
     }, pollMs);
 
+    if (attachBtn && imageInput) {
+        attachBtn.addEventListener('click', function () {
+            imageInput.click();
+        });
+        imageInput.addEventListener('change', function () {
+            var file = imageInput.files && imageInput.files[0];
+            if (!file) {
+                clearPreview();
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Ảnh tối đa 5MB.');
+                clearPreview();
+                return;
+            }
+            setPreview(file);
+        });
+    }
+
+    if (previewClear) {
+        previewClear.addEventListener('click', clearPreview);
+    }
+
     if (form) {
         form.addEventListener('submit', function (ev) {
             ev.preventDefault();
             var body = (input && input.value) ? input.value.trim() : '';
-            if (!body) {
+            var file = pendingFile;
+            if (!body && !file) {
                 return;
             }
             sendBtn.disabled = true;
-            postMessage(body)
-                .then(function (data) {
-                    if (!data || !data.ok) {
-                        throw new Error((data && data.message) || 'Không gửi được tin nhắn.');
+            postMessage(body, file)
+                .then(function (result) {
+                    if (!result.ok || !result.data || !result.data.ok) {
+                        throw new Error((result.data && result.data.message) || 'Không gửi được tin nhắn.');
                     }
-                    if (data.message) {
-                        appendMessages([data.message], true);
+                    if (result.data.message) {
+                        appendMessages([result.data.message], true);
                     }
                     if (input) {
                         input.value = '';
                     }
+                    clearPreview();
                 })
                 .catch(function (err) {
                     alert(err.message || 'Lỗi gửi tin nhắn.');
