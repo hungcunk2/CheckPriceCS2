@@ -63,33 +63,55 @@ class SupportChatService
 
     public function unreadCountForAdmin(): int
     {
-        return (int) SupportConversation::query()
-            ->whereExists(function ($q) {
-                $q->selectRaw('1')
-                    ->from('support_messages')
-                    ->whereColumn('support_messages.support_conversation_id', 'support_conversations.id')
-                    ->where('support_messages.sender', SupportMessage::SENDER_MEMBER)
-                    ->where(function ($inner) {
-                        $inner->whereNull('support_conversations.admin_last_read_at')
-                            ->orWhereColumn('support_messages.created_at', '>', 'support_conversations.admin_last_read_at');
-                    });
-            })
-            ->count();
+        if (! $this->tablesReady()) {
+            return 0;
+        }
+
+        try {
+            return (int) SupportConversation::query()
+                ->whereExists(function ($q) {
+                    $q->selectRaw('1')
+                        ->from('support_messages')
+                        ->whereColumn('support_messages.support_conversation_id', 'support_conversations.id')
+                        ->where('support_messages.sender', SupportMessage::SENDER_MEMBER)
+                        ->where(function ($inner) {
+                            $inner->whereNull('support_conversations.admin_last_read_at')
+                                ->orWhereColumn('support_messages.created_at', '>', 'support_conversations.admin_last_read_at');
+                        });
+                })
+                ->count();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     public function unreadCountForMember(User $user): int
     {
-        $conversation = SupportConversation::query()->where('user_id', $user->id)->first();
-        if ($conversation === null) {
+        if (! $this->tablesReady()) {
             return 0;
         }
 
-        $since = $conversation->member_last_read_at;
+        try {
+            $conversation = SupportConversation::query()->where('user_id', $user->id)->first();
+            if ($conversation === null) {
+                return 0;
+            }
 
-        return (int) $conversation->messages()
-            ->where('sender', SupportMessage::SENDER_ADMIN)
-            ->when($since !== null, fn ($q) => $q->where('created_at', '>', $since))
-            ->count();
+            $since = $conversation->member_last_read_at;
+
+            return (int) $conversation->messages()
+                ->where('sender', SupportMessage::SENDER_ADMIN)
+                ->when($since !== null, fn ($q) => $q->where('created_at', '>', $since))
+                ->count();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function tablesReady(): bool
+    {
+        return \Illuminate\Support\Facades\Schema::hasTable('support_conversations')
+            && \Illuminate\Support\Facades\Schema::hasTable('support_messages');
     }
 
     /**

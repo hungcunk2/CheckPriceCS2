@@ -228,11 +228,15 @@ class InventoryController extends Controller
         $hour = (int) $request->input('trade_at_hour', 0);
         $minute = (int) $request->input('trade_at_minute', 0);
 
-        return Carbon::createFromFormat(
-            'Y-m-d H:i',
-            sprintf('%s %02d:%02d', $date, $hour, $minute),
-            'Asia/Ho_Chi_Minh'
-        )->utc();
+        try {
+            return Carbon::createFromFormat(
+                'Y-m-d H:i',
+                sprintf('%s %02d:%02d', $date, $hour, $minute),
+                'Asia/Ho_Chi_Minh'
+            )->utc();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function runCheckAndRedirect(int $id, string $url, string $label, InventoryPriceChecker $checker): RedirectResponse
@@ -251,6 +255,14 @@ class InventoryController extends Controller
             return redirect()
                 ->route('admin.inventories.edit', $id)
                 ->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('admin.inventories.edit', $id)
+                ->with('error', config('app.debug')
+                    ? $e->getMessage()
+                    : 'Lỗi khi check giá — xem storage/logs/laravel.log');
         }
     }
 

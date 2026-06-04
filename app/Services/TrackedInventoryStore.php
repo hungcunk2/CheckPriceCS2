@@ -147,7 +147,7 @@ class TrackedInventoryStore
     {
         $allowed = [
             'user_id', 'label', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
-            'is_public', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
+            'is_public', 'sort_order', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
             'item_count', 'priced_count', 'failed_count', 'last_snapshot',
         ];
 

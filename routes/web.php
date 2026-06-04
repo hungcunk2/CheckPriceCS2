@@ -80,6 +80,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/inventories', [AdminInventoryController::class, 'index'])->name('inventories.index');
         Route::get('/inventories/create', [AdminInventoryController::class, 'create'])->name('inventories.create');
         Route::post('/inventories', [AdminInventoryController::class, 'store'])->name('inventories.store');
+        Route::get('/inventories/{inventory}', fn (int $inventory) => redirect()->route('admin.inventories.edit', $inventory))
+            ->whereNumber('inventory');
         Route::get('/inventories/{inventory}/edit', [AdminInventoryController::class, 'edit'])->name('inventories.edit');
         Route::put('/inventories/{inventory}', [AdminInventoryController::class, 'update'])->name('inventories.update');
         Route::delete('/inventories/{inventory}', [AdminInventoryController::class, 'destroy'])->name('inventories.destroy');
