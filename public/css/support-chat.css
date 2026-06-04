@@ -54,8 +54,39 @@
     object-fit: cover;
 }
 
-#support-chat-attach {
+.support-chat-compose {
+    align-items: stretch;
+}
+
+.support-chat-file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.support-chat-attach-btn {
     flex-shrink: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    margin: 0;
+}
+
+.support-chat-attach-btn:hover {
+    filter: brightness(1.08);
+}
+
+#support-chat-send {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+#support-chat-hint {
+    margin-top: 0.5rem;
 }
 
 .support-chat-bubble.mine {

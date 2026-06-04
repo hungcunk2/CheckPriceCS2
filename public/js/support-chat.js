@@ -11,11 +11,11 @@
     var input = document.getElementById('support-chat-input');
     var sendBtn = document.getElementById('support-chat-send');
     var statusEl = document.getElementById('support-chat-status');
-    var attachBtn = document.getElementById('support-chat-attach');
     var imageInput = document.getElementById('support-chat-image');
     var previewWrap = document.getElementById('support-chat-preview');
     var previewImg = document.getElementById('support-chat-preview-img');
     var previewClear = document.getElementById('support-chat-preview-clear');
+    var hintEl = document.getElementById('support-chat-hint');
     var messagesUrl = root.getAttribute('data-messages-url') || '';
     var postUrl = root.getAttribute('data-post-url') || '';
     var pollMs = 5000;
@@ -102,6 +102,12 @@
         }
     }
 
+    function setHint(html) {
+        if (hintEl) {
+            hintEl.innerHTML = html;
+        }
+    }
+
     function clearPreview() {
         pendingFile = null;
         if (imageInput) {
@@ -111,8 +117,13 @@
             previewWrap.classList.add('d-none');
         }
         if (previewImg) {
+            if (previewImg.src && previewImg.src.indexOf('blob:') === 0) {
+                URL.revokeObjectURL(previewImg.src);
+            }
             previewImg.removeAttribute('src');
         }
+        setHint('Bấm <strong>Gửi ảnh</strong> để chọn hình (JPG, PNG, WebP, GIF — tối đa 5MB).');
+        setStatus('');
     }
 
     function setPreview(file) {
@@ -120,8 +131,13 @@
             return;
         }
         pendingFile = file;
+        if (previewImg.src && previewImg.src.indexOf('blob:') === 0) {
+            URL.revokeObjectURL(previewImg.src);
+        }
         previewImg.src = URL.createObjectURL(file);
         previewWrap.classList.remove('d-none');
+        setHint('Đã chọn: <strong>' + escapeHtml(file.name) + '</strong> — bấm <strong>Gửi</strong> để gửi.');
+        setStatus('Sẵn sàng gửi ảnh');
     }
 
     function fetchMessages(afterId) {
@@ -195,13 +211,22 @@
         poll();
     }, pollMs);
 
-    if (attachBtn && imageInput) {
-        attachBtn.addEventListener('click', function () {
-            imageInput.click();
-        });
+    if (!postUrl) {
+        setStatus('Lỗi cấu hình chat');
+        setHint('Thiếu URL gửi tin — tải lại trang.');
+    } else {
+        setStatus('');
+    }
+
+    if (imageInput) {
         imageInput.addEventListener('change', function () {
             var file = imageInput.files && imageInput.files[0];
             if (!file) {
+                clearPreview();
+                return;
+            }
+            if (!file.type || file.type.indexOf('image/') !== 0) {
+                alert('Chỉ gửi được file ảnh.');
                 clearPreview();
                 return;
             }
@@ -211,6 +236,9 @@
                 return;
             }
             setPreview(file);
+            if (input) {
+                input.focus();
+            }
         });
     }
 
@@ -227,6 +255,7 @@
                 return;
             }
             sendBtn.disabled = true;
+            setStatus('Đang gửi…');
             postMessage(body, file)
                 .then(function (result) {
                     if (!result.ok || !result.data || !result.data.ok) {
@@ -239,8 +268,13 @@
                         input.value = '';
                     }
                     clearPreview();
+                    setStatus('Đã gửi');
+                    setTimeout(function () {
+                        setStatus('');
+                    }, 2000);
                 })
                 .catch(function (err) {
+                    setStatus('');
                     alert(err.message || 'Lỗi gửi tin nhắn.');
                 })
                 .finally(function () {
