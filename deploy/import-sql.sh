@@ -29,9 +29,9 @@ if [ -f "$APP_DIR/.env" ]; then
   grep -q '^DB_CONNECTION=mysql' .env || sed -i 's|^DB_CONNECTION=.*|DB_CONNECTION=mysql|' .env
   grep -q '^DB_DATABASE=' .env && sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|" .env || echo "DB_DATABASE=${DB_NAME}" >> .env
   php artisan config:clear
-  php artisan config:cache
-  php artisan migrate --force --no-interaction
-  chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+  sudo -u www-data php artisan config:cache
+  sudo -u www-data php artisan migrate --force --no-interaction
+  bash deploy/fix-storage-permissions.sh 2>/dev/null || chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 fi
 
 echo "Import xong database ${DB_NAME} từ ${SQL_FILE}"

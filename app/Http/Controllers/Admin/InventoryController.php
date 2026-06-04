@@ -7,6 +7,7 @@ use App\Services\InventoryPriceChecker;
 use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
 use App\Services\ItemImageService;
+use App\Support\AdminFacingError;
 use App\Support\Buff163AccountPool;
 use App\Support\Cs2PriceFeatures;
 use App\Support\EmpireItemEnricher;
@@ -189,9 +190,7 @@ class InventoryController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            $message = config('app.debug')
-                ? $e->getMessage()
-                : 'Lỗi server khi check giá — xem storage/logs/laravel.log';
+            $message = AdminFacingError::message($e, 'Lỗi server khi check giá — xem storage/logs/laravel.log');
 
             if ($request->wantsJson()) {
                 return response()->json(['ok' => false, 'message' => $message], 500);
@@ -260,9 +259,7 @@ class InventoryController extends Controller
 
             return redirect()
                 ->route('admin.inventories.edit', $id)
-                ->with('error', config('app.debug')
-                    ? $e->getMessage()
-                    : 'Lỗi khi check giá — xem storage/logs/laravel.log');
+                ->with('error', AdminFacingError::message($e, 'Lỗi khi check giá — xem storage/logs/laravel.log'));
         }
     }
 

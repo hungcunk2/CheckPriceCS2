@@ -37,13 +37,14 @@ composer install --no-dev --optimize-autoloader --no-interaction
 bash "$APP_DIR/deploy/setup-env.sh"
 bash "$APP_DIR/deploy/configure-mysql.sh"
 
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+bash "$APP_DIR/deploy/fix-storage-permissions.sh"
 
-php artisan storage:link 2>/dev/null || true
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+sudo -u www-data php artisan storage:link 2>/dev/null || true
+sudo -u www-data php artisan config:cache
+sudo -u www-data php artisan route:cache
+sudo -u www-data php artisan view:cache
+
+bash "$APP_DIR/deploy/fix-storage-permissions.sh"
 
 # PHP-FPM nhẹ cho VPS 1GB RAM
 POOL="/etc/php/${PHP_VER}/fpm/pool.d/www.conf"

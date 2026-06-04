@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\EmpireProxySetting;
 use App\Services\FiveStarsRotatingProxyService;
+use App\Support\AdminFacingError;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -101,7 +102,7 @@ class EmpireProxyController extends Controller
 
             return redirect()
                 ->route('admin.empire-proxy.edit')
-                ->with('error', 'Lỗi kiểm tra proxy: '.$e->getMessage());
+                ->with('error', AdminFacingError::message($e, 'Lỗi kiểm tra proxy: '.$e->getMessage()));
         }
     }
 }

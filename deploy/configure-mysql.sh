@@ -56,15 +56,14 @@ set_env DB_USERNAME "$DB_USER"
 set_env DB_PASSWORD "$DB_PASS"
 
 php artisan config:clear
-php artisan migrate --force --no-interaction
+sudo -u www-data php artisan migrate --force --no-interaction
 
 if [ -f storage/app/tracked_inventories.json ]; then
-  php artisan cs2price:import-json --force 2>/dev/null || php artisan cs2price:import-json || true
+  sudo -u www-data php artisan cs2price:import-json --force 2>/dev/null || sudo -u www-data php artisan cs2price:import-json || true
 fi
 
-php artisan config:cache
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+sudo -u www-data php artisan config:cache
+bash "$APP_DIR/deploy/fix-storage-permissions.sh"
 
 echo ""
 echo "=== MySQL VPS đã cấu hình ==="
