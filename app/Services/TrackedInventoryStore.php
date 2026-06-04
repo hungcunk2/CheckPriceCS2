@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\TrackedInventory;
+use App\Support\InventorySteamProfileResolver;
 use Illuminate\Support\Collection;
 
 class TrackedInventoryStore
@@ -121,6 +122,7 @@ class TrackedInventoryStore
         }
 
         $payload = $this->normalizeAttributes($attributes);
+        $payload = $this->mergeSteamProfileFromUrl($payload);
 
         if ($model) {
             $model->fill($payload);
@@ -137,6 +139,20 @@ class TrackedInventoryStore
     public function delete(int $id): void
     {
         TrackedInventory::query()->where('id', $id)->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function mergeSteamProfileFromUrl(array $payload): array
+    {
+        $url = trim((string) ($payload['url'] ?? ''));
+        if ($url === '') {
+            return $payload;
+        }
+
+        return app(InventorySteamProfileResolver::class)->mergeIntoAttributes($payload, $url);
     }
 
     /**

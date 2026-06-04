@@ -13,6 +13,7 @@ use App\Support\Cs2PriceFeatures;
 use App\Support\EmpireItemEnricher;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
+use App\Support\InventoryDisplay;
 use App\Support\InventoryWeaponStats;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -147,6 +148,7 @@ class InventoryController extends Controller
                 empireMode: 'admin',
             );
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? false));
+            $row = $this->store->find($inventory);
 
             if ($request->wantsJson()) {
                 $empireNote = '';
@@ -175,6 +177,7 @@ class InventoryController extends Controller
                     'last_checked_at' => Carbon::now()->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i'),
                     'buff_price_html' => $this->renderInventoryBuffPriceCell($result),
                     'empire_price_html' => $this->renderInventoryEmpirePriceCell($result),
+                    'identity_html' => $row ? InventoryDisplay::listIdentityHtml($row) : '',
                 ]);
             }
 

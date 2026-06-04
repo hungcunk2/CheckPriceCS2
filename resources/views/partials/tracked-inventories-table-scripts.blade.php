@@ -82,10 +82,12 @@ document.querySelectorAll('.btn-refresh').forEach(btn => {
                 return;
             }
             if (row) {
+                const identityCell = row.querySelector('.inv-identity-cell');
                 const buffCell = row.querySelector('.inv-buff-price-cell');
                 const empireCell = row.querySelector('.inv-empire-price-cell');
                 const countCell = row.querySelector('.inv-item-count-cell');
                 const updatedCell = row.querySelector('.inv-updated-cell');
+                if (identityCell && json.identity_html) identityCell.innerHTML = json.identity_html;
                 if (buffCell && json.buff_price_html) buffCell.innerHTML = json.buff_price_html;
                 if (empireCell && json.empire_price_html) empireCell.innerHTML = json.empire_price_html;
                 if (countCell && json.item_count != null) countCell.textContent = json.item_count;

@@ -31,4 +31,9 @@ class InventoryDisplay
             $inventory->steam_avatar_url ?? null,
         );
     }
+
+    public static function listIdentityHtml(object $inventory): string
+    {
+        return view('partials.inventory-list-identity', ['inventory' => $inventory])->render();
+    }
 }
