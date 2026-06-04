@@ -42,6 +42,7 @@ class InventoryResultPersister
                 'empire_priced_count' => $result['empire_priced_count'] ?? 0,
                 'sell_compare_buff_wins' => $result['sell_compare_buff_wins'] ?? 0,
                 'sell_compare_empire_wins' => $result['sell_compare_empire_wins'] ?? 0,
+                'inventory_empty' => (bool) ($result['inventory_empty'] ?? false),
                 'items' => $result['items'] ?? [],
             ],
         ];
@@ -87,6 +88,7 @@ class InventoryResultPersister
                 'empire_priced_count' => $result['empire_priced_count'] ?? 0,
                 'sell_compare_buff_wins' => $result['sell_compare_buff_wins'] ?? 0,
                 'sell_compare_empire_wins' => $result['sell_compare_empire_wins'] ?? 0,
+                'inventory_empty' => (bool) ($result['inventory_empty'] ?? false),
                 'items' => $result['items'] ?? [],
             ],
         ];

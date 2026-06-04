@@ -108,7 +108,8 @@
                 <div class="form-check mb-4">
                     <input class="form-check-input" type="checkbox" name="check_now" value="1" id="check_now"
                         {{ old('check_now') ? 'checked' : '' }}>
-                    <label class="form-check-label" for="check_now">Check giá ngay sau khi lưu</label>
+                    <label class="form-check-label" for="check_now">Check giá Buff/Empire ngay sau khi lưu</label>
+                    <div class="form-text">Bỏ tick: chỉ tải kho, avatar và ảnh skin (không gọi Buff/Empire). Nút ⟳ trên danh sách luôn check giá.</div>
                 </div>
 
                 <div class="d-flex gap-2">

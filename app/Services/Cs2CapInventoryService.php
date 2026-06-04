@@ -105,10 +105,6 @@ class Cs2CapInventoryService
             $i++;
         }
 
-        if ($items === []) {
-            throw new RuntimeException('Kho không có skin tradable có thể định giá (CS2Cap).');
-        }
-
         // Endpoint inventory CS2Cap không trả profile; dùng SteamProfileService phía ngoài như cs.trade.
         return [
             'items' => $items,

@@ -90,7 +90,11 @@
                                 @endif
                             </td>
                         @endif
-                        <td class="inv-item-count-cell">{{ count($items) ?: ($inv->item_count ?? 0) }}</td>
+                        <td class="inv-item-count-cell">
+                            <span class="{{ \App\Support\InventoryDisplay::isInventoryEmpty($inv) ? 'text-muted small' : '' }}">
+                                {{ \App\Support\InventoryDisplay::itemCountLabel($inv, count($items)) }}
+                            </span>
+                        </td>
                         <td class="small" style="min-width: 140px">
                             @include('partials.trade-countdown', [
                                 'inventory' => $inv,

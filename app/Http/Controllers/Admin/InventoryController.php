@@ -78,9 +78,7 @@ class InventoryController extends Controller
             return $this->runCheckAndRedirect((int) $row->id, $validated['url'], $validated['label'], $checker);
         }
 
-        return redirect()
-            ->route('admin.inventories.index')
-            ->with('success', 'Đã lưu kho đồ.');
+        return $this->runSnapshotAndRedirect((int) $row->id, $validated['url'], $validated['label'], $checker);
     }
 
     public function edit(int $inventory): View|RedirectResponse
@@ -116,9 +114,7 @@ class InventoryController extends Controller
             return $this->runCheckAndRedirect($inventory, $validated['url'], $validated['label'], $checker);
         }
 
-        return redirect()
-            ->route('admin.inventories.index')
-            ->with('success', 'Đã cập nhật kho đồ.');
+        return $this->runSnapshotAndRedirect($inventory, $validated['url'], $validated['label'], $checker);
     }
 
     public function destroy(int $inventory): RedirectResponse
@@ -160,16 +156,24 @@ class InventoryController extends Controller
                     }
                 }
 
-                return response()->json([
-                    'ok' => true,
-                    'message' => sprintf(
+                $syncMessage = ! empty($result['inventory_empty'])
+                    ? 'Đã cập nhật — kho hiện chưa có item.'
+                    : sprintf(
                         'Đã cập nhật — %d/%d skin có giá Buff%s.',
                         (int) $result['priced_count'],
                         (int) $result['item_count'],
                         $empireNote
-                    ),
+                    );
+
+                return response()->json([
+                    'ok' => true,
+                    'message' => $syncMessage,
                     'inventory_id' => $inventory,
                     'item_count' => (int) $result['item_count'],
+                    'inventory_empty' => ! empty($result['inventory_empty']),
+                    'item_count_label' => ! empty($result['inventory_empty'])
+                        ? 'Kho hiện chưa có item'
+                        : (string) (int) $result['item_count'],
                     'priced_count' => (int) $result['priced_count'],
                     'empire_priced_count' => (int) ($result['empire_priced_count'] ?? 0),
                     'total_cny' => (float) $result['total_cny'],
@@ -250,9 +254,13 @@ class InventoryController extends Controller
             $row = $this->store->find($id);
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
 
+            $message = ! empty($result['inventory_empty'])
+                ? 'Đã lưu — kho hiện chưa có item.'
+                : 'Đã lưu và cập nhật giá.';
+
             return redirect()
                 ->route('admin.inventories.index')
-                ->with('success', 'Đã lưu và cập nhật giá.');
+                ->with('success', $message);
         } catch (RuntimeException $e) {
             return redirect()
                 ->route('admin.inventories.index')
@@ -263,6 +271,35 @@ class InventoryController extends Controller
             return redirect()
                 ->route('admin.inventories.index')
                 ->with('error', AdminFacingError::message($e, 'Lỗi khi check giá — xem storage/logs/laravel.log'));
+        }
+    }
+
+    private function runSnapshotAndRedirect(int $id, string $url, string $label, InventoryPriceChecker $checker): RedirectResponse
+    {
+        $this->extendExecutionTime();
+
+        try {
+            $result = $checker->loadInventorySnapshot($url, $label, refreshSteam: true);
+            $row = $this->store->find($id);
+            $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
+
+            $message = ! empty($result['inventory_empty'])
+                ? 'Đã lưu — kho hiện chưa có item.'
+                : sprintf('Đã lưu — %d skin (chưa check giá Buff).', (int) $result['item_count']);
+
+            return redirect()
+                ->route('admin.inventories.index')
+                ->with('success', $message);
+        } catch (RuntimeException $e) {
+            return redirect()
+                ->route('admin.inventories.index')
+                ->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('admin.inventories.index')
+                ->with('error', AdminFacingError::message($e, 'Lỗi khi tải kho — xem storage/logs/laravel.log'));
         }
     }
 

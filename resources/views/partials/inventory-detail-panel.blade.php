@@ -2,7 +2,11 @@
 
 @if(count($items) === 0)
     <div class="alert alert-info mb-0 py-2 small">
-        Chưa có danh sách skin.
+        @if(\App\Support\InventoryDisplay::isInventoryEmpty($inventory))
+            Kho hiện chưa có item
+        @else
+            Chưa tải danh sách skin — bấm Lưu hoặc đồng bộ (⟳) để tải kho.
+        @endif
     </div>
 @else
     <div class="inventory-item-filter-root">

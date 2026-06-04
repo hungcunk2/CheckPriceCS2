@@ -36,9 +36,22 @@ class InventoryPriceChecker
     public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false, string $empireMode = 'guest'): array
     {
         $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);
-        $bundle = $this->fetchSteamBundle($parsed['steam_id'], $refreshSteam);
+        $bundle = $this->inventoryFetch->fetchBundle($parsed['steam_id'], $refreshSteam);
 
-        return $this->finalizeCheckResult($parsed, $bundle, $label, $empireMode);
+        return $this->finalizeCheckResult($parsed, $bundle, $label, $empireMode, priceItems: true);
+    }
+
+    /**
+     * Tải kho + avatar + icon skin — không gọi Buff/Empire (dùng khi Lưu form không tick check giá).
+     *
+     * @return array<string, mixed>
+     */
+    public function loadInventorySnapshot(string $url, ?string $label = null, bool $refreshSteam = true): array
+    {
+        $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);
+        $bundle = $this->inventoryFetch->fetchBundle($parsed['steam_id'], $refreshSteam);
+
+        return $this->finalizeCheckResult($parsed, $bundle, $label, 'admin', priceItems: false);
     }
 
     /**
@@ -92,33 +105,26 @@ class InventoryPriceChecker
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    private function fetchSteamBundle(string $steamId, bool $refreshSteam): array
-    {
-        $bundle = $this->inventoryFetch->fetchBundle($steamId, $refreshSteam);
-        if (($bundle['items'] ?? []) === []) {
-            throw new RuntimeException('Kho không có skin tradable có thể định giá.');
-        }
-
-        return $bundle;
-    }
-
-    /**
      * @param  array<string, string>  $parsed
      * @param  array<string, mixed>  $bundle
      */
-    private function finalizeCheckResult(array $parsed, array $bundle, ?string $label, string $empireMode): array
+    private function finalizeCheckResult(array $parsed, array $bundle, ?string $label, string $empireMode, bool $priceItems): array
     {
+        $tradable = InventoryItemFilter::onlyTradable($bundle['items'] ?? []);
+
+        if (! $priceItems) {
+            return $this->summarizeResult($parsed, $bundle, $label, $this->buildSteamOnlyRows($tradable));
+        }
+
         $tier = match ($empireMode) {
             'admin', 'sync' => PricingTier::Admin,
             'member' => PricingTier::Member,
             default => PricingTier::current(),
         };
 
-        $steamItems = $this->steamItemsWorthPricing($bundle['items']);
+        $steamItems = $this->steamItemsWorthPricing($tradable);
         if ($steamItems === []) {
-            throw new RuntimeException('Kho không có skin tradable đủ giá trị (≥ ¥'.InventoryItemFilter::minCnyUnitValue().').');
+            return $this->summarizeResult($parsed, $bundle, $label, $this->buildSteamOnlyRows($tradable));
         }
 
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
@@ -128,6 +134,30 @@ class InventoryPriceChecker
         $rows = $this->buildItemRows($steamItems, $buffPrices, $empirePrices, $tier);
 
         return $this->summarizeResult($parsed, $bundle, $label, $rows);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $steamItems
+     * @return list<array<string, mixed>>
+     */
+    private function buildSteamOnlyRows(array $steamItems): array
+    {
+        $rows = [];
+
+        foreach ($steamItems as $item) {
+            $rows[] = [
+                'assetid' => $item['assetid'],
+                'name' => $item['name'],
+                'market_hash_name' => $item['market_hash_name'],
+                'icon_url' => $item['icon_url'],
+                'steam_icon_url' => $item['icon_url'],
+                'tradable' => $item['tradable'],
+                'amount' => $item['amount'],
+                'phase' => $item['phase'] ?? null,
+            ];
+        }
+
+        return $rows;
     }
 
     /**
@@ -521,13 +551,16 @@ class InventoryPriceChecker
         $empirePricedCount = collect($rows)->whereNotNull('empire_price_coins')->count();
         $pricedCount = collect($rows)->whereNotNull('buff_price_cny')->count();
 
+        $tradableCount = count(InventoryItemFilter::onlyTradable($bundle['items'] ?? []));
+
         return [
             'steam_id' => $parsed['steam_id'],
             'url' => $parsed['url'],
             'label' => $label ?? $parsed['label'],
             'steam_persona_name' => $bundle['steam_persona_name'] ?? null,
             'steam_avatar_url' => $bundle['steam_avatar_url'] ?? null,
-            'item_count' => count($rows),
+            'inventory_empty' => $tradableCount === 0,
+            'item_count' => $tradableCount,
             'priced_count' => $pricedCount,
             'failed_count' => count($rows) - $pricedCount,
             'empire_priced_count' => $empirePricedCount,

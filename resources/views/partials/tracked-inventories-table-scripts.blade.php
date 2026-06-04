@@ -90,7 +90,12 @@ document.querySelectorAll('.btn-refresh').forEach(btn => {
                 if (identityCell && json.identity_html) identityCell.innerHTML = json.identity_html;
                 if (buffCell && json.buff_price_html) buffCell.innerHTML = json.buff_price_html;
                 if (empireCell && json.empire_price_html) empireCell.innerHTML = json.empire_price_html;
-                if (countCell && json.item_count != null) countCell.textContent = json.item_count;
+                if (countCell) {
+                    const label = json.item_count_label ?? (json.item_count != null ? String(json.item_count) : null);
+                    if (label != null) {
+                        countCell.innerHTML = '<span class="' + (json.inventory_empty ? 'text-muted small' : '') + '">' + label + '</span>';
+                    }
+                }
                 if (updatedCell && json.last_checked_at) updatedCell.textContent = json.last_checked_at;
             }
             const detail = document.getElementById('admin-inv-items-' + id);
