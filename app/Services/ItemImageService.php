@@ -144,7 +144,7 @@ class ItemImageService
         }
 
         if ($this->useSteamImageProxy() && $steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
-            Cache::put($this->steamAvatarCacheKey($steamId), $url, 86400 * 7);
+            $this->safeCachePut($this->steamAvatarCacheKey($steamId), $url, 86400 * 7);
 
             return route('api.guest.steam-avatar.stream', ['steam_id' => $steamId]);
         }
@@ -158,14 +158,14 @@ class ItemImageService
             return response('Not found', 404);
         }
 
-        $cachedUrl = Cache::get($this->steamAvatarCacheKey($steamId));
+        $cachedUrl = $this->safeCacheGet($this->steamAvatarCacheKey($steamId));
         $url = is_string($cachedUrl) && $cachedUrl !== '' ? $cachedUrl : null;
 
         if ($url === null || ! $this->isAllowedSteamAvatarUrl($url)) {
             $profile = app(SteamProfileService::class)->fetchProfile($steamId);
             $url = trim((string) ($profile['steam_avatar_url'] ?? ''));
             if ($url !== '') {
-                Cache::put($this->steamAvatarCacheKey($steamId), $url, 86400 * 7);
+                $this->safeCachePut($this->steamAvatarCacheKey($steamId), $url, 86400 * 7);
             }
         }
 
@@ -184,14 +184,14 @@ class ItemImageService
         }
 
         $cacheKey = 'steam_icon_url:v1:'.md5($marketHashName);
-        $cached = Cache::get($cacheKey);
+        $cached = $this->safeCacheGet($cacheKey);
         if (is_string($cached)) {
             return $cached !== '' ? $cached : null;
         }
 
         $lookup = $this->catalog->lookupItem($marketHashName);
         $steam = $this->normalizeSteamIconUrl($lookup['steam_icon'] ?? null);
-        Cache::put($cacheKey, $steam ?? '', $steam !== null ? 86400 * 14 : 3600);
+        $this->safeCachePut($cacheKey, $steam ?? '', $steam !== null ? 86400 * 14 : 3600);
 
         return $steam;
     }
@@ -267,7 +267,7 @@ class ItemImageService
             return;
         }
 
-        Cache::put('steam_icon_url:v1:'.md5($marketHashName), $normalized, 86400 * 14);
+        $this->safeCachePut('steam_icon_url:v1:'.md5($marketHashName), $normalized, 86400 * 14);
     }
 
     private function normalizeSteamIconUrl(?string $url): ?string
@@ -308,7 +308,7 @@ class ItemImageService
     private function streamRemoteImage(string $upstreamUrl, string $cachePrefix, array $logContext = []): Response
     {
         $cacheKey = $cachePrefix.':'.md5($upstreamUrl);
-        $cached = Cache::get($cacheKey);
+        $cached = $this->safeCacheGet($cacheKey);
         if (is_string($cached) && $cached !== '') {
             return response($cached, 200, [
                 'Content-Type' => $this->guessContentType($cached),
@@ -356,7 +356,7 @@ class ItemImageService
             return response('Empty image', 502);
         }
 
-        Cache::put($cacheKey, $body, 86400 * 7);
+        $this->safeCachePut($cacheKey, $body, 86400 * 7);
 
         return response($body, 200, [
             'Content-Type' => $response->header('Content-Type') ?: $this->guessContentType($body),
@@ -390,7 +390,7 @@ class ItemImageService
             return response('Empty image', 502);
         }
 
-        Cache::put($cachePrefix.':'.md5($upstreamUrl), $body, 86400 * 7);
+        $this->safeCachePut($cachePrefix.':'.md5($upstreamUrl), $body, 86400 * 7);
 
         return response($body, 200, [
             'Content-Type' => $response->header('Content-Type') ?: $this->guessContentType($body),
@@ -429,5 +429,25 @@ class ItemImageService
         }
 
         return 'image/jpeg';
+    }
+
+    private function safeCacheGet(string $key): mixed
+    {
+        try {
+            return Cache::get($key);
+        } catch (\Throwable $e) {
+            Log::debug('item_image: cache read failed', ['key' => $key, 'message' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    private function safeCachePut(string $key, mixed $value, int $ttl): void
+    {
+        try {
+            Cache::put($key, $value, $ttl);
+        } catch (\Throwable $e) {
+            Log::warning('item_image: cache write failed', ['key' => $key, 'message' => $e->getMessage()]);
+        }
     }
 }
