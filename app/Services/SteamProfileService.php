@@ -22,18 +22,44 @@ class SteamProfileService
 
         $cached = Cache::get($cacheKey);
         if (is_array($cached)) {
+            $cached['steam_avatar_url'] = $this->normalizeAvatarUrl($cached['steam_avatar_url'] ?? null);
+
             return $cached;
         }
 
-        $profile = $this->fetchFromApi($steamId) ?? $this->fetchFromXml($steamId);
+        $profile = $this->fetchFromInventoryPage($steamId)
+            ?? $this->fetchFromApi($steamId)
+            ?? $this->fetchFromXml($steamId);
         $result = [
             'steam_persona_name' => $profile['persona_name'] ?? null,
-            'steam_avatar_url' => $profile['avatar_url'] ?? null,
+            'steam_avatar_url' => $this->normalizeAvatarUrl($profile['avatar_url'] ?? null),
         ];
 
         Cache::put($cacheKey, $result, (int) config('cs2price.steam_profile_cache_seconds', 3600));
 
         return $result;
+    }
+
+    /**
+     * @return array{persona_name: string|null, avatar_url: string|null}|null
+     */
+    private function fetchFromInventoryPage(string $steamId): ?array
+    {
+        $hints = app(SteamInventoryService::class)->fetchProfileFromInventoryPage($steamId);
+        if ($hints === null) {
+            return null;
+        }
+
+        $persona = $hints['persona_name'] ?? null;
+        $avatar = $this->normalizeAvatarUrl($hints['avatar_url'] ?? null);
+        if ($persona === null && $avatar === null) {
+            return null;
+        }
+
+        return [
+            'persona_name' => $persona,
+            'avatar_url' => $avatar,
+        ];
     }
 
     /**
@@ -131,15 +157,16 @@ class SteamProfileService
 
     private function http(): PendingRequest
     {
-        $request = Http::timeout(15);
-        $proxy = app(FiveStarsRotatingProxyService::class);
-        if ($proxy->isConfigured()) {
-            $options = $proxy->httpProxyOptions();
-            if ($options !== []) {
-                return $request->withOptions($options);
-            }
+        return Http::timeout(15);
+    }
+
+    private function normalizeAvatarUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '' || str_contains($url, '/api/guest/steam-avatar')) {
+            return null;
         }
 
-        return $request;
+        return $url;
     }
 }

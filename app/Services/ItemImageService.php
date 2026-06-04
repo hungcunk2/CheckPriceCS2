@@ -127,26 +127,20 @@ class ItemImageService
     }
 
     /**
-     * Avatar Steam (profile) — proxy giống ảnh skin khi bật 5Stars.
+     * Avatar Steam — URL CDN Steam trực tiếp (trình duyệt tải, không qua proxy 5Stars).
      */
     public function avatarUrlForDisplay(?string $steamId, ?string $snapshotAvatarUrl = null): ?string
     {
         $steamId = trim((string) $steamId);
-        $url = trim((string) $snapshotAvatarUrl);
+        $url = $this->normalizeSteamAvatarUrl($snapshotAvatarUrl);
 
-        if ($url === '' && $steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
+        if ($url === null && $steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
             $profile = app(SteamProfileService::class)->fetchProfile($steamId);
-            $url = trim((string) ($profile['steam_avatar_url'] ?? ''));
+            $url = $this->normalizeSteamAvatarUrl($profile['steam_avatar_url'] ?? null);
         }
 
-        if ($url === '' || ! $this->isAllowedSteamAvatarUrl($url)) {
+        if ($url === null || ! $this->isAllowedSteamAvatarUrl($url)) {
             return null;
-        }
-
-        if ($this->useSteamImageProxy() && $steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
-            $this->safeCachePut($this->steamAvatarCacheKey($steamId), $url, 86400 * 7);
-
-            return route('api.guest.steam-avatar.stream', ['steam_id' => $steamId]);
         }
 
         return $url;
@@ -409,6 +403,16 @@ class ItemImageService
             '#^https://([a-z0-9.-]+\.)?(steamstatic\.com|akamaihd\.net)(/economy/image/|/economy/image$)#i',
             $url
         ) || str_contains($url, '/economy/image/');
+    }
+
+    private function normalizeSteamAvatarUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '' || str_contains($url, '/api/guest/steam-avatar')) {
+            return null;
+        }
+
+        return $url;
     }
 
     private function isAllowedSteamAvatarUrl(string $url): bool

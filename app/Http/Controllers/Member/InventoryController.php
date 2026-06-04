@@ -328,8 +328,14 @@ class InventoryController extends Controller
                 ->with('success', 'Đã lưu và cập nhật giá.');
         } catch (RuntimeException $e) {
             return redirect()
-                ->route('member.inventories.edit', $id)
+                ->route('member.inventories.index')
                 ->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('member.inventories.index')
+                ->with('error', AdminFacingError::message($e, 'Lỗi khi check giá — xem storage/logs/laravel.log'));
         }
     }
 

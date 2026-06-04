@@ -102,6 +102,82 @@ class SteamInventoryService
      *
      * @return list<array<string, mixed>>
      */
+    /**
+     * Avatar + tên trên trang kho Steam (cùng link steamcommunity.com/.../inventory).
+     *
+     * @return array{persona_name: string|null, avatar_url: string|null}|null
+     */
+    public function fetchProfileFromInventoryPage(string $steamId): ?array
+    {
+        if (! preg_match('/^\d{17}$/', $steamId)) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(20)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept-Language' => 'en-US,en;q=0.9',
+                ])
+                ->get("https://steamcommunity.com/profiles/{$steamId}/inventory/");
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        return $this->parseProfileFromInventoryHtml($response->body());
+    }
+
+    /**
+     * @return array{persona_name: string|null, avatar_url: string|null}|null
+     */
+    private function parseProfileFromInventoryHtml(string $html): ?array
+    {
+        $persona = null;
+        $avatar = null;
+
+        if (preg_match('/g_rgProfileData\s*=\s*(\{.*?\});/s', $html, $m)) {
+            $json = json_decode($m[1], true);
+            if (is_array($json)) {
+                $persona = isset($json['strProfileName']) ? trim((string) $json['strProfileName']) : null;
+                foreach (['strAvatarFull', 'strAvatarMedium', 'strAvatar'] as $key) {
+                    if (! empty($json[$key]) && is_string($json[$key])) {
+                        $avatar = trim($json[$key]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ($persona === null || $persona === '') {
+            if (preg_match('/<span[^>]*class="[^"]*actual_persona_name[^"]*"[^>]*>([^<]+)</i', $html, $m)) {
+                $persona = html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            } elseif (preg_match('/<span[^>]*class="[^"]*profile_small_header_name[^"]*"[^>]*>.*?<span[^>]*>([^<]+)</is', $html, $m)) {
+                $persona = html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        if ($avatar === null || $avatar === '') {
+            if (preg_match('/<img[^>]+class="[^"]*profile_header_image[^"]*"[^>]+src="([^"]+)"/i', $html, $m)) {
+                $avatar = html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            } elseif (preg_match('/<img[^>]+src="(https:\/\/avatars\.[^"]+)"[^>]+class="[^"]*profile_header_image/i', $html, $m)) {
+                $avatar = html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        if (($persona === null || $persona === '') && ($avatar === null || $avatar === '')) {
+            return null;
+        }
+
+        return [
+            'persona_name' => $persona !== '' ? $persona : null,
+            'avatar_url' => $avatar !== '' ? $avatar : null,
+        ];
+    }
+
     public function fetchItemsCached(string $steamId, bool $refreshSteam = false): array
     {
         $cacheKey = 'steam_inventory_items:'.$steamId;

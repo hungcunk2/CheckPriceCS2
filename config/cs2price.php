@@ -158,7 +158,7 @@ return [
     // Cache ảnh catalog CS2Cap theo market_hash_name (giây), mặc định 30 ngày.
     'cs2cap_catalog_image_cache_seconds' => (int) env('CS2CAP_CATALOG_IMAGE_CACHE_SECONDS', 86400 * 30),
 
-    // Khi bật proxy 5Stars: tải ảnh Steam CDN qua proxy và phục vụ /api/guest/item-image/stream.
+    // Khi bật proxy 5Stars: tải ảnh skin qua proxy (/api/guest/item-image/stream). Avatar profile: URL Steam trực tiếp.
     'steam_item_image_via_proxy' => filter_var(env('STEAM_ITEM_IMAGE_VIA_PROXY', true), FILTER_VALIDATE_BOOL),
 
     /*
