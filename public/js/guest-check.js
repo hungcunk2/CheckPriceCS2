@@ -32,37 +32,33 @@
         return '¥' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function minItemUsd(state) {
-        var min = state.minItemUsd;
+    function minItemCny(state) {
+        var min = state.minItemCny;
         return min != null && !isNaN(min) ? Number(min) : 1;
     }
 
-    function rowUnitUsd(row, rates) {
-        if (row.buff_price_usd != null && !isNaN(row.buff_price_usd)) {
-            return Number(row.buff_price_usd);
-        }
+    function rowUnitCny(row) {
         if (row.buff_price_cny != null && !isNaN(row.buff_price_cny)) {
-            var vnd = Math.round(row.buff_price_cny * rates.cny_to_vnd);
-            return rates.vnd_to_usd > 0 ? Math.round((vnd / rates.vnd_to_usd) * 100) / 100 : null;
+            return Number(row.buff_price_cny);
         }
-        if (row.empire_price_usd != null && !isNaN(row.empire_price_usd)) {
-            return Number(row.empire_price_usd);
+        if (row.empire_price_cny != null && !isNaN(row.empire_price_cny)) {
+            return Number(row.empire_price_cny);
         }
 
         return null;
     }
 
     function isWorthListingRow(row, state) {
-        var min = minItemUsd(state);
+        var min = minItemCny(state);
         if (!min || min <= 0) {
             return true;
         }
-        var usd = rowUnitUsd(row, state.rates);
-        if (usd == null) {
+        var cny = rowUnitCny(row);
+        if (cny == null) {
             return !state.pricingDone;
         }
 
-        return usd >= min;
+        return cny >= min;
     }
 
     function pruneCheapRows(state) {
@@ -566,7 +562,7 @@
                 var state = {
                     token: data.token,
                     rates: data.rates || { cny_to_vnd: 3750, vnd_to_usd: 26700 },
-                    minItemUsd: data.min_item_usd != null ? data.min_item_usd : 1,
+                    minItemCny: data.min_item_cny != null ? data.min_item_cny : 1,
                     inventory: data.inventory || {},
                     itemCount: data.item_count || rows.length,
                     rows: rows,

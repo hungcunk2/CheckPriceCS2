@@ -124,7 +124,7 @@ class PublicInventoryController extends Controller
             'empire_usd_reference' => \App\Support\PricingTier::current()->usesCs2CapEmpireOnly(),
             'pricing_tier' => \App\Support\PricingTier::current()->value,
             'batch_size' => max(4, (int) config('cs2price.guest_check_batch_size', 12)),
-            'min_item_usd' => \App\Support\InventoryItemFilter::minUsdUnitValue(),
+            'min_item_cny' => \App\Support\InventoryItemFilter::minCnyUnitValue(),
             'rates' => [
                 'cny_to_vnd' => ExchangeRateStore::cnyToVnd(),
                 'vnd_to_usd' => ExchangeRateStore::vndToUsd(),

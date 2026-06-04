@@ -36,8 +36,8 @@ return [
     'cny_to_vnd' => (float) env('CNY_TO_VND', 3750),
     // 1 USD = N VND (bắc cầu: CNY → VND → USD).
     'vnd_to_usd' => (float) env('VND_TO_USD', 26700),
-    // Skin đơn giá Buff (USD) dưới ngưỡng: ẩn danh sách, không gọi API giá (trừ lần đầu chưa có cache).
-    'min_item_usd_value' => (float) env('MIN_ITEM_USD_VALUE', 1),
+    // Skin đơn giá Buff (CNY/tệ) dưới ngưỡng: ẩn danh sách, không gọi API giá (đã có cache).
+    'min_item_cny_value' => (float) env('MIN_ITEM_CNY_VALUE', 1),
     // Item đã có giá: chỉ gọi Buff lại sau N giây (mặc định 4 giờ, khớp chu kỳ sync).
     'price_refresh_seconds' => (int) env('BUFF_PRICE_REFRESH_SECONDS', env('BUFF_PRICE_CACHE_SECONDS', 14400)),
     'price_cache_seconds' => (int) env('BUFF_PRICE_CACHE_SECONDS', 14400),

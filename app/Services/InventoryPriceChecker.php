@@ -118,7 +118,7 @@ class InventoryPriceChecker
 
         $steamItems = $this->steamItemsWorthPricing($bundle['items']);
         if ($steamItems === []) {
-            throw new RuntimeException('Kho không có skin tradable đủ giá trị (≥ $'.InventoryItemFilter::minUsdUnitValue().').');
+            throw new RuntimeException('Kho không có skin tradable đủ giá trị (≥ ¥'.InventoryItemFilter::minCnyUnitValue().').');
         }
 
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));

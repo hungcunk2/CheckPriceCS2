@@ -6,34 +6,32 @@ use App\Services\ItemPriceCacheStore;
 
 class InventoryItemFilter
 {
-    public static function minUsdUnitValue(): float
+    public static function minCnyUnitValue(): float
     {
-        return max(0, (float) config('cs2price.min_item_usd_value', 1));
+        return max(0, (float) config('cs2price.min_item_cny_value', 1));
     }
 
-    public static function isBelowMinUsd(?float $usdPerUnit): bool
+    public static function isBelowMinCny(?float $cnyPerUnit): bool
     {
-        $min = self::minUsdUnitValue();
+        $min = self::minCnyUnitValue();
 
-        if ($min <= 0 || $usdPerUnit === null) {
+        if ($min <= 0 || $cnyPerUnit === null) {
             return false;
         }
 
-        return $usdPerUnit < $min;
+        return $cnyPerUnit < $min;
     }
 
     /**
      * @param  array<string, mixed>|null  $buffPayload
      */
-    public static function usdPerUnitFromBuffPayload(?array $buffPayload): ?float
+    public static function cnyPerUnitFromBuffPayload(?array $buffPayload): ?float
     {
         if ($buffPayload === null) {
             return null;
         }
 
-        $cny = isset($buffPayload['sell_min_price']) ? (float) $buffPayload['sell_min_price'] : null;
-
-        return Currency::cnyToUsd($cny);
+        return isset($buffPayload['sell_min_price']) ? (float) $buffPayload['sell_min_price'] : null;
     }
 
     /**
@@ -41,19 +39,16 @@ class InventoryItemFilter
      */
     public static function isWorthListingRow(array $row): bool
     {
-        if (self::minUsdUnitValue() <= 0) {
+        if (self::minCnyUnitValue() <= 0) {
             return true;
         }
 
-        $usd = $row['buff_price_usd'] ?? null;
-        if ($usd === null && isset($row['buff_price_cny'])) {
-            $usd = Currency::cnyToUsd((float) $row['buff_price_cny']);
-        }
-        if ($usd === null) {
-            $usd = isset($row['empire_price_usd']) ? (float) $row['empire_price_usd'] : null;
+        $cny = isset($row['buff_price_cny']) ? (float) $row['buff_price_cny'] : null;
+        if ($cny === null && isset($row['empire_price_cny'])) {
+            $cny = (float) $row['empire_price_cny'];
         }
 
-        return ! self::isBelowMinUsd($usd !== null ? (float) $usd : null);
+        return ! self::isBelowMinCny($cny);
     }
 
     /**
@@ -74,7 +69,7 @@ class InventoryItemFilter
      */
     public static function filterSteamItemsExcludingKnownCheap(array $steamItems, array $cachedBuffByKey): array
     {
-        if (self::minUsdUnitValue() <= 0 || $steamItems === []) {
+        if (self::minCnyUnitValue() <= 0 || $steamItems === []) {
             return $steamItems;
         }
 
@@ -89,11 +84,12 @@ class InventoryItemFilter
                 return true;
             }
 
-            $usd = self::usdPerUnitFromBuffPayload($cachedBuffByKey[$key]);
+            $cny = self::cnyPerUnitFromBuffPayload($cachedBuffByKey[$key]);
 
-            return ! self::isBelowMinUsd($usd);
+            return ! self::isBelowMinCny($cny);
         }));
     }
+
     /**
      * @param  array<string, mixed>  $desc  Steam inventory description
      */
