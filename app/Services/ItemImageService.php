@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SteamAvatarUrl;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -132,18 +133,22 @@ class ItemImageService
     public function avatarUrlForDisplay(?string $steamId, ?string $snapshotAvatarUrl = null): ?string
     {
         $steamId = trim((string) $steamId);
-        $url = $this->normalizeSteamAvatarUrl($snapshotAvatarUrl);
+        $url = SteamAvatarUrl::normalize($snapshotAvatarUrl);
 
-        if ($url === null && $steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
+        if (! SteamAvatarUrl::isUsable($url) && $steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
             $profile = app(SteamProfileService::class)->fetchProfile($steamId);
-            $url = $this->normalizeSteamAvatarUrl($profile['steam_avatar_url'] ?? null);
+            $url = SteamAvatarUrl::normalize($profile['steam_avatar_url'] ?? null);
         }
 
-        if ($url === null || ! $this->isAllowedSteamAvatarUrl($url)) {
-            return null;
+        if (SteamAvatarUrl::isUsable($url)) {
+            return $url;
         }
 
-        return $url;
+        if ($steamId !== '' && preg_match('/^\d{17}$/', $steamId)) {
+            return route('api.guest.steam-avatar.stream', ['steam_id' => $steamId]);
+        }
+
+        return null;
     }
 
     public function streamSteamAvatar(string $steamId): Response

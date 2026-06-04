@@ -139,14 +139,17 @@ class SteamInventoryService
         $persona = null;
         $avatar = null;
 
-        if (preg_match('/g_rgProfileData\s*=\s*(\{.*?\});/s', $html, $m)) {
-            $json = json_decode($m[1], true);
-            if (is_array($json)) {
-                $persona = isset($json['strProfileName']) ? trim((string) $json['strProfileName']) : null;
-                foreach (['strAvatarFull', 'strAvatarMedium', 'strAvatar'] as $key) {
-                    if (! empty($json[$key]) && is_string($json[$key])) {
-                        $avatar = trim($json[$key]);
-                        break;
+        if (preg_match('/g_rgProfileData\s*=\s*/', $html, $m, PREG_OFFSET_CAPTURE)) {
+            $jsonStr = $this->extractJsonObjectFrom($html, $m[0][1] + strlen($m[0][0]));
+            if ($jsonStr !== null) {
+                $json = json_decode($jsonStr, true);
+                if (is_array($json)) {
+                    $persona = isset($json['strProfileName']) ? trim((string) $json['strProfileName']) : null;
+                    foreach (['strAvatarFull', 'strAvatarMedium', 'strAvatar'] as $key) {
+                        if (! empty($json[$key]) && is_string($json[$key])) {
+                            $avatar = trim($json[$key]);
+                            break;
+                        }
                     }
                 }
             }
@@ -176,6 +179,51 @@ class SteamInventoryService
             'persona_name' => $persona !== '' ? $persona : null,
             'avatar_url' => $avatar !== '' ? $avatar : null,
         ];
+    }
+
+    private function extractJsonObjectFrom(string $html, int $offset): ?string
+    {
+        $len = strlen($html);
+        if ($offset >= $len || ($html[$offset] ?? '') !== '{') {
+            return null;
+        }
+
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+
+        for ($i = $offset; $i < $len; $i++) {
+            $ch = $html[$i];
+
+            if ($inString) {
+                if ($escape) {
+                    $escape = false;
+                } elseif ($ch === '\\') {
+                    $escape = true;
+                } elseif ($ch === '"') {
+                    $inString = false;
+                }
+
+                continue;
+            }
+
+            if ($ch === '"') {
+                $inString = true;
+
+                continue;
+            }
+
+            if ($ch === '{') {
+                $depth++;
+            } elseif ($ch === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($html, $offset, $i - $offset + 1);
+                }
+            }
+        }
+
+        return null;
     }
 
     public function fetchItemsCached(string $steamId, bool $refreshSteam = false): array

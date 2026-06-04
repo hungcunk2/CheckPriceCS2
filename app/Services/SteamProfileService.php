@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SteamAvatarUrl;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
@@ -23,8 +24,14 @@ class SteamProfileService
         $cached = Cache::get($cacheKey);
         if (is_array($cached)) {
             $cached['steam_avatar_url'] = $this->normalizeAvatarUrl($cached['steam_avatar_url'] ?? null);
+            if (
+                ($cached['steam_persona_name'] ?? null) !== null
+                && SteamAvatarUrl::isUsable($cached['steam_avatar_url'] ?? null)
+            ) {
+                return $cached;
+            }
 
-            return $cached;
+            Cache::forget($cacheKey);
         }
 
         $profile = $this->fetchFromInventoryPage($steamId)
@@ -162,11 +169,8 @@ class SteamProfileService
 
     private function normalizeAvatarUrl(?string $url): ?string
     {
-        $url = trim((string) $url);
-        if ($url === '' || str_contains($url, '/api/guest/steam-avatar')) {
-            return null;
-        }
+        $url = SteamAvatarUrl::normalize($url);
 
-        return $url;
+        return SteamAvatarUrl::isUsable($url) ? $url : null;
     }
 }
