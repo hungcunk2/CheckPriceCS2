@@ -41,7 +41,14 @@ class InventoryController extends Controller
 
         $user = $this->requireUser();
 
-        $inventories = $this->mapInventories($this->store->forUser($user->id));
+        try {
+            $inventories = $this->mapInventories($this->store->forUser($user->id));
+        } catch (\Throwable $e) {
+            report($e);
+            $inventories = collect();
+            session()->flash('error', AdminFacingError::message($e, 'Không tải được danh sách kho.'));
+        }
+
         $limit = $user->inventorySlotLimit();
         $used = $this->store->countForUser($user->id);
 
@@ -86,12 +93,20 @@ class InventoryController extends Controller
 
         $validated = $this->validateForm($request);
 
-        $row = $this->store->upsertForUser($user->id, [
-            'label' => $validated['label'],
-            'url' => $validated['url'],
-            'is_public' => $request->boolean('is_public', false),
-            'trade_at' => $this->parseTradeAtFromRequest($request),
-        ]);
+        try {
+            $row = $this->store->upsertForUser($user->id, [
+                'label' => $validated['label'],
+                'url' => $validated['url'],
+                'is_public' => $request->boolean('is_public', false),
+                'trade_at' => $this->parseTradeAtFromRequest($request),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with('error', AdminFacingError::message($e, 'Không lưu được kho — xem storage/logs/laravel.log'));
+        }
 
         if ($request->boolean('check_now')) {
             return $this->runCheckAndRedirect((int) $row->id, $validated['url'], $validated['label'], $checker);
@@ -118,12 +133,20 @@ class InventoryController extends Controller
 
         $validated = $this->validateForm($request);
 
-        $this->store->upsertForUser($this->requireUser()->id, [
-            'label' => $validated['label'],
-            'url' => $validated['url'],
-            'is_public' => $request->boolean('is_public'),
-            'trade_at' => $this->parseTradeAtFromRequest($request),
-        ], $inventory);
+        try {
+            $this->store->upsertForUser($this->requireUser()->id, [
+                'label' => $validated['label'],
+                'url' => $validated['url'],
+                'is_public' => $request->boolean('is_public'),
+                'trade_at' => $this->parseTradeAtFromRequest($request),
+            ], $inventory);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with('error', AdminFacingError::message($e, 'Không lưu được kho — xem storage/logs/laravel.log'));
+        }
 
         if ($request->boolean('check_now')) {
             return $this->runCheckAndRedirect($inventory, $validated['url'], $validated['label'], $checker);
@@ -161,8 +184,9 @@ class InventoryController extends Controller
                 refreshSteam: true,
                 empireMode: 'member',
             );
-            $this->persister->persistForUser($result, $this->requireUser()->id, $inventory, (bool) ($row->is_public ?? false));
-            $row = $this->store->find($inventory);
+            $userId = $this->requireUser()->id;
+            $this->persister->persistForUser($result, $userId, $inventory, (bool) ($row->is_public ?? false));
+            $row = $this->findOwned($inventory);
 
             if ($request->wantsJson()) {
                 $empireNote = '';
@@ -314,11 +338,17 @@ class InventoryController extends Controller
         $hour = (int) $request->input('trade_at_hour', 0);
         $minute = (int) $request->input('trade_at_minute', 0);
 
-        return Carbon::createFromFormat(
-            'Y-m-d H:i',
-            sprintf('%s %02d:%02d', $date, $hour, $minute),
-            'Asia/Ho_Chi_Minh'
-        )->utc();
+        try {
+            $parsed = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                sprintf('%s %02d:%02d', $date, $hour, $minute),
+                'Asia/Ho_Chi_Minh'
+            );
+
+            return $parsed instanceof Carbon ? $parsed->utc() : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function runCheckAndRedirect(int $id, string $url, string $label, InventoryPriceChecker $checker): RedirectResponse

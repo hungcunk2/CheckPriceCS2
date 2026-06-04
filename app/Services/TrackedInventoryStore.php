@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\TrackedInventory;
 use App\Support\InventorySteamProfileResolver;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class TrackedInventoryStore
 {
@@ -173,7 +174,9 @@ class TrackedInventoryStore
             $payload['last_checked_at'] = \Carbon\Carbon::parse($payload['last_checked_at']);
         }
 
-        if (array_key_exists('trade_at', $payload)) {
+        if (! Schema::hasColumn('tracked_inventories', 'trade_at')) {
+            unset($payload['trade_at']);
+        } elseif (array_key_exists('trade_at', $payload)) {
             $payload['trade_at'] = filled($payload['trade_at'])
                 ? \Carbon\Carbon::parse($payload['trade_at'])
                 : null;
