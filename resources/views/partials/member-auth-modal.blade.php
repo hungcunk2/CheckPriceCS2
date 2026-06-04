@@ -19,7 +19,7 @@
                 @include('partials.member-auth-forms', [
                     'formIdSuffix' => 'modal',
                     'mode' => $authMode,
-                    'authRedirectTo' => route('public.landing'),
+                    'authRedirectTo' => $authRedirectTo ?? route('public.landing'),
                 ])
             </div>
         </div>

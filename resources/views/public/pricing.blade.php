@@ -140,3 +140,31 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/pricing.css') }}?v={{ @filemtime(public_path('css/pricing.css')) ?: 1 }}">
 @endpush
+
+@push('scripts')
+<script>
+(function () {
+    var checkoutBase = @json(route('public.checkout'));
+
+    function checkoutUrl(plan) {
+        return checkoutBase + '?plan=' + encodeURIComponent(plan || 'max');
+    }
+
+    function setAuthRedirect(url) {
+        document.querySelectorAll('input[name="redirect_to"]').forEach(function (inp) {
+            inp.value = url;
+        });
+    }
+
+    document.querySelectorAll('[data-require-auth-checkout]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setAuthRedirect(checkoutUrl(btn.getAttribute('data-checkout-plan')));
+        });
+    });
+
+    @if(request()->boolean('openAuth') && request()->filled('plan'))
+        setAuthRedirect(checkoutUrl(@json(request('plan'))));
+    @endif
+})();
+</script>
+@endpush

@@ -12,8 +12,18 @@ use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
-    public function show(Request $request): View
+    public function show(Request $request): View|RedirectResponse
     {
+        if (! $request->user()) {
+            $plan = strtolower((string) $request->query('plan', 'max'));
+
+            return redirect()->route('public.pricing', [
+                'openAuth' => 1,
+                'auth' => 'login',
+                'plan' => $plan,
+            ]);
+        }
+
         $plan = strtolower((string) $request->query('plan', 'max'));
         if (! SubscriptionPlans::exists($plan)) {
             $plan = 'max';
@@ -58,19 +68,25 @@ class CheckoutController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->user()) {
+            return redirect()->route('public.pricing', [
+                'openAuth' => 1,
+                'auth' => 'login',
+                'plan' => $request->input('plan', 'max'),
+            ]);
+        }
+
         $validated = $request->validate([
             'plan' => ['required', 'string', 'in:'.implode(',', array_keys(SubscriptionPlans::PLANS))],
             'months' => ['required', 'integer', 'in:'.implode(',', SubscriptionPlans::CYCLES)],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
             'payment_method' => ['required', 'string', 'in:bank'],
             'member_note' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $user = User::query()->where('email', mb_strtolower(trim($validated['email'])))->first();
+        $user = $request->user();
         if ($user === null) {
-            return back()
-                ->withInput()
-                ->withErrors(['email' => 'Không tìm thấy tài khoản với email này. Đăng ký trước rồi thanh toán.']);
+            return redirect()->route('public.pricing', ['openAuth' => 1, 'auth' => 'login']);
         }
 
         $plan = $validated['plan'];

@@ -171,13 +171,17 @@ class SteamInventoryService
             }
         }
 
-        if (($persona === null || $persona === '') && ($avatar === null || $avatar === '')) {
+        if ($avatar === null || $avatar === '') {
             return null;
         }
 
+        if ($persona === null || $persona === '' || mb_strlen($persona) < 2) {
+            $persona = null;
+        }
+
         return [
-            'persona_name' => $persona !== '' ? $persona : null,
-            'avatar_url' => $avatar !== '' ? $avatar : null,
+            'persona_name' => $persona,
+            'avatar_url' => $avatar,
         ];
     }
 

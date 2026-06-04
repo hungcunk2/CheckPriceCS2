@@ -34,12 +34,16 @@ class SteamProfileService
             Cache::forget($cacheKey);
         }
 
-        $profile = $this->fetchFromInventoryPage($steamId)
-            ?? $this->fetchFromApi($steamId)
-            ?? $this->fetchFromXml($steamId);
+        $page = $this->fetchFromInventoryPage($steamId);
+        $remote = $this->fetchFromApi($steamId) ?? $this->fetchFromXml($steamId);
+
+        $persona = $this->pickPersonaName($page, $remote);
+        $avatar = $this->normalizeAvatarUrl($page['avatar_url'] ?? null)
+            ?? $this->normalizeAvatarUrl($remote['avatar_url'] ?? null);
+
         $result = [
-            'steam_persona_name' => $profile['persona_name'] ?? null,
-            'steam_avatar_url' => $this->normalizeAvatarUrl($profile['avatar_url'] ?? null),
+            'steam_persona_name' => $persona,
+            'steam_avatar_url' => $avatar,
         ];
 
         Cache::put($cacheKey, $result, (int) config('cs2price.steam_profile_cache_seconds', 3600));
@@ -172,5 +176,30 @@ class SteamProfileService
         $url = SteamAvatarUrl::normalize($url);
 
         return SteamAvatarUrl::isUsable($url) ? $url : null;
+    }
+
+    /**
+     * @param  array{persona_name: string|null, avatar_url: string|null}|null  $page
+     * @param  array{persona_name: string|null, avatar_url: string|null}|null  $remote
+     */
+    private function pickPersonaName(?array $page, ?array $remote): ?string
+    {
+        foreach ([$remote['persona_name'] ?? null, $page['persona_name'] ?? null] as $name) {
+            if ($this->isUsablePersonaName($name)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    private function isUsablePersonaName(?string $name): bool
+    {
+        $name = trim((string) $name);
+        if ($name === '' || mb_strlen($name) < 2) {
+            return false;
+        }
+
+        return ! in_array($name, ['»', '«', '‹', '›', '?', '…'], true);
     }
 }

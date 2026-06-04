@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\RegistrationOtpService;
+use App\Support\CheckoutAuthRedirect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,12 +61,19 @@ class MemberAuthController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-        if ($user === null || ! $user->hasActiveSubscription()) {
+        $redirectTo = CheckoutAuthRedirect::sanitize($request->input('redirect_to'));
+        $checkoutFlow = CheckoutAuthRedirect::isCheckoutUrl($redirectTo);
+
+        if ($user === null || (! $checkoutFlow && ! $user->hasActiveSubscription())) {
             Auth::logout();
 
             return $this->authRedirectBack($request, 'login')
                 ->withErrors(['email' => 'Tài khoản chưa kích hoạt hoặc đã hết hạn gói. Liên hệ admin.'])
                 ->onlyInput('email');
+        }
+
+        if ($checkoutFlow && $redirectTo !== null) {
+            return redirect()->to($redirectTo);
         }
 
         return redirect()->intended(route('member.inventories.index'));
@@ -146,6 +154,19 @@ class MemberAuthController extends Controller
         }
 
         session()->forget(['register_otp_sent', 'register_otp_email', 'register_otp_message']);
+
+        /** @var User $user */
+        $user = $result['user'];
+        $redirectTo = CheckoutAuthRedirect::sanitize($request->input('redirect_to'));
+
+        if (CheckoutAuthRedirect::isCheckoutUrl($redirectTo)) {
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return redirect()
+                ->to($redirectTo)
+                ->with('success', 'Đăng ký thành công. Hoàn tất chuyển khoản để admin kích hoạt gói.');
+        }
 
         return $this->authRedirectBack($request, 'login')
             ->with('register_success', 'Đăng ký thành công. Admin sẽ kích hoạt gói — sau đó bạn đăng nhập được.');

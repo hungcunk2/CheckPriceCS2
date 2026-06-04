@@ -94,7 +94,8 @@
                             </label>
                             @error('email')<p class="field-error">{{ $message }}</p>@enderror
                             <p style="color:#64748b;font-size:12px;margin-top:8px;">
-                                Chưa có tài khoản? <a href="{{ route('login', ['mode' => 'register']) }}" style="color:#60a5fa">Đăng ký</a>
+                                Cần đăng nhập để thanh toán.
+                                <a href="{{ route('public.pricing', ['openAuth' => 1, 'auth' => 'login', 'plan' => $planKey]) }}" style="color:#60a5fa">Quay lại bảng giá</a>
                             </p>
                         @endif
                         <label class="field" style="margin-top:14px">
