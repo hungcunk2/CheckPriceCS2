@@ -48,6 +48,7 @@
                                 class="item-thumb image-zoomable"
                                 alt=""
                                 data-hash="{{ $item->market_hash_name ?? '' }}"
+                                data-steam-icon="{{ $item->steam_icon_hint ?? '' }}"
                                 width="36"
                                 height="36"
                                 loading="lazy"

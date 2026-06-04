@@ -168,6 +168,7 @@ class InventoryPriceChecker
                 'name' => $item['name'],
                 'market_hash_name' => $hash,
                 'icon_url' => $item['icon_url'],
+                'steam_icon_url' => $item['icon_url'],
                 'tradable' => $item['tradable'],
                 'amount' => $amount,
                 'buff_price_cny' => $priceCny,

@@ -25,12 +25,9 @@ class ItemImageService
     public function enrichItemRowForDisplay(array $item): array
     {
         $hash = (string) ($item['market_hash_name'] ?? '');
-        $rawIcon = $item['icon_url'] ?? null;
-        $item['icon_url'] = $this->iconUrlForDisplay($hash, is_string($rawIcon) ? $rawIcon : null);
-        $item['steam_icon_hint'] = is_string($rawIcon) && $rawIcon !== ''
-            && ! str_contains($rawIcon, '/api/guest/item-image')
-            ? $rawIcon
-            : '';
+        $rawIcon = $this->resolveRawSteamIconFromItem($item);
+        $item['icon_url'] = $this->iconUrlForDisplay($hash, $rawIcon);
+        $item['steam_icon_hint'] = $rawIcon ?? '';
 
         return $item;
     }
@@ -61,10 +58,19 @@ class ItemImageService
     /**
      * @return array{ok: bool, image_url: string|null, source: string|null}
      */
-    public function resolveForBrowser(string $marketHashName, ?string $snapshotSteamIcon = null): array
+    public function resolveForBrowser(string $marketHashName, ?string $snapshotSteamIcon = null, bool $preferCatalog = false): array
     {
         $marketHashName = trim($marketHashName);
         if ($marketHashName === '') {
+            return ['ok' => false, 'image_url' => null, 'source' => null];
+        }
+
+        if ($preferCatalog) {
+            $catalogUrl = $this->catalog->imageUrlForHash($marketHashName);
+            if ($catalogUrl !== null) {
+                return ['ok' => true, 'image_url' => $catalogUrl, 'source' => 'catalog'];
+            }
+
             return ['ok' => false, 'image_url' => null, 'source' => null];
         }
 
@@ -103,12 +109,21 @@ class ItemImageService
         $steamUrl = $this->normalizeSteamIconUrl($iconHint)
             ?? $this->steamIconUrlForHash($marketHashName);
         if ($steamUrl === null) {
-            return response('Not found', 404);
+            return $this->redirectOrStreamCatalogImage($marketHashName);
         }
 
-        return $this->streamRemoteImage($steamUrl, 'steam_image_blob:v1', [
+        $response = $this->streamRemoteImage($steamUrl, 'steam_image_blob:v1', [
             'hash' => $marketHashName,
         ]);
+
+        if ($response->getStatusCode() >= 400) {
+            $catalogFallback = $this->redirectOrStreamCatalogImage($marketHashName);
+            if ($catalogFallback->getStatusCode() < 400) {
+                return $catalogFallback;
+            }
+        }
+
+        return $response;
     }
 
     /**
@@ -176,7 +191,7 @@ class ItemImageService
 
         $lookup = $this->catalog->lookupItem($marketHashName);
         $steam = $this->normalizeSteamIconUrl($lookup['steam_icon'] ?? null);
-        Cache::put($cacheKey, $steam ?? '', 86400 * 14);
+        Cache::put($cacheKey, $steam ?? '', $steam !== null ? 86400 * 14 : 3600);
 
         return $steam;
     }
@@ -188,6 +203,61 @@ class ItemImageService
         }
 
         return $this->rotatingProxy->isConfigured();
+    }
+
+    private function resolveRawSteamIconFromItem(array $item): ?string
+    {
+        foreach (['steam_icon_url', 'icon_url'] as $key) {
+            $value = $item[$key] ?? null;
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            if (str_contains($value, '/api/guest/item-image')) {
+                $extracted = $this->extractIconQueryFromStreamUrl($value);
+                if ($extracted !== null) {
+                    return $extracted;
+                }
+
+                continue;
+            }
+
+            $normalized = $this->normalizeSteamIconUrl($value);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractIconQueryFromStreamUrl(string $streamUrl): ?string
+    {
+        $query = parse_url($streamUrl, PHP_URL_QUERY);
+        if (! is_string($query) || $query === '') {
+            return null;
+        }
+
+        parse_str($query, $params);
+        $icon = $params['icon'] ?? null;
+
+        return is_string($icon) && $icon !== ''
+            ? $this->normalizeSteamIconUrl($icon)
+            : null;
+    }
+
+    private function redirectOrStreamCatalogImage(string $marketHashName): Response
+    {
+        $catalogUrl = $this->catalog->imageUrlForHash($marketHashName);
+        if ($catalogUrl === null || $catalogUrl === '') {
+            return response('Not found', 404);
+        }
+
+        if (str_starts_with($catalogUrl, 'http://') || str_starts_with($catalogUrl, 'https://')) {
+            return redirect()->away($catalogUrl);
+        }
+
+        return response('Not found', 404);
     }
 
     private function rememberSnapshotSteamIcon(string $marketHashName, ?string $snapshotSteamIcon): void

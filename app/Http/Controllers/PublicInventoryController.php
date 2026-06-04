@@ -201,9 +201,11 @@ class PublicInventoryController extends Controller
 
         $name = trim((string) $request->input('market_hash_name'));
         $iconHint = $request->query('icon');
+        $preferCatalog = $request->query('prefer') === 'catalog';
         $resolved = $images->resolveForBrowser(
             $name,
             is_string($iconHint) ? $iconHint : null,
+            $preferCatalog,
         );
 
         return response()->json([
