@@ -13,11 +13,13 @@ use App\Support\Buff163AccountPool;
 use App\Support\InventoryDisplay;
 use App\Support\Cs2PriceFeatures;
 use App\Support\EmpireItemEnricher;
+use App\Support\InventoryRefreshLimiter;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
 use App\Support\InventoryWeaponStats;
 use App\Support\MemberInventorySchema;
 use App\Support\SubscriptionPlans;
+use App\Support\SubscriptionSyncPolicy;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +33,7 @@ class InventoryController extends Controller
         private TrackedInventoryStore $store,
         private InventoryResultPersister $persister,
         private PriceHistoryService $priceHistory,
+        private InventoryRefreshLimiter $refreshLimiter,
     ) {}
 
     public function index(): View
@@ -175,7 +178,20 @@ class InventoryController extends Controller
             return response()->json(['ok' => false, 'message' => 'Không tìm thấy kho.'], 404);
         }
 
+        $user = $this->requireUser();
+        if (! $this->refreshLimiter->canRefresh($user)) {
+            $message = $this->refreshLimiter->limitExceededMessage($user);
+
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => $message], 429);
+            }
+
+            return back()->with('error', $message);
+        }
+
         $this->extendExecutionTime();
+
+        $forceFresh = SubscriptionSyncPolicy::requiresFreshPrices($user->subscription_plan);
 
         try {
             $result = $checker->checkUrl(
@@ -183,9 +199,11 @@ class InventoryController extends Controller
                 $row->label ?? null,
                 refreshSteam: true,
                 empireMode: 'member',
+                forceFreshPrices: $forceFresh,
             );
-            $userId = $this->requireUser()->id;
+            $userId = $user->id;
             $this->persister->persistForUser($result, $userId, $inventory, (bool) ($row->is_public ?? false));
+            $this->refreshLimiter->record($user);
             $row = $this->findOwned($inventory);
 
             if ($request->wantsJson()) {
@@ -353,13 +371,21 @@ class InventoryController extends Controller
 
     private function runCheckAndRedirect(int $id, string $url, string $label, InventoryPriceChecker $checker): RedirectResponse
     {
+        $user = $this->requireUser();
+        if (! $this->refreshLimiter->canRefresh($user)) {
+            return back()->with('error', $this->refreshLimiter->limitExceededMessage($user));
+        }
+
         $this->extendExecutionTime();
 
+        $forceFresh = SubscriptionSyncPolicy::requiresFreshPrices($user->subscription_plan);
+
         try {
-            $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'member');
+            $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'member', forceFreshPrices: $forceFresh);
             $row = $this->findOwned($id);
 
-            $this->persister->persistForUser($result, $this->requireUser()->id, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->persister->persistForUser($result, $user->id, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->refreshLimiter->record($user);
 
             $message = ! empty($result['inventory_empty'])
                 ? 'Đã lưu — kho hiện chưa có item.'

@@ -46,7 +46,7 @@ return [
 
     // Tự động quét kho Steam + giá Buff (scheduler).
     'price_auto_sync_enabled' => filter_var(env('BUFF_PRICE_AUTO_SYNC', true), FILTER_VALIDATE_BOOL),
-    'price_auto_sync_minutes' => (int) env('BUFF_PRICE_AUTO_SYNC_MINUTES', 240),
+    'price_auto_sync_minutes' => (int) env('BUFF_PRICE_AUTO_SYNC_MINUTES', 15),
     'request_delay_ms' => (int) env('BUFF_REQUEST_DELAY_MS', 800),
     'buff_concurrency' => (int) env('BUFF_CONCURRENCY', 1),
     'check_max_execution_seconds' => (int) env('CHECK_MAX_EXECUTION_SECONDS', 600),

@@ -33,12 +33,17 @@ class InventoryPriceChecker
     /**
      * @param  'sync'|'admin'|'http'|'guest'  $empireMode
      */
-    public function checkUrl(string $url, ?string $label = null, bool $refreshSteam = false, string $empireMode = 'guest'): array
-    {
+    public function checkUrl(
+        string $url,
+        ?string $label = null,
+        bool $refreshSteam = false,
+        string $empireMode = 'guest',
+        bool $forceFreshPrices = false,
+    ): array {
         $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);
-        $bundle = $this->inventoryFetch->fetchBundle($parsed['steam_id'], $refreshSteam);
+        $bundle = $this->inventoryFetch->fetchBundle($parsed['steam_id'], $refreshSteam || $forceFreshPrices);
 
-        return $this->finalizeCheckResult($parsed, $bundle, $label, $empireMode, priceItems: true);
+        return $this->finalizeCheckResult($parsed, $bundle, $label, $empireMode, priceItems: true, forceFreshPrices: $forceFreshPrices);
     }
 
     /**
@@ -90,7 +95,7 @@ class InventoryPriceChecker
             return [];
         }
 
-        $steamItems = $this->steamItemsWorthPricing($steamItems);
+        $steamItems = $this->steamItemsWorthPricing($steamItems, forceFreshPrices: false);
 
         if ($steamItems === []) {
             return [];
@@ -98,8 +103,8 @@ class InventoryPriceChecker
 
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
 
-        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier);
-        $empirePrices = $this->empirePricesForItems($steamItems, $tier);
+        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier, forceFreshPrices: false);
+        $empirePrices = $this->empirePricesForItems($steamItems, $tier, forceFreshPrices: false);
 
         return $this->buildItemRows($steamItems, $buffPrices, $empirePrices, $tier);
     }
@@ -108,8 +113,14 @@ class InventoryPriceChecker
      * @param  array<string, string>  $parsed
      * @param  array<string, mixed>  $bundle
      */
-    private function finalizeCheckResult(array $parsed, array $bundle, ?string $label, string $empireMode, bool $priceItems): array
-    {
+    private function finalizeCheckResult(
+        array $parsed,
+        array $bundle,
+        ?string $label,
+        string $empireMode,
+        bool $priceItems,
+        bool $forceFreshPrices = false,
+    ): array {
         $tradable = InventoryItemFilter::onlyTradable($bundle['items'] ?? []);
 
         if (! $priceItems) {
@@ -122,14 +133,14 @@ class InventoryPriceChecker
             default => PricingTier::current(),
         };
 
-        $steamItems = $this->steamItemsWorthPricing($tradable);
+        $steamItems = $this->steamItemsWorthPricing($tradable, $forceFreshPrices);
         if ($steamItems === []) {
             return $this->summarizeResult($parsed, $bundle, $label, $this->buildSteamOnlyRows($tradable));
         }
 
         $hashNames = array_values(array_unique(array_column($steamItems, 'market_hash_name')));
-        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier);
-        $empirePrices = $this->empirePricesForItems($steamItems, $tier);
+        $buffPrices = $this->buffPricesForItems($steamItems, $hashNames, $tier, $forceFreshPrices);
+        $empirePrices = $this->empirePricesForItems($steamItems, $tier, $forceFreshPrices);
 
         $rows = $this->buildItemRows($steamItems, $buffPrices, $empirePrices, $tier);
 
@@ -230,10 +241,14 @@ class InventoryPriceChecker
      * @param  list<array<string, mixed>>  $steamItems
      * @return list<array<string, mixed>>
      */
-    public function steamItemsWorthPricing(array $steamItems): array
+    public function steamItemsWorthPricing(array $steamItems, bool $forceFreshPrices = false): array
     {
         if ($steamItems === []) {
             return [];
+        }
+
+        if ($forceFreshPrices) {
+            return $steamItems;
         }
 
         $keys = array_values(array_map(function (array $item) {
@@ -253,7 +268,7 @@ class InventoryPriceChecker
      * @param  list<string>  $hashNames
      * @return array<string, array<string, mixed>>
      */
-    private function buffPricesForItems(array $steamItems, array $hashNames, PricingTier $tier): array
+    private function buffPricesForItems(array $steamItems, array $hashNames, PricingTier $tier, bool $forceFreshPrices = false): array
     {
         // DB cache key: hash + phase (phase quan trọng cho Doppler/Gamma).
         $keys = array_values(array_map(function (array $item) {
@@ -263,7 +278,7 @@ class InventoryPriceChecker
             ];
         }, $steamItems));
 
-        $cachedByKey = $this->dbPriceCache->getFresh('buff', $keys);
+        $cachedByKey = $forceFreshPrices ? [] : $this->dbPriceCache->getFresh('buff', $keys);
 
         $buffPrices = [];
         $missingSteamItems = [];
@@ -321,10 +336,10 @@ class InventoryPriceChecker
      * @param  list<string>  $hashNames
      * @return array<string, array<string, mixed>>
      */
-    private function empirePricesForItems(array $steamItems, PricingTier $tier): array
+    private function empirePricesForItems(array $steamItems, PricingTier $tier, bool $forceFreshPrices = false): array
     {
         if ($tier->usesCs2CapEmpireOnly()) {
-            return $this->empireCs2CapUsdForItems($steamItems);
+            return $this->empireCs2CapUsdForItems($steamItems, $forceFreshPrices);
         }
 
         if (! $this->empire->isEnabled()) {
@@ -345,7 +360,7 @@ class InventoryPriceChecker
             $queryNames[] = $this->empireQueryName($hash, $phase);
         }
         $queryNames = array_values(array_unique($queryNames));
-        $cachedByKey = $this->dbPriceCache->getFresh('empire', $keys);
+        $cachedByKey = $forceFreshPrices ? [] : $this->dbPriceCache->getFresh('empire', $keys);
 
         $result = [];
         $missing = [];
@@ -390,7 +405,7 @@ class InventoryPriceChecker
      *
      * @return array<string, array<string, mixed>>
      */
-    private function empireCs2CapUsdForItems(array $steamItems): array
+    private function empireCs2CapUsdForItems(array $steamItems, bool $forceFreshPrices = false): array
     {
         $cs2cap = app(Cs2CapService::class);
         if (! $cs2cap->isConfigured()) {
@@ -407,7 +422,7 @@ class InventoryPriceChecker
             $keys[] = ['hash' => $hash, 'phase' => $phase];
         }
 
-        $cachedByKey = $this->dbPriceCache->getFresh('empire_cs2cap', $keys);
+        $cachedByKey = $forceFreshPrices ? [] : $this->dbPriceCache->getFresh('empire_cs2cap', $keys);
         $missingItems = [];
         $result = [];
 

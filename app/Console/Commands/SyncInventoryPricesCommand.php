@@ -2,10 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use App\Services\InventoryPriceChecker;
 use App\Services\TrackedInventoryStore;
 use App\Support\Buff163AccountPool;
 use App\Support\InventoryResultPersister;
+use App\Support\SubscriptionSyncPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -15,7 +17,7 @@ class SyncInventoryPricesCommand extends Command
 {
     protected $signature = 'cs2price:sync-prices';
 
-    protected $description = 'Quét kho Steam + giá Buff cho các kho (ưu tiên chưa có giá / giá quá hạn cache)';
+    protected $description = 'Quét kho Steam + giá Buff theo chu kỳ gói (Pro 8h, Plus 4h, Max 2h, Shop/Admin 1h)';
 
     public function handle(
         TrackedInventoryStore $store,
@@ -47,13 +49,30 @@ class SyncInventoryPricesCommand extends Command
             return self::SUCCESS;
         }
 
+        $usersById = User::query()
+            ->whereIn('id', $inventories->pluck('user_id')->filter()->unique()->values())
+            ->get()
+            ->keyBy('id');
+
         $ok = 0;
         $failed = 0;
+        $skipped = 0;
 
         $betweenMs = max(0, (int) config('cs2price.steam_request_delay_between_inventories_ms', 5000));
         $isFirst = true;
 
         foreach ($inventories as $row) {
+            $isAdminInventory = $row->user_id === null;
+            $plan = null;
+            if (! $isAdminInventory && isset($usersById[(int) $row->user_id])) {
+                $plan = $usersById[(int) $row->user_id]->subscription_plan;
+            }
+
+            if (! SubscriptionSyncPolicy::isDueForAutoSync($row->last_checked_at ?? null, $plan, $isAdminInventory)) {
+                $skipped++;
+                continue;
+            }
+
             if (! $isFirst && $betweenMs > 0) {
                 usleep($betweenMs * 1000);
             }
@@ -62,12 +81,20 @@ class SyncInventoryPricesCommand extends Command
             $label = $row->label ?? $row->url ?? ('#'.$row->id);
             $this->line("→ {$label}");
 
+            $forceFresh = SubscriptionSyncPolicy::requiresFreshPrices($plan, $isAdminInventory);
+            $empireMode = $isAdminInventory ? 'admin' : 'sync';
+
             try {
-                // Đồng bộ định kỳ: ép refresh kho để CS2Cap/Steam cập nhật item mới theo chu kỳ.
-                $result = $checker->checkUrl($row->url, $row->label ?? null, refreshSteam: true, empireMode: 'sync');
+                $result = $checker->checkUrl(
+                    $row->url,
+                    $row->label ?? null,
+                    refreshSteam: true,
+                    empireMode: $empireMode,
+                    forceFreshPrices: $forceFresh,
+                );
                 $persister->persist($result, (int) $row->id, (bool) ($row->is_public ?? false));
                 $ok++;
-                $this->info("  OK — {$result['priced_count']}/{$result['item_count']} có giá");
+                $this->info("  OK — {$result['priced_count']}/{$result['item_count']} có giá".($forceFresh ? ' (fresh)' : ''));
             } catch (RuntimeException $e) {
                 $failed++;
                 $this->warn('  '.$e->getMessage());
@@ -83,7 +110,7 @@ class SyncInventoryPricesCommand extends Command
             }
         }
 
-        $this->info("Xong: {$ok} thành công, {$failed} lỗi.");
+        $this->info("Xong: {$ok} thành công, {$failed} lỗi, {$skipped} bỏ qua (chưa tới chu kỳ).");
 
         return $failed > 0 && $ok === 0 ? self::FAILURE : self::SUCCESS;
     }
