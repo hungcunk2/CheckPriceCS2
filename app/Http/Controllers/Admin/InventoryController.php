@@ -66,13 +66,19 @@ class InventoryController extends Controller
     {
         $validated = $this->validateForm($request);
 
-        $row = $this->store->upsertForAdmin($this->adminUsername(), [
-            'label' => $validated['label'],
-            'notes' => $validated['notes'] ?? null,
-            'url' => $validated['url'],
-            'sort_order' => (int) ($validated['sort_order'] ?? 0),
-            'trade_at' => $this->parseTradeAtFromRequest($request),
-        ]);
+        try {
+            $row = $this->store->upsertForAdmin($this->adminUsername(), [
+                'label' => $validated['label'],
+                'notes' => $validated['notes'] ?? null,
+                'url' => $validated['url'],
+                'sort_order' => (int) ($validated['sort_order'] ?? 0),
+                'trade_at' => $this->parseTradeAtFromRequest($request),
+            ]);
+        } catch (RuntimeException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['url' => $e->getMessage()]);
+        }
 
         if ($request->boolean('check_now')) {
             return $this->runCheckAndRedirect((int) $row->id, $validated['url'], $validated['label'], $checker);
@@ -102,13 +108,19 @@ class InventoryController extends Controller
 
         $validated = $this->validateForm($request, $inventory);
 
-        $this->store->upsertForAdmin($this->adminUsername(), [
-            'label' => $validated['label'],
-            'notes' => $validated['notes'] ?? null,
-            'url' => $validated['url'],
-            'sort_order' => (int) ($validated['sort_order'] ?? 0),
-            'trade_at' => $this->parseTradeAtFromRequest($request),
-        ], $inventory);
+        try {
+            $this->store->upsertForAdmin($this->adminUsername(), [
+                'label' => $validated['label'],
+                'notes' => $validated['notes'] ?? null,
+                'url' => $validated['url'],
+                'sort_order' => (int) ($validated['sort_order'] ?? 0),
+                'trade_at' => $this->parseTradeAtFromRequest($request),
+            ], $inventory);
+        } catch (RuntimeException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['url' => $e->getMessage()]);
+        }
 
         if ($request->boolean('check_now')) {
             return $this->runCheckAndRedirect($inventory, $validated['url'], $validated['label'], $checker);

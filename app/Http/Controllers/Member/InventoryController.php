@@ -103,6 +103,10 @@ class InventoryController extends Controller
                 'url' => $validated['url'],
                 'trade_at' => $this->parseTradeAtFromRequest($request),
             ]);
+        } catch (RuntimeException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['url' => $e->getMessage()]);
         } catch (\Throwable $e) {
             report($e);
 
@@ -143,6 +147,10 @@ class InventoryController extends Controller
                 'url' => $validated['url'],
                 'trade_at' => $this->parseTradeAtFromRequest($request),
             ], $inventory);
+        } catch (RuntimeException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['url' => $e->getMessage()]);
         } catch (\Throwable $e) {
             report($e);
 

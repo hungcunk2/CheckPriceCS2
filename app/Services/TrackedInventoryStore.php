@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\TrackedInventory;
 use App\Support\InventorySteamProfileResolver;
+use App\Support\InventoryUrlMatcher;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class TrackedInventoryStore
 {
@@ -91,6 +93,11 @@ class TrackedInventoryStore
      */
     public function upsertForAdmin(string $adminUsername, array $attributes, ?int $id = null): object
     {
+        $url = trim((string) ($attributes['url'] ?? ''));
+        if ($id === null && $url !== '' && $this->hasDuplicateForAdmin($adminUsername, $url)) {
+            throw new RuntimeException('Kho Steam này đã có trong danh sách — không thêm trùng.');
+        }
+
         return $this->upsert(
             array_merge($attributes, [
                 'user_id' => null,
@@ -108,6 +115,10 @@ class TrackedInventoryStore
     {
         $url = trim((string) ($attributes['url'] ?? ''));
         if ($id === null && $url !== '') {
+            if ($this->hasDuplicateForUser($userId, $url)) {
+                throw new RuntimeException('Kho Steam này đã có trong danh sách — không thêm trùng.');
+            }
+
             $claimed = $this->claimOrphanForUser($userId, $url);
             if ($claimed !== null) {
                 return $this->upsert(
@@ -183,24 +194,14 @@ class TrackedInventoryStore
         }
 
         if (! $model && ! empty($attributes['url'])) {
-            $urlQuery = TrackedInventory::query()->where('url', $attributes['url']);
-            if ($ownerUserId !== null) {
-                $urlQuery->where('user_id', $ownerUserId);
-            } elseif ($ownerAdminUsername !== null) {
-                $urlQuery->whereNull('user_id')->where('admin_username', $ownerAdminUsername);
-            } elseif (array_key_exists('user_id', $attributes)) {
-                $userId = $attributes['user_id'];
-                $userId === null
-                    ? $urlQuery->whereNull('user_id')
-                    : $urlQuery->where('user_id', $userId);
-                if ($userId === null && array_key_exists('admin_username', $attributes)) {
-                    $adminUsername = $attributes['admin_username'];
-                    $adminUsername === null
-                        ? $urlQuery->whereNull('admin_username')
-                        : $urlQuery->where('admin_username', $adminUsername);
-                }
+            $existing = $this->findOwnedDuplicate(
+                (string) $attributes['url'],
+                ownerUserId: $ownerUserId,
+                ownerAdminUsername: $ownerAdminUsername,
+            );
+            if ($existing !== null) {
+                $model = $existing;
             }
-            $model = $urlQuery->first();
         }
 
         $payload = $this->normalizeAttributes($attributes);
@@ -297,18 +298,16 @@ class TrackedInventoryStore
 
     private function claimOrphanForUser(int $userId, string $url): ?int
     {
-        $steamId = $this->resolveSteamIdFromUrl($url);
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
 
-        $query = TrackedInventory::query()->whereNull('user_id');
-
-        $query->where(function ($q) use ($url, $steamId) {
-            $q->where('url', trim($url));
-            if ($steamId !== null) {
-                $q->orWhere('steam_id', $steamId);
-            }
-        });
-
-        $orphan = $query->orderByDesc('id')->first();
+        $orphan = TrackedInventory::query()
+            ->whereNull('user_id')
+            ->orderByDesc('id')
+            ->get()
+            ->first(fn (TrackedInventory $row) => InventoryUrlMatcher::isSameInventory($url, $row));
 
         return $orphan?->id;
     }
@@ -324,14 +323,15 @@ class TrackedInventoryStore
             return null;
         }
 
-        $steamId = $this->resolveSteamIdFromUrl($url);
-
         $query = TrackedInventory::query();
 
         if ($ownerUserId !== null) {
             $query->where('user_id', $ownerUserId);
         } elseif ($ownerAdminUsername !== null) {
-            $query->whereNull('user_id')->where('admin_username', $ownerAdminUsername);
+            $query->whereNull('user_id')->where(function ($q) use ($ownerAdminUsername) {
+                $q->where('admin_username', $ownerAdminUsername)
+                    ->orWhereNull('admin_username');
+            });
         } else {
             return null;
         }
@@ -340,21 +340,9 @@ class TrackedInventoryStore
             $query->where('id', '!=', $exceptId);
         }
 
-        return $query->where(function ($q) use ($url, $steamId) {
-            $q->where('url', $url);
-            if ($steamId !== null) {
-                $q->orWhere('steam_id', $steamId);
-            }
-        })->first();
-    }
-
-    private function resolveSteamIdFromUrl(string $url): ?string
-    {
-        try {
-            return app(SteamInventoryService::class)->parseInventoryUrl($url)['steam_id'] ?? null;
-        } catch (\Throwable) {
-            return null;
-        }
+        return $query->orderByDesc('id')->get()->first(
+            fn (TrackedInventory $row) => InventoryUrlMatcher::isSameInventory($url, $row)
+        );
     }
 
     /**
