@@ -99,6 +99,7 @@ class InventoryController extends Controller
         try {
             $row = $this->store->upsertForUser($user->id, [
                 'label' => $validated['label'],
+                'notes' => $validated['notes'] ?? null,
                 'url' => $validated['url'],
                 'is_public' => $request->boolean('is_public', false),
                 'trade_at' => $this->parseTradeAtFromRequest($request),
@@ -139,6 +140,7 @@ class InventoryController extends Controller
         try {
             $this->store->upsertForUser($this->requireUser()->id, [
                 'label' => $validated['label'],
+                'notes' => $validated['notes'] ?? null,
                 'url' => $validated['url'],
                 'is_public' => $request->boolean('is_public'),
                 'trade_at' => $this->parseTradeAtFromRequest($request),
@@ -337,6 +339,7 @@ class InventoryController extends Controller
     {
         return $request->validate([
             'label' => ['required', 'string', 'max:120'],
+            'notes' => ['nullable', 'string', 'max:1000'],
             'url' => ['required', 'url', 'max:2000'],
             'trade_at_date' => ['nullable', 'date'],
             'trade_at_hour' => ['nullable', 'integer', 'min:0', 'max:23'],

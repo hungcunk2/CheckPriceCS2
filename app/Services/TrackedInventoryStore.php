@@ -22,6 +22,18 @@ class TrackedInventoryStore
     /**
      * @return Collection<int, object>
      */
+    public function forAdmin(string $adminUsername): Collection
+    {
+        return $this->mapQuery(
+            $this->adminInventoryQuery($adminUsername)
+                ->orderByDesc('last_total_cny')
+                ->orderByDesc('id')
+        );
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
     public function forUser(int $userId): Collection
     {
         return $this->mapQuery(
@@ -56,6 +68,15 @@ class TrackedInventoryStore
         return $row ? $this->asObject($row) : null;
     }
 
+    public function findForAdmin(int $id, string $adminUsername): ?object
+    {
+        $row = $this->adminInventoryQuery($adminUsername)
+            ->where('id', $id)
+            ->first();
+
+        return $row ? $this->asObject($row) : null;
+    }
+
     public function findForUser(int $id, int $userId): ?object
     {
         $row = $this->memberInventoryQuery($userId)
@@ -68,6 +89,21 @@ class TrackedInventoryStore
     /**
      * @param  array<string, mixed>  $attributes
      */
+    public function upsertForAdmin(string $adminUsername, array $attributes, ?int $id = null): object
+    {
+        return $this->upsert(
+            array_merge($attributes, [
+                'user_id' => null,
+                'admin_username' => $adminUsername,
+            ]),
+            $id,
+            ownerAdminUsername: $adminUsername,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
     public function upsertForUser(int $userId, array $attributes, ?int $id = null): object
     {
         return $this->upsert(
@@ -75,6 +111,13 @@ class TrackedInventoryStore
             $id,
             $userId,
         );
+    }
+
+    public function deleteForAdmin(int $id, string $adminUsername): bool
+    {
+        return $this->adminInventoryQuery($adminUsername)
+            ->where('id', $id)
+            ->delete() > 0;
     }
 
     public function deleteForUser(int $id, int $userId): bool
@@ -97,7 +140,7 @@ class TrackedInventoryStore
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function upsert(array $attributes, ?int $id = null, ?int $ownerUserId = null): object
+    public function upsert(array $attributes, ?int $id = null, ?int $ownerUserId = null, ?string $ownerAdminUsername = null): object
     {
         $model = null;
 
@@ -105,6 +148,8 @@ class TrackedInventoryStore
             $idQuery = TrackedInventory::query()->where('id', $id);
             if ($ownerUserId !== null) {
                 $idQuery->where('user_id', $ownerUserId);
+            } elseif ($ownerAdminUsername !== null) {
+                $idQuery->whereNull('user_id')->where('admin_username', $ownerAdminUsername);
             }
             $model = $idQuery->first();
         }
@@ -113,11 +158,19 @@ class TrackedInventoryStore
             $urlQuery = TrackedInventory::query()->where('url', $attributes['url']);
             if ($ownerUserId !== null) {
                 $urlQuery->where('user_id', $ownerUserId);
+            } elseif ($ownerAdminUsername !== null) {
+                $urlQuery->whereNull('user_id')->where('admin_username', $ownerAdminUsername);
             } elseif (array_key_exists('user_id', $attributes)) {
                 $userId = $attributes['user_id'];
                 $userId === null
                     ? $urlQuery->whereNull('user_id')
                     : $urlQuery->where('user_id', $userId);
+                if ($userId === null && array_key_exists('admin_username', $attributes)) {
+                    $adminUsername = $attributes['admin_username'];
+                    $adminUsername === null
+                        ? $urlQuery->whereNull('admin_username')
+                        : $urlQuery->where('admin_username', $adminUsername);
+                }
             }
             $model = $urlQuery->first();
         }
@@ -163,7 +216,7 @@ class TrackedInventoryStore
     private function normalizeAttributes(array $attributes): array
     {
         $allowed = [
-            'user_id', 'label', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
+            'user_id', 'admin_username', 'label', 'notes', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
             'is_public', 'sort_order', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
             'item_count', 'priced_count', 'failed_count', 'last_snapshot',
         ];
@@ -192,6 +245,16 @@ class TrackedInventoryStore
     private function mapQuery($query): Collection
     {
         return $query->get()->map(fn (TrackedInventory $row) => $this->asObject($row));
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<TrackedInventory>
+     */
+    private function adminInventoryQuery(string $adminUsername)
+    {
+        return TrackedInventory::query()
+            ->whereNull('user_id')
+            ->where('admin_username', $adminUsername);
     }
 
     /**

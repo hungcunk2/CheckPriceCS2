@@ -1,6 +1,6 @@
 @php
     $tableMode = $tableMode ?? 'admin';
-    $colspan = ($empireEnabled ?? false) ? 9 : 8;
+    $colspan = ($empireEnabled ?? false) ? 10 : 9;
 @endphp
 <div id="admin-inv-toast" class="position-fixed top-0 end-0 p-3" style="z-index: 3100; max-width: 420px;"></div>
 @if(empty($buffConfigured))
@@ -36,6 +36,7 @@
                 <tr>
                     <th>#</th>
                     <th>Kho</th>
+                    <th>Chú thích</th>
                     <th>Giá Buff</th>
                     @if($empireEnabled ?? false)
                         <th>Giá Empire</th>
@@ -71,6 +72,13 @@
                         <td>{{ $loop->iteration }}</td>
                         <td class="inv-identity-cell">
                             @include('partials.inventory-list-identity', ['inventory' => $inv])
+                        </td>
+                        <td class="small text-muted" style="min-width: 120px; max-width: 220px;">
+                            @if(filled($inv->notes ?? null))
+                                <span title="{{ $inv->notes }}">{{ \Illuminate\Support\Str::limit($inv->notes, 80) }}</span>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
                         </td>
                         <td class="inv-buff-price-cell">
                             @if(($inv->last_total_cny ?? 0) > 0)

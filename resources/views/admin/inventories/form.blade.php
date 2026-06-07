@@ -22,6 +22,13 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label">Chú thích</label>
+                    <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" rows="2" maxlength="1000"
+                        placeholder="VD: Kho trade, hold 7 ngày…">{{ old('notes', $inventory->notes ?? '') }}</textarea>
+                    @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label">Link kho Steam <span class="text-danger">*</span></label>
                     <textarea name="url" class="form-control @error('url') is-invalid @enderror" rows="3" required
                         placeholder="steamcommunity.com/id/.../inventory hoặc /profiles/.../inventory">{{ old('url', $inventory->url ?? '') }}</textarea>

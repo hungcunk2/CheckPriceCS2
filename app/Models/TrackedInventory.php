@@ -8,7 +8,9 @@ class TrackedInventory extends Model
 {
     protected $fillable = [
         'user_id',
+        'admin_username',
         'label',
+        'notes',
         'url',
         'steam_id',
         'steam_persona_name',

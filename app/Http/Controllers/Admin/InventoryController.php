@@ -32,7 +32,7 @@ class InventoryController extends Controller
 
     public function index(): View
     {
-        $inventories = $this->store->all()->map(function (object $inv) {
+        $inventories = $this->store->forAdmin($this->adminUsername())->map(function (object $inv) {
             $items = EmpireItemEnricher::enrich(
                 InventorySnapshotReader::itemsFromInventory($inv),
                 fetchMissing: false,
@@ -66,8 +66,9 @@ class InventoryController extends Controller
     {
         $validated = $this->validateForm($request);
 
-        $row = $this->store->upsert([
+        $row = $this->store->upsertForAdmin($this->adminUsername(), [
             'label' => $validated['label'],
+            'notes' => $validated['notes'] ?? null,
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public', false),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
@@ -83,7 +84,7 @@ class InventoryController extends Controller
 
     public function edit(int $inventory): View|RedirectResponse
     {
-        $row = $this->store->find($inventory);
+        $row = $this->store->findForAdmin($inventory, $this->adminUsername());
         if (! $row) {
             return redirect()->route('admin.inventories.index')->with('error', 'Không tìm thấy kho.');
         }
@@ -95,15 +96,16 @@ class InventoryController extends Controller
 
     public function update(Request $request, int $inventory, InventoryPriceChecker $checker): RedirectResponse
     {
-        $row = $this->store->find($inventory);
+        $row = $this->store->findForAdmin($inventory, $this->adminUsername());
         if (! $row) {
             return redirect()->route('admin.inventories.index')->with('error', 'Không tìm thấy kho.');
         }
 
         $validated = $this->validateForm($request);
 
-        $this->store->upsert([
+        $this->store->upsertForAdmin($this->adminUsername(), [
             'label' => $validated['label'],
+            'notes' => $validated['notes'] ?? null,
             'url' => $validated['url'],
             'is_public' => $request->boolean('is_public'),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
@@ -119,7 +121,9 @@ class InventoryController extends Controller
 
     public function destroy(int $inventory): RedirectResponse
     {
-        $this->store->delete($inventory);
+        if (! $this->store->deleteForAdmin($inventory, $this->adminUsername())) {
+            return redirect()->route('admin.inventories.index')->with('error', 'Không tìm thấy kho.');
+        }
 
         return redirect()
             ->route('admin.inventories.index')
@@ -128,7 +132,7 @@ class InventoryController extends Controller
 
     public function refresh(Request $request, int $inventory, InventoryPriceChecker $checker): JsonResponse|RedirectResponse
     {
-        $row = $this->store->find($inventory);
+        $row = $this->store->findForAdmin($inventory, $this->adminUsername());
         if (! $row) {
             return response()->json(['ok' => false, 'message' => 'Không tìm thấy kho.'], 404);
         }
@@ -144,7 +148,7 @@ class InventoryController extends Controller
                 forceFreshPrices: true,
             );
             $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? false));
-            $row = $this->store->find($inventory);
+            $row = $this->store->findForAdmin($inventory, $this->adminUsername());
 
             if ($request->wantsJson()) {
                 $empireNote = '';
@@ -214,6 +218,7 @@ class InventoryController extends Controller
     {
         return $request->validate([
             'label' => ['required', 'string', 'max:120'],
+            'notes' => ['nullable', 'string', 'max:1000'],
             'url' => ['required', 'url', 'max:2000'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'trade_at_date' => ['nullable', 'date'],
@@ -251,7 +256,7 @@ class InventoryController extends Controller
 
         try {
             $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'admin', forceFreshPrices: true);
-            $row = $this->store->find($id);
+            $row = $this->store->findForAdmin($id, $this->adminUsername());
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
 
             $message = ! empty($result['inventory_empty'])
@@ -280,7 +285,7 @@ class InventoryController extends Controller
 
         try {
             $result = $checker->loadInventorySnapshot($url, $label, refreshSteam: true);
-            $row = $this->store->find($id);
+            $row = $this->store->findForAdmin($id, $this->adminUsername());
             $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
 
             $message = ! empty($result['inventory_empty'])
@@ -301,6 +306,11 @@ class InventoryController extends Controller
                 ->route('admin.inventories.index')
                 ->with('error', AdminFacingError::message($e, 'Lỗi khi tải kho — xem storage/logs/laravel.log'));
         }
+    }
+
+    private function adminUsername(): string
+    {
+        return (string) session('admin_username', config('admin.username'));
     }
 
     private function extendExecutionTime(): void
