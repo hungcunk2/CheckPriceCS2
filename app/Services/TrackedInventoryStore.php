@@ -106,8 +106,26 @@ class TrackedInventoryStore
      */
     public function upsertForUser(int $userId, array $attributes, ?int $id = null): object
     {
+        $url = trim((string) ($attributes['url'] ?? ''));
+        if ($id === null && $url !== '') {
+            $claimed = $this->claimOrphanForUser($userId, $url);
+            if ($claimed !== null) {
+                return $this->upsert(
+                    array_merge($attributes, [
+                        'user_id' => $userId,
+                        'admin_username' => null,
+                    ]),
+                    $claimed,
+                    $userId,
+                );
+            }
+        }
+
         return $this->upsert(
-            array_merge($attributes, ['user_id' => $userId]),
+            array_merge($attributes, [
+                'user_id' => $userId,
+                'admin_username' => null,
+            ]),
             $id,
             $userId,
         );
@@ -252,9 +270,30 @@ class TrackedInventoryStore
      */
     private function adminInventoryQuery(string $adminUsername)
     {
-        return TrackedInventory::query()
+        $memberUrls = TrackedInventory::query()
+            ->whereNotNull('user_id')
+            ->pluck('url');
+
+        $query = TrackedInventory::query()
             ->whereNull('user_id')
             ->where('admin_username', $adminUsername);
+
+        if ($memberUrls->isNotEmpty()) {
+            $query->whereNotIn('url', $memberUrls);
+        }
+
+        return $query;
+    }
+
+    private function claimOrphanForUser(int $userId, string $url): ?int
+    {
+        $orphan = TrackedInventory::query()
+            ->where('url', $url)
+            ->whereNull('user_id')
+            ->orderByDesc('id')
+            ->first();
+
+        return $orphan?->id;
     }
 
     /**

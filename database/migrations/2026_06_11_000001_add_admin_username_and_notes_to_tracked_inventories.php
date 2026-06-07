@@ -22,10 +22,20 @@ return new class extends Migration
 
         if (Schema::hasColumn('tracked_inventories', 'admin_username')) {
             $defaultAdmin = (string) config('admin.username', 'admin');
-            DB::table('tracked_inventories')
+            // Chỉ gán admin_username cho kho admin cũ chưa thuộc member (URL chưa có user_id).
+            $memberUrls = Schema::hasColumn('tracked_inventories', 'user_id')
+                ? DB::table('tracked_inventories')->whereNotNull('user_id')->pluck('url')->unique()->filter()->values()->all()
+                : [];
+
+            $legacyAdmin = DB::table('tracked_inventories')
                 ->whereNull('user_id')
-                ->whereNull('admin_username')
-                ->update(['admin_username' => $defaultAdmin]);
+                ->whereNull('admin_username');
+
+            if ($memberUrls !== []) {
+                $legacyAdmin->whereNotIn('url', $memberUrls);
+            }
+
+            $legacyAdmin->update(['admin_username' => $defaultAdmin]);
         }
     }
 
