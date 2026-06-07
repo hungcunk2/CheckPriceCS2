@@ -191,7 +191,7 @@ class InventoryController extends Controller
 
         $this->extendExecutionTime();
 
-        $forceFresh = SubscriptionSyncPolicy::requiresFreshPrices($user->subscription_plan);
+        $forceFresh = SubscriptionSyncPolicy::requiresFreshSync($user->subscription_plan);
 
         try {
             $result = $checker->checkUrl(
@@ -378,7 +378,7 @@ class InventoryController extends Controller
 
         $this->extendExecutionTime();
 
-        $forceFresh = SubscriptionSyncPolicy::requiresFreshPrices($user->subscription_plan);
+        $forceFresh = SubscriptionSyncPolicy::requiresFreshSync($user->subscription_plan);
 
         try {
             $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'member', forceFreshPrices: $forceFresh);

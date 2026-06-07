@@ -81,7 +81,7 @@ class SyncInventoryPricesCommand extends Command
             $label = $row->label ?? $row->url ?? ('#'.$row->id);
             $this->line("→ {$label}");
 
-            $forceFresh = SubscriptionSyncPolicy::requiresFreshPrices($plan, $isAdminInventory);
+            $forceFresh = SubscriptionSyncPolicy::requiresFreshSync($plan, $isAdminInventory);
             $empireMode = $isAdminInventory ? 'admin' : 'sync';
 
             try {

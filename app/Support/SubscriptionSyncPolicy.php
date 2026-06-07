@@ -35,14 +35,20 @@ final class SubscriptionSyncPolicy
         return self::PLAN_LIMITS[$plan]['manual_refresh_per_day'];
     }
 
-    /** Shop + kho admin: mỗi lần sync phải gọi API, không đọc cache giá / snapshot cũ. */
-    public static function requiresFreshPrices(?string $plan, bool $isAdminContext = false): bool
+    /** Shop + admin: mỗi lần sync — kho Steam/CS2Cap mới + giá Buff/Empire mới (bỏ cache site). */
+    public static function requiresFreshSync(?string $plan, bool $isAdminContext = false): bool
     {
         if ($isAdminContext) {
             return true;
         }
 
         return self::normalizePlan($plan) === 'shop';
+    }
+
+    /** @deprecated Use requiresFreshSync() */
+    public static function requiresFreshPrices(?string $plan, bool $isAdminContext = false): bool
+    {
+        return self::requiresFreshSync($plan, $isAdminContext);
     }
 
     public static function isDueForAutoSync(string|\Carbon\CarbonInterface|null $lastCheckedAt, ?string $plan, bool $isAdminInventory = false): bool

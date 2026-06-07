@@ -40,8 +40,12 @@ class InventoryPriceChecker
         string $empireMode = 'guest',
         bool $forceFreshPrices = false,
     ): array {
+        if ($forceFreshPrices) {
+            $refreshSteam = true;
+        }
+
         $parsed = app(SteamInventoryService::class)->parseInventoryUrl($url);
-        $bundle = $this->inventoryFetch->fetchBundle($parsed['steam_id'], $refreshSteam || $forceFreshPrices);
+        $bundle = $this->inventoryFetch->fetchBundle($parsed['steam_id'], $refreshSteam);
 
         return $this->finalizeCheckResult($parsed, $bundle, $label, $empireMode, priceItems: true, forceFreshPrices: $forceFreshPrices);
     }

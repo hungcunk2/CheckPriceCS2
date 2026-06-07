@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 class InventoryFetchService
@@ -25,6 +26,10 @@ class InventoryFetchService
      */
     public function fetchBundle(string $steamId, bool $refresh = false): array
     {
+        if ($refresh) {
+            $this->forgetInventoryCache($steamId);
+        }
+
         if (config('cs2price.cs2cap_use_inventory', false) || config('cs2price.inventory_source') === 'cs2cap') {
             try {
                 return $this->fromCs2Cap($steamId, $refresh);
@@ -84,5 +89,11 @@ class InventoryFetchService
             'inventory_source' => 'cs2cap',
             'inventory_fallback_message' => null,
         ];
+    }
+
+    private function forgetInventoryCache(string $steamId): void
+    {
+        Cache::forget('cs2cap_inventory:'.$steamId);
+        Cache::forget('steam_inventory_items:'.$steamId);
     }
 }
