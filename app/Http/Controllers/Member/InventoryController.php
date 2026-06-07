@@ -94,7 +94,7 @@ class InventoryController extends Controller
             return back()->with('error', $this->slotLimitMessage($user));
         }
 
-        $validated = $this->validateForm($request);
+        $validated = $this->validateForm($request, user: $user);
 
         try {
             $row = $this->store->upsertForUser($user->id, [
@@ -134,7 +134,7 @@ class InventoryController extends Controller
             return redirect()->route('member.inventories.index')->with('error', 'Không tìm thấy kho.');
         }
 
-        $validated = $this->validateForm($request);
+        $validated = $this->validateForm($request, exceptInventoryId: $inventory, user: $this->requireUser());
 
         try {
             $this->store->upsertForUser($this->requireUser()->id, [
@@ -333,12 +333,28 @@ class InventoryController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateForm(Request $request): array
+    private function validateForm(Request $request, ?int $exceptInventoryId = null, ?User $user = null): array
     {
+        $user ??= $this->requireUser();
+        $userId = $user->id;
+
         return $request->validate([
             'label' => ['required', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'url' => ['required', 'url', 'max:2000'],
+            'url' => [
+                'required',
+                'url',
+                'max:2000',
+                function (string $attribute, mixed $value, \Closure $fail) use ($userId, $exceptInventoryId): void {
+                    if (! is_string($value)) {
+                        return;
+                    }
+
+                    if ($this->store->hasDuplicateForUser($userId, $value, $exceptInventoryId)) {
+                        $fail('Kho Steam này đã có trong danh sách — không thêm trùng.');
+                    }
+                },
+            ],
             'trade_at_date' => ['nullable', 'date'],
             'trade_at_hour' => ['nullable', 'integer', 'min:0', 'max:23'],
             'trade_at_minute' => ['nullable', 'integer', 'min:0', 'max:59'],

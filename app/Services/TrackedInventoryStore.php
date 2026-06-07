@@ -155,6 +155,16 @@ class TrackedInventoryStore
         return $row ? $this->asObject($row) : null;
     }
 
+    public function hasDuplicateForUser(int $userId, string $url, ?int $exceptId = null): bool
+    {
+        return $this->findOwnedDuplicate($url, ownerUserId: $userId, exceptId: $exceptId) !== null;
+    }
+
+    public function hasDuplicateForAdmin(string $adminUsername, string $url, ?int $exceptId = null): bool
+    {
+        return $this->findOwnedDuplicate($url, ownerAdminUsername: $adminUsername, exceptId: $exceptId) !== null;
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -287,13 +297,64 @@ class TrackedInventoryStore
 
     private function claimOrphanForUser(int $userId, string $url): ?int
     {
-        $orphan = TrackedInventory::query()
-            ->where('url', $url)
-            ->whereNull('user_id')
-            ->orderByDesc('id')
-            ->first();
+        $steamId = $this->resolveSteamIdFromUrl($url);
+
+        $query = TrackedInventory::query()->whereNull('user_id');
+
+        $query->where(function ($q) use ($url, $steamId) {
+            $q->where('url', trim($url));
+            if ($steamId !== null) {
+                $q->orWhere('steam_id', $steamId);
+            }
+        });
+
+        $orphan = $query->orderByDesc('id')->first();
 
         return $orphan?->id;
+    }
+
+    private function findOwnedDuplicate(
+        string $url,
+        ?int $ownerUserId = null,
+        ?string $ownerAdminUsername = null,
+        ?int $exceptId = null,
+    ): ?TrackedInventory {
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+
+        $steamId = $this->resolveSteamIdFromUrl($url);
+
+        $query = TrackedInventory::query();
+
+        if ($ownerUserId !== null) {
+            $query->where('user_id', $ownerUserId);
+        } elseif ($ownerAdminUsername !== null) {
+            $query->whereNull('user_id')->where('admin_username', $ownerAdminUsername);
+        } else {
+            return null;
+        }
+
+        if ($exceptId !== null) {
+            $query->where('id', '!=', $exceptId);
+        }
+
+        return $query->where(function ($q) use ($url, $steamId) {
+            $q->where('url', $url);
+            if ($steamId !== null) {
+                $q->orWhere('steam_id', $steamId);
+            }
+        })->first();
+    }
+
+    private function resolveSteamIdFromUrl(string $url): ?string
+    {
+        try {
+            return app(SteamInventoryService::class)->parseInventoryUrl($url)['steam_id'] ?? null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

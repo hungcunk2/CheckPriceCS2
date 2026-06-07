@@ -100,7 +100,7 @@ class InventoryController extends Controller
             return redirect()->route('admin.inventories.index')->with('error', 'Không tìm thấy kho.');
         }
 
-        $validated = $this->validateForm($request);
+        $validated = $this->validateForm($request, $inventory);
 
         $this->store->upsertForAdmin($this->adminUsername(), [
             'label' => $validated['label'],
@@ -212,12 +212,27 @@ class InventoryController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateForm(Request $request): array
+    private function validateForm(Request $request, ?int $exceptInventoryId = null): array
     {
+        $adminUsername = $this->adminUsername();
+
         return $request->validate([
             'label' => ['required', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:1000'],
-            'url' => ['required', 'url', 'max:2000'],
+            'url' => [
+                'required',
+                'url',
+                'max:2000',
+                function (string $attribute, mixed $value, \Closure $fail) use ($adminUsername, $exceptInventoryId): void {
+                    if (! is_string($value)) {
+                        return;
+                    }
+
+                    if ($this->store->hasDuplicateForAdmin($adminUsername, $value, $exceptInventoryId)) {
+                        $fail('Kho Steam này đã có trong danh sách — không thêm trùng.');
+                    }
+                },
+            ],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'trade_at_date' => ['nullable', 'date'],
             'trade_at_hour' => ['nullable', 'integer', 'min:0', 'max:23'],
