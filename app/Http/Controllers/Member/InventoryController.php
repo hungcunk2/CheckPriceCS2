@@ -101,7 +101,6 @@ class InventoryController extends Controller
                 'label' => $validated['label'],
                 'notes' => $validated['notes'] ?? null,
                 'url' => $validated['url'],
-                'is_public' => $request->boolean('is_public', false),
                 'trade_at' => $this->parseTradeAtFromRequest($request),
             ]);
         } catch (\Throwable $e) {
@@ -142,7 +141,6 @@ class InventoryController extends Controller
                 'label' => $validated['label'],
                 'notes' => $validated['notes'] ?? null,
                 'url' => $validated['url'],
-                'is_public' => $request->boolean('is_public'),
                 'trade_at' => $this->parseTradeAtFromRequest($request),
             ], $inventory);
         } catch (\Throwable $e) {
@@ -344,7 +342,6 @@ class InventoryController extends Controller
             'trade_at_date' => ['nullable', 'date'],
             'trade_at_hour' => ['nullable', 'integer', 'min:0', 'max:23'],
             'trade_at_minute' => ['nullable', 'integer', 'min:0', 'max:59'],
-            'is_public' => ['sometimes', 'boolean'],
             'check_now' => ['sometimes', 'boolean'],
         ]);
     }

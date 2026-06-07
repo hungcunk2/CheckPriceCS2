@@ -1,6 +1,6 @@
 @php
     $tableMode = $tableMode ?? 'admin';
-    $colspan = ($empireEnabled ?? false) ? 10 : 9;
+    $colspan = ($empireEnabled ?? false) ? 9 : 8;
 @endphp
 <div id="admin-inv-toast" class="position-fixed top-0 end-0 p-3" style="z-index: 3100; max-width: 420px;"></div>
 @if(empty($buffConfigured))
@@ -36,7 +36,6 @@
                 <tr>
                     <th>#</th>
                     <th>Kho</th>
-                    <th>Chú thích</th>
                     <th>Giá Buff</th>
                     @if($empireEnabled ?? false)
                         <th>Giá Empire</th>
@@ -44,7 +43,7 @@
                     <th>Skin</th>
                     <th>Thời gian trade</th>
                     <th>Cập nhật</th>
-                    <th>Public</th>
+                    <th>Chú thích</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
@@ -72,13 +71,6 @@
                         <td>{{ $loop->iteration }}</td>
                         <td class="inv-identity-cell">
                             @include('partials.inventory-list-identity', ['inventory' => $inv])
-                        </td>
-                        <td class="small text-muted" style="min-width: 120px; max-width: 220px;">
-                            @if(filled($inv->notes ?? null))
-                                <span title="{{ $inv->notes }}">{{ \Illuminate\Support\Str::limit($inv->notes, 80) }}</span>
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
                         </td>
                         <td class="inv-buff-price-cell">
                             @if(($inv->last_total_cny ?? 0) > 0)
@@ -118,11 +110,11 @@
                                 —
                             @endif
                         </td>
-                        <td>
-                            @if($inv->is_public ?? false)
-                                <span class="badge text-bg-success">Hiện</span>
+                        <td class="small text-muted" style="min-width: 120px; max-width: 220px;">
+                            @if(filled($inv->notes ?? null))
+                                <span title="{{ $inv->notes }}">{{ \Illuminate\Support\Str::limit($inv->notes, 80) }}</span>
                             @else
-                                <span class="badge text-bg-secondary">Ẩn</span>
+                                <span class="text-muted">—</span>
                             @endif
                         </td>
                         <td class="text-end text-nowrap admin-inventory-actions">
@@ -136,9 +128,6 @@
                             >
                                 <i class="fas fa-chevron-down admin-inventory-chevron"></i>
                             </button>
-                            @if($inv->is_public ?? false)
-                                <a href="{{ route('public.inventories') }}#kho-{{ $inv->id }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Xem trên kho công khai"><i class="fas fa-eye"></i></a>
-                            @endif
                             @if($tableMode === 'admin')
                                 <button type="button" class="btn btn-sm btn-outline-primary btn-refresh" data-id="{{ $inv->id }}" title="Check giá"><i class="fas fa-sync-alt"></i></button>
                                 <a href="{{ route('admin.inventories.edit', $inv->id) }}" class="btn btn-sm btn-outline-secondary" title="Sửa"><i class="fas fa-edit"></i></a>

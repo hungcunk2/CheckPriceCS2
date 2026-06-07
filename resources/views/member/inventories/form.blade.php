@@ -82,14 +82,6 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_public" value="1" id="is_public"
-                            {{ old('is_public', $inventory->is_public ?? false) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="is_public">Hiển thị trên Kho công khai</label>
-                    </div>
-                </div>
-
                 <div class="form-check mb-4">
                     <input class="form-check-input" type="checkbox" name="check_now" value="1" id="check_now" {{ old('check_now') ? 'checked' : '' }}>
                     <label class="form-check-label" for="check_now">Check giá Buff/Empire ngay sau khi lưu</label>

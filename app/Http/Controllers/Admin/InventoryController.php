@@ -70,7 +70,6 @@ class InventoryController extends Controller
             'label' => $validated['label'],
             'notes' => $validated['notes'] ?? null,
             'url' => $validated['url'],
-            'is_public' => $request->boolean('is_public', false),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'trade_at' => $this->parseTradeAtFromRequest($request),
         ]);
@@ -107,7 +106,6 @@ class InventoryController extends Controller
             'label' => $validated['label'],
             'notes' => $validated['notes'] ?? null,
             'url' => $validated['url'],
-            'is_public' => $request->boolean('is_public'),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'trade_at' => $this->parseTradeAtFromRequest($request),
         ], $inventory);
@@ -224,7 +222,6 @@ class InventoryController extends Controller
             'trade_at_date' => ['nullable', 'date'],
             'trade_at_hour' => ['nullable', 'integer', 'min:0', 'max:23'],
             'trade_at_minute' => ['nullable', 'integer', 'min:0', 'max:59'],
-            'is_public' => ['sometimes', 'boolean'],
             'check_now' => ['sometimes', 'boolean'],
         ]);
     }
