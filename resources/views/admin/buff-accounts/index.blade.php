@@ -189,6 +189,7 @@
         }
         const remaining = details.quota_remaining;
         const limit = details.quota_limit ?? details.effective_quota;
+        const remainingKnown = remaining !== null && remaining !== undefined && remaining !== '';
         const tier = details.tier;
         const reset = details.quota_reset;
         let html = '';
@@ -197,21 +198,24 @@
             html += `<span class="badge text-bg-secondary text-uppercase">${escapeHtml(tier)}</span>`;
         }
 
-        if (remaining != null || limit != null) {
-            html += `<div class="mt-1"><span class="fw-semibold">${formatInt(remaining)}</span>`
-                + ` <span class="text-muted">/</span> ${formatInt(limit)}</div>`;
-            const rem = Number(remaining);
-            const lim = Number(limit);
-            if (Number.isFinite(rem) && Number.isFinite(lim) && lim > 0) {
-                const usedPct = Math.min(100, Math.max(0, ((lim - rem) / lim) * 100));
-                html += `<div class="progress mt-1" style="height: 4px;" title="Đã dùng ${usedPct.toFixed(1)}%">`
-                    + `<div class="progress-bar ${usedPct >= 90 ? 'bg-danger' : usedPct >= 70 ? 'bg-warning' : ''}" `
-                    + `style="width: ${usedPct.toFixed(1)}%"></div></div>`;
-                html += `<div class="text-muted" style="font-size: 0.75rem;">${usedPct.toFixed(1)}% đã dùng · còn ${formatInt(rem)}</div>`;
+        if (remainingKnown || limit != null || details.effective_quota != null) {
+            const displayLimit = limit ?? details.effective_quota;
+            html += `<div class="mt-1"><span class="fw-semibold">${remainingKnown ? formatInt(remaining) : '—'}</span>`
+                + ` <span class="text-muted">/</span> ${formatInt(displayLimit)}</div>`;
+
+            if (remainingKnown) {
+                const rem = Number(remaining);
+                const lim = Number(displayLimit);
+                if (Number.isFinite(rem) && Number.isFinite(lim) && lim > 0) {
+                    const usedPct = Math.min(100, Math.max(0, ((lim - rem) / lim) * 100));
+                    html += `<div class="progress mt-1" style="height: 4px;" title="Đã dùng ${usedPct.toFixed(1)}%">`
+                        + `<div class="progress-bar ${usedPct >= 90 ? 'bg-danger' : usedPct >= 70 ? 'bg-warning' : ''}" `
+                        + `style="width: ${usedPct.toFixed(1)}%"></div></div>`;
+                    html += `<div class="text-muted" style="font-size: 0.75rem;">${usedPct.toFixed(1)}% đã dùng · còn ${formatInt(rem)}</div>`;
+                }
+            } else {
+                html += `<div class="text-muted" style="font-size: 0.75rem;">Chưa đo quota còn lại · bấm Kiểm tra</div>`;
             }
-        } else if (details.effective_quota != null) {
-            html += `<div class="mt-1 text-muted">Hạn mức ${formatInt(details.effective_quota)}/tháng</div>`;
-            html += `<div class="text-muted" style="font-size: 0.75rem;">Chưa có số còn lại (bấm Kiểm tra)</div>`;
         }
 
         const resetStr = formatUnix(reset);

@@ -206,8 +206,6 @@ class Cs2CapApiKeyController extends Controller
             'Accept' => 'application/json',
         ])->get("{$base}/prices", [
             'market_hash_name' => 'AK-47 | Redline (Field-Tested)',
-            'providers' => 'buff',
-            'currency' => 'CNY',
             'limit' => 1,
         ]);
 

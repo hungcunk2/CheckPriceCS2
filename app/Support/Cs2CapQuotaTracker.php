@@ -41,6 +41,15 @@ final class Cs2CapQuotaTracker
             Cache::put(self::key($label, 'tier'), $tier, max($ttl, 3600));
         }
 
+        if ($response->successful()) {
+            $remainingInt = $monthlyHeaders ? self::parseHeaderInt($remaining) : null;
+            if ($remainingInt !== null && $remainingInt > 0) {
+                Cache::forget(self::exhaustedKey($label));
+            }
+
+            return;
+        }
+
         if ($response->status() !== 429) {
             return;
         }
@@ -51,6 +60,15 @@ final class Cs2CapQuotaTracker
         if ($code === 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED' || ($monthlyHeaders && $remainingInt === 0)) {
             self::markExhausted($label, $ttl);
         }
+    }
+
+    public static function forget(string $label): void
+    {
+        foreach (['remaining', 'limit', 'reset', 'tier', 'effective_quota'] as $field) {
+            Cache::forget(self::key($label, $field));
+        }
+
+        Cache::forget(self::exhaustedKey($label));
     }
 
     public static function recordEffectiveQuota(string $label, int $effectiveQuota): void
@@ -110,7 +128,7 @@ final class Cs2CapQuotaTracker
             'tier' => Cache::get(self::key($label, 'tier')),
             'effective_quota' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
             'quota_remaining' => $remaining !== null ? (int) $remaining : null,
-            'quota_limit' => $limitInt ?? ($effectiveQuota !== null ? (int) $effectiveQuota : null),
+            'quota_limit' => $limitInt,
             'quota_reset' => self::isUnixTimestamp($resetInt) ? $resetInt : null,
         ];
     }

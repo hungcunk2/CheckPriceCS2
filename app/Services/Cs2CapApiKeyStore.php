@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cs2CapApiKey;
+use App\Support\Cs2CapQuotaTracker;
 use Illuminate\Support\Collection;
 
 class Cs2CapApiKeyStore
@@ -92,6 +93,9 @@ class Cs2CapApiKeyStore
             $model = new Cs2CapApiKey;
         }
 
+        $previousLabel = $model->exists ? (string) $model->label : null;
+        $previousApiKey = $model->exists ? trim((string) $model->api_key) : null;
+
         $apiKey = trim((string) ($attributes['api_key'] ?? ''));
         if ($apiKey !== '') {
             $model->api_key = $apiKey;
@@ -109,11 +113,25 @@ class Cs2CapApiKeyStore
         }
         $model->save();
 
+        $newLabel = (string) $model->label;
+        $apiKeyChanged = $apiKey !== '' && $previousApiKey !== null && $apiKey !== $previousApiKey;
+        if (! $id || $apiKeyChanged) {
+            Cs2CapQuotaTracker::forget($newLabel);
+        }
+        if ($previousLabel !== null && $previousLabel !== $newLabel) {
+            Cs2CapQuotaTracker::forget($previousLabel);
+        }
+
         return $this->asObject($model, includeSecret: true);
     }
 
     public function delete(int $id): void
     {
+        $row = Cs2CapApiKey::query()->find($id);
+        if ($row) {
+            Cs2CapQuotaTracker::forget((string) $row->label);
+        }
+
         Cs2CapApiKey::query()->whereKey($id)->delete();
     }
 
