@@ -3,7 +3,7 @@
 namespace App\Support;
 
 use App\Services\Cs2CapApiKeyStore;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Schema;
 
 class Cs2CapApiPool
@@ -36,13 +36,15 @@ class Cs2CapApiPool
     }
 
     /**
+     * Key còn quota tháng — không lọc theo cooldown phút.
+     *
      * @return list<array{label: string, api_key: string}>
      */
     public static function available(): array
     {
         return array_values(array_filter(
             self::accounts(),
-            fn (array $account) => ! Cache::has(self::cooldownKey($account['label']))
+            fn (array $account) => ! Cs2CapQuotaTracker::isExhausted($account['label'])
         ));
     }
 
@@ -56,33 +58,24 @@ class Cs2CapApiPool
             return null;
         }
 
-        $index = (int) Cache::get('cs2cap_api_pool:cursor', 0);
+        $index = (int) \Illuminate\Support\Facades\Cache::get('cs2cap_api_pool:cursor', 0);
         $account = $available[$index % count($available)];
-        Cache::put('cs2cap_api_pool:cursor', ($index + 1) % count($available), 86400);
+        \Illuminate\Support\Facades\Cache::put('cs2cap_api_pool:cursor', ($index + 1) % count($available), 86400);
 
         return $account;
     }
 
-    public static function setCooldown(string $label, int $seconds): void
+    public static function handleResponse(string $label, Response $response): void
     {
-        $seconds = max(5, min(3600, $seconds));
-        Cache::put(self::cooldownKey($label), true, $seconds);
+        Cs2CapQuotaTracker::recordFromResponse($label, $response);
     }
 
-    public static function cooldownSeconds(string $label): ?int
+    /**
+     * @return array{tier: string|null, quota_remaining: int|null, quota_limit: int|null, quota_reset: int|null}|null
+     */
+    public static function quotaSnapshot(string $label): ?array
     {
-        $key = self::cooldownKey($label);
-        if (! Cache::has($key)) {
-            return null;
-        }
-
-        // Laravel doesn't expose remaining TTL for file cache; return a hint.
-        return (int) config('cs2price.cs2cap_cooldown_seconds', 30);
-    }
-
-    private static function cooldownKey(string $label): string
-    {
-        return 'cs2cap_api_pool:cooldown:'.md5($label);
+        return Cs2CapQuotaTracker::snapshot($label);
     }
 
     /**
@@ -107,4 +100,3 @@ class Cs2CapApiPool
         return $rows;
     }
 }
-

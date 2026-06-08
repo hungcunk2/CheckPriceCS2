@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\TrackedInventory;
 use App\Services\SteamInventoryService;
 
 final class InventoryUrlMatcher
@@ -32,8 +31,47 @@ final class InventoryUrlMatcher
         return $scheme.'://'.$host.$path.$query;
     }
 
+    /** Lấy SteamID64 từ URL — không gọi API (profiles, inventory, cs.trade). */
+    public static function steamIdFromUrlLocal(string $url): ?string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+
+        if (! preg_match('#^https?://#i', $url)) {
+            $url = 'https://'.$url;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
+
+        if (str_ends_with($host, 'cs.trade')) {
+            parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+            $steamId = preg_replace('/\D/', '', (string) ($query['steam_id'] ?? $query['steamid'] ?? ''));
+
+            return preg_match('/^\d{17}$/', (string) $steamId) ? $steamId : null;
+        }
+
+        if (preg_match('#/profiles/(\d{17})(?:/inventory)?#', $path, $m)) {
+            return $m[1];
+        }
+
+        if (preg_match('#/inventory/(\d{17})#', $path, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    /** Vanity /id/... cần gọi Steam API — chỉ dùng khi local không parse được. */
     public static function steamIdFromUrl(string $url): ?string
     {
+        $local = self::steamIdFromUrlLocal($url);
+        if ($local !== null) {
+            return $local;
+        }
+
         try {
             return app(SteamInventoryService::class)->parseInventoryUrl($url)['steam_id'] ?? null;
         } catch (\Throwable) {
@@ -41,38 +79,14 @@ final class InventoryUrlMatcher
         }
     }
 
-    public static function steamIdForInventory(TrackedInventory $row): ?string
+    /**
+     * @return list<string>
+     */
+    public static function urlVariants(string $url): array
     {
-        $stored = trim((string) ($row->steam_id ?? ''));
-        if ($stored !== '') {
-            return $stored;
-        }
+        $trimmed = trim($url);
+        $normalized = self::normalize($url);
 
-        return self::steamIdFromUrl((string) ($row->url ?? ''));
-    }
-
-    public static function isSameInventory(string $inputUrl, TrackedInventory $existing): bool
-    {
-        $inputUrl = trim($inputUrl);
-        $existingUrl = trim((string) ($existing->url ?? ''));
-
-        if ($inputUrl === '' || $existingUrl === '') {
-            return false;
-        }
-
-        if ($inputUrl === $existingUrl) {
-            return true;
-        }
-
-        if (self::normalize($inputUrl) === self::normalize($existingUrl)) {
-            return true;
-        }
-
-        $inputSteamId = self::steamIdFromUrl($inputUrl);
-        $existingSteamId = self::steamIdForInventory($existing);
-
-        return $inputSteamId !== null
-            && $existingSteamId !== null
-            && $inputSteamId === $existingSteamId;
+        return array_values(array_unique(array_filter([$trimmed, $normalized])));
     }
 }

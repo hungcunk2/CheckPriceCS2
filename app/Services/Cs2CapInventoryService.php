@@ -52,7 +52,7 @@ class Cs2CapInventoryService
 
         $account = Cs2CapApiPool::next();
         if ($account === null) {
-            throw new RuntimeException('CS2Cap đang cooldown hết key — thử lại sau.');
+            throw new RuntimeException('CS2Cap hết quota tháng hoặc chưa cấu hình key — thử lại sau khi reset.');
         }
 
         $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
@@ -65,7 +65,7 @@ class Cs2CapInventoryService
                 'steam_id' => $steamIdOrVanity,
             ]);
 
-        $this->handleRateLimit($response, $account['label']);
+        Cs2CapApiPool::handleResponse($account['label'], $response);
 
         if ($response->status() === 401) {
             throw new RuntimeException('CS2Cap API key không hợp lệ.');
@@ -111,17 +111,6 @@ class Cs2CapInventoryService
             'steam_persona_name' => null,
             'steam_avatar_url' => null,
         ];
-    }
-
-    private function handleRateLimit(Response $response, string $label): void
-    {
-        if ($response->status() !== 429) {
-            return;
-        }
-
-        $retryAfter = (int) ($response->header('Retry-After') ?? 0);
-        $cooldown = $retryAfter > 0 ? $retryAfter : (int) config('cs2price.cs2cap_cooldown_seconds', 30);
-        Cs2CapApiPool::setCooldown($label, $cooldown);
     }
 
     private function normalizeIconUrl(?string $url): ?string

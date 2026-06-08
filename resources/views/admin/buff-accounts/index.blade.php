@@ -190,7 +190,6 @@
         const remaining = details.quota_remaining;
         const limit = details.quota_limit ?? details.effective_quota;
         const tier = details.tier;
-        const rpm = details.effective_rpm;
         const reset = details.quota_reset;
         let html = '';
 
@@ -215,9 +214,6 @@
             html += `<div class="text-muted" style="font-size: 0.75rem;">Chưa có số còn lại (cần gọi /fx)</div>`;
         }
 
-        if (rpm != null) {
-            html += `<div class="text-muted" style="font-size: 0.75rem;">RPM: ${formatInt(rpm)}</div>`;
-        }
         const resetStr = formatUnix(reset);
         if (resetStr) {
             html += `<div class="text-muted" style="font-size: 0.75rem;">Reset: ${resetStr}</div>`;
@@ -344,6 +340,16 @@
                 if (icon) icon.classList.remove('fa-spin');
             }
         });
+    });
+
+    document.querySelectorAll('.cs2cap-key-quota-cell script.cs2cap-quota-initial').forEach(function (el) {
+        try {
+            const details = JSON.parse(el.textContent || 'null');
+            const cell = el.closest('.cs2cap-key-quota-cell');
+            if (cell && details) {
+                cell.innerHTML = renderCs2CapQuotaCell(details);
+            }
+        } catch (e) {}
     });
 })();
 </script>
@@ -547,7 +553,6 @@
                     </thead>
                     <tbody>
                     @foreach($cs2capKeys as $k)
-                        @php $cooldown = $k->cooldown_seconds ?? null; @endphp
                         <tr data-cs2cap-key-id="{{ $k->id }}">
                             <td><code>{{ $k->label }}</code></td>
                             <td class="font-monospace small text-muted">{{ $k->api_key_hint }}</td>
@@ -558,11 +563,17 @@
                                 @else
                                     <span class="badge text-bg-secondary">Tắt</span>
                                 @endif
-                                @if($cooldown)
-                                    <span class="badge text-bg-warning text-dark ms-1" title="Cooldown">⏳ {{ $cooldown }}s</span>
+                                @if(($k->quota_snapshot['quota_remaining'] ?? null) === 0)
+                                    <span class="badge text-bg-danger ms-1">Hết quota tháng</span>
                                 @endif
                             </td>
-                            <td class="small cs2cap-key-quota-cell text-muted">—</td>
+                            <td class="small cs2cap-key-quota-cell text-muted">
+                                @if(!empty($k->quota_snapshot))
+                                    <script type="application/json" class="cs2cap-quota-initial">@json($k->quota_snapshot)</script>
+                                @else
+                                    —
+                                @endif
+                            </td>
                             <td class="small cs2cap-key-check-cell text-muted">Chưa check</td>
                             <td class="text-end text-nowrap">
                                 <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.probe', $k->id) }}"

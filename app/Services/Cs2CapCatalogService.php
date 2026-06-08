@@ -79,7 +79,7 @@ class Cs2CapCatalogService
                 'limit' => 1,
             ]);
 
-        $this->handleRateLimit($resp, $account['label']);
+        Cs2CapApiPool::handleResponse($account['label'], $resp);
 
         if (! $resp->successful()) {
             Cache::put($processKey, ['catalog_image' => null, 'steam_icon' => null], 3600);
@@ -152,17 +152,6 @@ class Cs2CapCatalogService
         );
 
         return null;
-    }
-
-    private function handleRateLimit(Response $response, string $label): void
-    {
-        if ($response->status() !== 429) {
-            return;
-        }
-
-        $retryAfter = (int) ($response->header('Retry-After') ?? 0);
-        $cooldown = $retryAfter > 0 ? $retryAfter : (int) config('cs2price.cs2cap_cooldown_seconds', 30);
-        Cs2CapApiPool::setCooldown($label, $cooldown);
     }
 }
 

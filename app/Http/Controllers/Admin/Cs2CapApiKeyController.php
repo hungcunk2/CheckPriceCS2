@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Cs2CapApiKeyStore;
+use App\Support\Cs2CapQuotaTracker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -185,8 +186,7 @@ class Cs2CapApiKeyController extends Controller
         ])->get("{$base}/account/key");
 
         $ok = $response->successful();
-
-        $tier = (string) ($response->header('X-RateLimit-Tier') ?? '');
+        Cs2CapQuotaTracker::recordFromResponse($label, $response);
 
         $meta = $response->json('key') ?? null;
 
@@ -195,12 +195,13 @@ class Cs2CapApiKeyController extends Controller
             'Accept' => 'application/json',
         ])->get("{$base}/fx");
 
+        Cs2CapQuotaTracker::recordFromResponse($label, $fx);
+
         $remaining = $fx->header('X-RateLimit-Remaining');
         $limit = $fx->header('X-RateLimit-Limit');
         $reset = $fx->header('X-RateLimit-Reset');
-        $tier = $fx->header('X-RateLimit-Tier') ?? $tier;
+        $tier = $fx->header('X-RateLimit-Tier') ?? $response->header('X-RateLimit-Tier');
 
-        $effectiveRpm = is_array($meta) ? ($meta['effective_rate_requests_per_minute'] ?? null) : null;
         $effectiveQuota = is_array($meta) ? ($meta['effective_quota_requests_per_month'] ?? null) : null;
 
         $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi');
@@ -211,10 +212,9 @@ class Cs2CapApiKeyController extends Controller
             'label' => $label,
             'details' => [
                 'tier' => $tier ?: null,
-                'effective_rpm' => $effectiveRpm,
                 'effective_quota' => $effectiveQuota,
                 'quota_remaining' => is_string($remaining) && ctype_digit($remaining) ? (int) $remaining : $remaining,
-                'quota_limit' => is_string($limit) && ctype_digit($limit) ? (int) $limit : $limit,
+                'quota_limit' => is_string($limit) && ctype_digit($limit) ? (int) $limit : ($limit ?? $effectiveQuota),
                 'quota_reset' => is_string($reset) && ctype_digit($reset) ? (int) $reset : $reset,
                 'account_http_status' => $response->status(),
                 'fx_http_status' => $fx->status(),

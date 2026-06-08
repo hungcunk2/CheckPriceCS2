@@ -303,11 +303,33 @@ class TrackedInventoryStore
             return null;
         }
 
+        $variants = InventoryUrlMatcher::urlVariants($url);
+        $steamId = InventoryUrlMatcher::steamIdFromUrlLocal($url);
+
         $orphan = TrackedInventory::query()
             ->whereNull('user_id')
+            ->where(function ($q) use ($variants, $steamId) {
+                $hasUrl = $variants !== [];
+                $hasSteam = $steamId !== null;
+
+                if (! $hasUrl && ! $hasSteam) {
+                    $q->whereRaw('0 = 1');
+
+                    return;
+                }
+
+                if ($hasUrl) {
+                    $q->whereIn('url', $variants);
+                }
+
+                if ($hasSteam) {
+                    $hasUrl
+                        ? $q->orWhere('steam_id', $steamId)
+                        : $q->where('steam_id', $steamId);
+                }
+            })
             ->orderByDesc('id')
-            ->get()
-            ->first(fn (TrackedInventory $row) => InventoryUrlMatcher::isSameInventory($url, $row));
+            ->first();
 
         return $orphan?->id;
     }
@@ -328,10 +350,8 @@ class TrackedInventoryStore
         if ($ownerUserId !== null) {
             $query->where('user_id', $ownerUserId);
         } elseif ($ownerAdminUsername !== null) {
-            $query->whereNull('user_id')->where(function ($q) use ($ownerAdminUsername) {
-                $q->where('admin_username', $ownerAdminUsername)
-                    ->orWhereNull('admin_username');
-            });
+            // Chỉ kho admin thuộc tài khoản đang đăng nhập — không khớp bản ghi ẩn (admin_username null).
+            $query->whereNull('user_id')->where('admin_username', $ownerAdminUsername);
         } else {
             return null;
         }
@@ -340,9 +360,29 @@ class TrackedInventoryStore
             $query->where('id', '!=', $exceptId);
         }
 
-        return $query->orderByDesc('id')->get()->first(
-            fn (TrackedInventory $row) => InventoryUrlMatcher::isSameInventory($url, $row)
-        );
+        $variants = InventoryUrlMatcher::urlVariants($url);
+        $steamId = InventoryUrlMatcher::steamIdFromUrlLocal($url);
+
+        return $query->where(function ($q) use ($variants, $steamId) {
+            $hasUrl = $variants !== [];
+            $hasSteam = $steamId !== null;
+
+            if (! $hasUrl && ! $hasSteam) {
+                $q->whereRaw('0 = 1');
+
+                return;
+            }
+
+            if ($hasUrl) {
+                $q->whereIn('url', $variants);
+            }
+
+            if ($hasSteam) {
+                $hasUrl
+                    ? $q->orWhere('steam_id', $steamId)
+                    : $q->where('steam_id', $steamId);
+            }
+        })->orderByDesc('id')->first();
     }
 
     /**

@@ -49,7 +49,7 @@ class BuffAccountController extends Controller
             'cs2capUsesDatabase' => Cs2CapApiPool::usesDatabase(),
             'cs2capKeys' => Cs2CapApiPool::usesDatabase()
                 ? $this->cs2capKeyStore->all()->map(function (object $k) {
-                    $k->cooldown_seconds = \App\Support\Cs2CapApiPool::cooldownSeconds($k->label);
+                    $k->quota_snapshot = Cs2CapApiPool::quotaSnapshot($k->label);
 
                     return $k;
                 })
