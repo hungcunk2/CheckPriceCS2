@@ -299,11 +299,119 @@ class Cs2CapService
      */
     private function executeJobPool(array $jobs): array
     {
+        if ($jobs === []) {
+            return [];
+        }
+
         $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
+        $useBatch = filter_var(config('cs2price.cs2cap_use_batch', false), FILTER_VALIDATE_BOOL);
+
+        if ($useBatch) {
+            return $this->executeJobPoolChunked($jobs, $base, max(1, (int) config('cs2price.cs2cap_concurrency', 4)), 100);
+        }
+
+        return $this->executeJobPoolRoundRobin($jobs, $base);
+    }
+
+    /**
+     * Mỗi vòng: 1 job từ mỗi key → song song (15 key = 15 req cùng lúc), nghỉ giữa các vòng.
+     *
+     * @param  array<string, array<string, mixed>>  $jobs
+     * @return array<string, Response>
+     */
+    private function executeJobPoolRoundRobin(array $jobs, string $base): array
+    {
+        /** @var array<string, array<string, array<string, mixed>>> $queues */
+        $queues = [];
+        foreach ($jobs as $jobId => $job) {
+            $label = (string) $job['account']['label'];
+            $queues[$label][$jobId] = $job;
+        }
+
+        $keyCount = count($queues);
+        $configured = (int) config('cs2price.cs2cap_concurrency', 0);
+        $maxKeysPerRound = $configured > 0 ? min($configured, $keyCount) : $keyCount;
+        $delayMs = max(0, (int) config('cs2price.cs2cap_request_delay_ms', 3500));
 
         /** @var array<string, Response> $responses */
-        $responses = Http::pool(function (Pool $pool) use ($jobs, $base) {
-            foreach ($jobs as $jobId => $job) {
+        $responses = [];
+        $round = 0;
+
+        while ($this->anyQueueNonEmpty($queues)) {
+            if ($round > 0 && $delayMs > 0) {
+                usleep($delayMs * 1000);
+            }
+
+            $batch = [];
+            $labelsUsed = 0;
+            foreach (array_keys($queues) as $label) {
+                if ($labelsUsed >= $maxKeysPerRound) {
+                    break;
+                }
+                if ($queues[$label] === []) {
+                    continue;
+                }
+                $jobId = array_key_first($queues[$label]);
+                $batch[$jobId] = $queues[$label][$jobId];
+                unset($queues[$label][$jobId]);
+                $labelsUsed++;
+            }
+
+            if ($batch === []) {
+                break;
+            }
+
+            $chunkResponses = $this->dispatchJobBatch($batch, $base);
+            foreach ($batch as $jobId => $job) {
+                $response = $chunkResponses[$jobId] ?? null;
+                if ($response instanceof Response) {
+                    Cs2CapApiPool::handleResponse((string) $job['account']['label'], $response);
+                    $responses[$jobId] = $response;
+                }
+            }
+
+            $round++;
+        }
+
+        return $responses;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $jobs
+     * @return array<string, Response>
+     */
+    private function executeJobPoolChunked(array $jobs, string $base, int $concurrency, int $delayMs): array
+    {
+        /** @var array<string, Response> $responses */
+        $responses = [];
+
+        foreach (array_chunk($jobs, $concurrency, true) as $chunkIndex => $chunk) {
+            if ($chunkIndex > 0 && $delayMs > 0) {
+                usleep($delayMs * 1000);
+            }
+
+            $chunkResponses = $this->dispatchJobBatch($chunk, $base);
+            foreach ($chunk as $jobId => $job) {
+                $response = $chunkResponses[$jobId] ?? null;
+                if ($response instanceof Response) {
+                    Cs2CapApiPool::handleResponse((string) $job['account']['label'], $response);
+                    $responses[$jobId] = $response;
+                }
+            }
+        }
+
+        return $responses;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $batch
+     * @return array<string, Response>
+     */
+    private function dispatchJobBatch(array $batch, string $base): array
+    {
+        /** @var array<string, Response> $chunkResponses */
+        $chunkResponses = Http::pool(function (Pool $pool) use ($batch, $base) {
+            foreach ($batch as $jobId => $job) {
                 $headers = [
                     'Authorization' => 'Bearer '.$job['account']['api_key'],
                     'Accept' => 'application/json',
@@ -323,29 +431,49 @@ class Cs2CapService
                     continue;
                 }
 
-                $query = [
-                    'market_hash_name' => $job['market_hash_name'],
-                    'providers' => $job['provider'],
-                    'currency' => strtoupper((string) $job['currency']),
-                    'limit' => 5,
-                    'phase' => $job['phase'],
-                ];
-
                 $pool->as($jobId)
                     ->timeout(25)
                     ->withHeaders($headers)
-                    ->get("{$base}/prices", $query);
+                    ->get("{$base}/prices", $this->pricesQueryForJob($job));
             }
         });
 
-        foreach ($jobs as $jobId => $job) {
-            $response = $responses[$jobId] ?? null;
-            if ($response instanceof Response) {
-                Cs2CapApiPool::handleResponse((string) $job['account']['label'], $response);
+        return $chunkResponses;
+    }
+
+    /**
+     * @param  array<string, array<string, array<string, mixed>>> $queues
+     */
+    private function anyQueueNonEmpty(array $queues): bool
+    {
+        foreach ($queues as $queue) {
+            if ($queue !== []) {
+                return true;
             }
         }
 
-        return $responses;
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $job
+     * @return array<string, mixed>
+     */
+    private function pricesQueryForJob(array $job): array
+    {
+        $query = [
+            'market_hash_name' => $job['market_hash_name'],
+            'providers' => $job['provider'],
+            'currency' => strtoupper((string) $job['currency']),
+            'limit' => 5,
+        ];
+
+        $phase = $job['phase'] ?? null;
+        if (is_string($phase) && trim($phase) !== '') {
+            $query['phase'] = $phase;
+        }
+
+        return $query;
     }
 
     /**

@@ -303,8 +303,10 @@ class InventoryPriceChecker
         }
 
         $cs2cap = app(Cs2CapService::class);
+        $buffViaCs2Cap = config('cs2price.cs2cap_use_buff', false) && $cs2cap->isConfigured();
         $useCs2cap = $tier->usesCs2CapEmpireOnly()
-            || (config('cs2price.cs2cap_use_buff', false) && $cs2cap->isConfigured());
+            || $buffViaCs2Cap
+            || (! Buff163AccountPool::isConfigured() && $cs2cap->isConfigured());
 
         if ($useCs2cap && $cs2cap->isConfigured()) {
             $fetched = $cs2cap->getBuffPricesForSteamItems($missingSteamItems);
