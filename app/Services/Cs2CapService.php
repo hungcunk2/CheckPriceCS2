@@ -3,34 +3,91 @@
 namespace App\Services;
 
 use App\Support\Cs2CapApiPool;
-use Illuminate\Http\Client\Pool;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
- * CS2Cap — lấy giá theo shard: chia skin cho từng key admin, gọi batch song song, retry chunk lỗi 1 lần.
+ * CS2Cap aggregator — Buff theo CNY, Empire theo USD (hai request / skin vì mỗi call chỉ một currency).
  */
 class Cs2CapService
 {
-    /** @var array<string, array{buff: array<string, array<string, mixed>>, empire: array<string, array<string, mixed>>}> */
-    private array $fetchMemo = [];
-
     /**
-     * @param  list<array<string, mixed>>  $steamItems
+     * Buff giá CNY từ CS2Cap (dùng provider=buff163). Hỗ trợ phase nếu item có.
+     *
+     * @param  list<array<string, mixed>>  $steamItems  items có market_hash_name + phase|null
      * @return array<string, array{sell_min_price: float|null, sell_num: int|null, buff_url: string|null, error: string|null}>
      */
-    public function getBuffPricesForSteamItems(array $steamItems): array
-    {
-        return $this->shardedFetchAll($steamItems)['buff'];
-    }
-
     /**
+     * Empire tham khảo USD (guest) — provider csgoempire, có phase.
+     *
      * @param  list<array<string, mixed>>  $steamItems
      * @return array<string, array{empire_price_usd: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
      */
     public function getEmpireUsdPricesForSteamItems(array $steamItems): array
     {
-        return $this->shardedFetchAll($steamItems)['empire'];
+        $currency = (string) config('cs2price.cs2cap_empire_currency', 'USD');
+        $results = [];
+
+        foreach ($steamItems as $item) {
+            $hash = trim((string) ($item['market_hash_name'] ?? ''));
+            if ($hash === '') {
+                continue;
+            }
+            $results[$hash] = $this->emptyEmpireRow();
+        }
+
+        foreach ($steamItems as $item) {
+            $hash = trim((string) ($item['market_hash_name'] ?? ''));
+            if ($hash === '') {
+                continue;
+            }
+            $phase = $item['phase'] ?? null;
+            $row = $this->fetchQuoteWithPool($hash, 'csgoempire', $currency, $phase);
+            $results[$hash] = [
+                'empire_price_usd' => $row['amount'] ?? null,
+                'listing_count' => $row['quantity'] ?? null,
+                'empire_url' => $row['url'] ?? null,
+                'error' => $row['error'] ?? null,
+            ];
+        }
+
+        return $results;
+    }
+
+    public function getBuffPricesForSteamItems(array $steamItems): array
+    {
+        $currency = (string) config('cs2price.cs2cap_buff_currency', 'CNY');
+
+        $results = [];
+        foreach ($steamItems as $item) {
+            $hash = trim((string) ($item['market_hash_name'] ?? ''));
+            if ($hash === '') {
+                continue;
+            }
+            $results[$hash] = [
+                'sell_min_price' => null,
+                'sell_num' => null,
+                'buff_url' => null,
+                'error' => null,
+            ];
+        }
+
+        foreach ($steamItems as $item) {
+            $hash = trim((string) ($item['market_hash_name'] ?? ''));
+            if ($hash === '') {
+                continue;
+            }
+
+            $phase = $item['phase'] ?? null;
+            $row = $this->fetchQuoteWithPool($hash, 'buff163', $currency, $phase);
+            $results[$hash] = [
+                'sell_min_price' => $row['amount'] ?? null,
+                'sell_num' => $row['quantity'] ?? null,
+                'buff_url' => $row['url'] ?? null,
+                'error' => $row['error'] ?? null,
+            ];
+        }
+
+        return $results;
     }
 
     /**
@@ -42,16 +99,48 @@ class Cs2CapService
     public function getBuffCnyAndEmpireUsd(array $marketHashNames): array
     {
         $unique = array_values(array_unique(array_filter($marketHashNames)));
+        $buff = [];
+        $empire = [];
+
         if ($unique === [] || ! $this->isConfigured()) {
-            return ['buff' => [], 'empire' => []];
+            return ['buff' => $buff, 'empire' => $empire];
         }
 
-        $items = array_map(
-            fn (string $hash) => ['market_hash_name' => $hash, 'phase' => null],
-            $unique,
-        );
+        $buffCurrency = (string) config('cs2price.cs2cap_buff_currency', 'CNY');
+        $empireCurrency = (string) config('cs2price.cs2cap_empire_currency', 'USD');
 
-        return $this->shardedFetchAll($items);
+        foreach ($unique as $hashName) {
+            $buff[$hashName] = $this->emptyBuffRow();
+            $empire[$hashName] = $this->emptyEmpireRow();
+        }
+
+        foreach ($unique as $hashName) {
+            $buffRow = $this->fetchQuote($hashName, 'buff163', $buffCurrency);
+            if ($buffRow !== null) {
+                $buff[$hashName] = [
+                    'sell_min_price' => $buffRow['amount'],
+                    'sell_num' => $buffRow['quantity'],
+                    'buff_url' => $buffRow['url'],
+                    'error' => $buffRow['error'],
+                ];
+            }
+
+            usleep(50_000);
+
+            $empireRow = $this->fetchQuote($hashName, 'csgoempire', $empireCurrency);
+            if ($empireRow !== null) {
+                $empire[$hashName] = [
+                    'empire_price_usd' => $empireRow['amount'],
+                    'listing_count' => $empireRow['quantity'],
+                    'empire_url' => $empireRow['url'],
+                    'error' => $empireRow['error'],
+                ];
+            }
+
+            usleep(50_000);
+        }
+
+        return ['buff' => $buff, 'empire' => $empire];
     }
 
     public function isConfigured(): bool
@@ -61,666 +150,13 @@ class Cs2CapService
     }
 
     /**
-     * @param  list<array<string, mixed>>  $steamItems
-     * @return array{
-     *   buff: array<string, array{sell_min_price: float|null, sell_num: int|null, buff_url: string|null, error: string|null}>,
-     *   empire: array<string, array{empire_price_usd: float|null, listing_count: int|null, empire_url: string|null, error: string|null}>
-     * }
+     * @return array{amount: float|null, quantity: int|null, url: string|null, error: string|null}|null
      */
-    private function shardedFetchAll(array $steamItems): array
+    private function fetchQuote(string $marketHashName, string $provider, string $currency): ?array
     {
-        $memoKey = $this->itemsMemoKey($steamItems);
-        if (isset($this->fetchMemo[$memoKey])) {
-            return $this->fetchMemo[$memoKey];
-        }
+        $result = $this->fetchQuoteWithPool($marketHashName, $provider, $currency, null);
 
-        $buff = [];
-        $empire = [];
-
-        foreach ($steamItems as $item) {
-            $hash = trim((string) ($item['market_hash_name'] ?? ''));
-            if ($hash === '') {
-                continue;
-            }
-            $buff[$hash] = $this->emptyBuffRow();
-            $empire[$hash] = $this->emptyEmpireRow();
-        }
-
-        if ($steamItems === [] || ! $this->isConfigured()) {
-            return $this->fetchMemo[$memoKey] = ['buff' => $buff, 'empire' => $empire];
-        }
-
-        if (Cs2CapApiPool::available() === []) {
-            $error = Cs2CapApiPool::unusableReason() ?: 'CS2Cap không có key khả dụng';
-            foreach (array_keys($buff) as $hash) {
-                $buff[$hash]['error'] = $error;
-                $empire[$hash]['error'] = $error;
-            }
-
-            return $this->fetchMemo[$memoKey] = ['buff' => $buff, 'empire' => $empire];
-        }
-
-        $jobs = $this->buildShardJobs($steamItems);
-        $this->runJobsWithRetry($jobs, $buff, $empire);
-
-        return $this->fetchMemo[$memoKey] = ['buff' => $buff, 'empire' => $empire];
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $steamItems
-     * @return array<string, array<string, mixed>>
-     */
-    private function buildShardJobs(array $steamItems): array
-    {
-        $shards = Cs2CapApiPool::shardSteamItems($steamItems);
-        $maxBatch = max(1, (int) config('cs2price.cs2cap_batch_max_items', 100));
-        $buffCurrency = (string) config('cs2price.cs2cap_buff_currency', 'CNY');
-        $empireCurrency = (string) config('cs2price.cs2cap_empire_currency', 'USD');
-        $jobs = [];
-
-        foreach ($shards as $shardIndex => $shard) {
-            $account = $shard['account'];
-            $noPhase = [];
-            $withPhase = [];
-
-            foreach ($shard['items'] as $item) {
-                $phase = $item['phase'] ?? null;
-                if (is_string($phase) && trim($phase) !== '') {
-                    $withPhase[] = $item;
-                } else {
-                    $noPhase[] = $item;
-                }
-            }
-
-            if ($this->prefersBatchEndpoint((string) $account['label'])) {
-                foreach (array_chunk($noPhase, $maxBatch) as $batchIndex => $batch) {
-                    $names = array_values(array_unique(array_filter(array_map(
-                        fn (array $row) => trim((string) ($row['market_hash_name'] ?? '')),
-                        $batch,
-                    ))));
-
-                    if ($names === []) {
-                        continue;
-                    }
-
-                    $jobs[$this->jobId($shardIndex, 'batch', $batchIndex, 'buff')] = [
-                        'account' => $account,
-                        'kind' => 'batch',
-                        'provider' => 'buff163',
-                        'currency' => $buffCurrency,
-                        'names' => $names,
-                    ];
-                    $jobs[$this->jobId($shardIndex, 'batch', $batchIndex, 'empire')] = [
-                        'account' => $account,
-                        'kind' => 'batch',
-                        'provider' => 'csgoempire',
-                        'currency' => $empireCurrency,
-                        'names' => $names,
-                    ];
-                }
-            } else {
-                foreach ($noPhase as $singleIndex => $item) {
-                    $hash = trim((string) ($item['market_hash_name'] ?? ''));
-                    if ($hash === '') {
-                        continue;
-                    }
-
-                    $jobs[$this->jobId($shardIndex, 'single', $singleIndex, 'buff')] = [
-                        'account' => $account,
-                        'kind' => 'single',
-                        'provider' => 'buff163',
-                        'currency' => $buffCurrency,
-                        'market_hash_name' => $hash,
-                        'phase' => null,
-                    ];
-                    $jobs[$this->jobId($shardIndex, 'single', $singleIndex, 'empire')] = [
-                        'account' => $account,
-                        'kind' => 'single',
-                        'provider' => 'csgoempire',
-                        'currency' => $empireCurrency,
-                        'market_hash_name' => $hash,
-                        'phase' => null,
-                    ];
-                }
-            }
-
-            foreach ($withPhase as $phaseIndex => $item) {
-                $hash = trim((string) ($item['market_hash_name'] ?? ''));
-                if ($hash === '') {
-                    continue;
-                }
-
-                $jobs[$this->jobId($shardIndex, 'phase', $phaseIndex, 'buff')] = [
-                    'account' => $account,
-                    'kind' => 'single',
-                    'provider' => 'buff163',
-                    'currency' => $buffCurrency,
-                    'market_hash_name' => $hash,
-                    'phase' => (string) $item['phase'],
-                ];
-                $jobs[$this->jobId($shardIndex, 'phase', $phaseIndex, 'empire')] = [
-                    'account' => $account,
-                    'kind' => 'single',
-                    'provider' => 'csgoempire',
-                    'currency' => $empireCurrency,
-                    'market_hash_name' => $hash,
-                    'phase' => (string) $item['phase'],
-                ];
-            }
-        }
-
-        return $jobs;
-    }
-
-    /**
-     * @param  array<string, array<string, mixed>>  $jobs
-     * @param  array<string, array<string, mixed>>  $buff
-     * @param  array<string, array<string, mixed>>  $empire
-     */
-    private function runJobsWithRetry(array $jobs, array &$buff, array &$empire): void
-    {
-        if ($jobs === []) {
-            return;
-        }
-
-        $responses = $this->executeJobPool($jobs);
-        $failed = [];
-        $singleFallbackJobs = [];
-
-        foreach ($jobs as $jobId => $job) {
-            $response = $responses[$jobId] ?? null;
-            if ($this->applyJobResponse($job, $response, $buff, $empire)) {
-                continue;
-            }
-
-            if ($job['kind'] === 'batch' && $this->isBatchAccessDenied($response)) {
-                foreach ($this->expandBatchJobToSingleJobs($job) as $fallbackId => $fallbackJob) {
-                    $singleFallbackJobs[$fallbackId] = $fallbackJob;
-                }
-
-                continue;
-            }
-
-            if ($this->shouldRetryJob($response)) {
-                $failed[$jobId] = ['job' => $job, 'response' => $response];
-            } else {
-                $this->applyJobFailure($job, $response, $buff, $empire);
-            }
-        }
-
-        if ($singleFallbackJobs !== []) {
-            $fallbackResponses = $this->executeJobPool($singleFallbackJobs);
-            foreach ($singleFallbackJobs as $fallbackId => $job) {
-                $response = $fallbackResponses[$fallbackId] ?? null;
-                if ($this->applyJobResponse($job, $response, $buff, $empire)) {
-                    continue;
-                }
-
-                $this->applyJobFailure($job, $response, $buff, $empire);
-            }
-        }
-
-        if ($failed === []) {
-            return;
-        }
-
-        $retryJobs = [];
-        foreach ($failed as $jobId => $failedRow) {
-            $job = $failedRow['job'];
-            $retryAccount = Cs2CapApiPool::pickRetryAccount((string) $job['account']['label']);
-            if ($retryAccount === null) {
-                $this->applyJobFailure($job, $failedRow['response'], $buff, $empire);
-
-                continue;
-            }
-            $retryJob = $job;
-            $retryJob['account'] = $retryAccount;
-            $retryJobs[$jobId.'-retry'] = $retryJob;
-        }
-
-        if ($retryJobs === []) {
-            return;
-        }
-
-        $retryResponses = $this->executeJobPool($retryJobs);
-        foreach ($retryJobs as $retryId => $job) {
-            $response = $retryResponses[$retryId] ?? null;
-            if ($this->applyJobResponse($job, $response, $buff, $empire)) {
-                continue;
-            }
-
-            $this->applyJobFailure($job, $response, $buff, $empire);
-        }
-    }
-
-    /**
-     * @param  array<string, array<string, mixed>>  $jobs
-     * @return array<string, Response>
-     */
-    private function executeJobPool(array $jobs): array
-    {
-        if ($jobs === []) {
-            return [];
-        }
-
-        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
-        $useBatch = filter_var(config('cs2price.cs2cap_use_batch', false), FILTER_VALIDATE_BOOL);
-
-        if ($useBatch) {
-            return $this->executeJobPoolChunked($jobs, $base, max(1, (int) config('cs2price.cs2cap_concurrency', 4)), 100);
-        }
-
-        return $this->executeJobPoolRoundRobin($jobs, $base);
-    }
-
-    /**
-     * Mỗi vòng: 1 job từ mỗi key → song song (15 key = 15 req cùng lúc), nghỉ giữa các vòng.
-     *
-     * @param  array<string, array<string, mixed>>  $jobs
-     * @return array<string, Response>
-     */
-    private function executeJobPoolRoundRobin(array $jobs, string $base): array
-    {
-        /** @var array<string, array<string, array<string, mixed>>> $queues */
-        $queues = [];
-        foreach ($jobs as $jobId => $job) {
-            $label = (string) $job['account']['label'];
-            $queues[$label][$jobId] = $job;
-        }
-
-        $keyCount = count($queues);
-        $configured = (int) config('cs2price.cs2cap_concurrency', 0);
-        $maxKeysPerRound = $configured > 0 ? min($configured, $keyCount) : $keyCount;
-        $delayMs = max(0, (int) config('cs2price.cs2cap_request_delay_ms', 3500));
-
-        /** @var array<string, Response> $responses */
-        $responses = [];
-        $round = 0;
-
-        while ($this->anyQueueNonEmpty($queues)) {
-            if ($round > 0 && $delayMs > 0) {
-                usleep($delayMs * 1000);
-            }
-
-            $batch = [];
-            $labelsUsed = 0;
-            foreach (array_keys($queues) as $label) {
-                if ($labelsUsed >= $maxKeysPerRound) {
-                    break;
-                }
-                if ($queues[$label] === []) {
-                    continue;
-                }
-                $jobId = array_key_first($queues[$label]);
-                $batch[$jobId] = $queues[$label][$jobId];
-                unset($queues[$label][$jobId]);
-                $labelsUsed++;
-            }
-
-            if ($batch === []) {
-                break;
-            }
-
-            $chunkResponses = $this->dispatchJobBatch($batch, $base);
-            foreach ($batch as $jobId => $job) {
-                $response = $chunkResponses[$jobId] ?? null;
-                if ($response instanceof Response) {
-                    Cs2CapApiPool::handleResponse((string) $job['account']['label'], $response);
-                    $responses[$jobId] = $response;
-                }
-            }
-
-            $round++;
-        }
-
-        return $responses;
-    }
-
-    /**
-     * @param  array<string, array<string, mixed>>  $jobs
-     * @return array<string, Response>
-     */
-    private function executeJobPoolChunked(array $jobs, string $base, int $concurrency, int $delayMs): array
-    {
-        /** @var array<string, Response> $responses */
-        $responses = [];
-
-        foreach (array_chunk($jobs, $concurrency, true) as $chunkIndex => $chunk) {
-            if ($chunkIndex > 0 && $delayMs > 0) {
-                usleep($delayMs * 1000);
-            }
-
-            $chunkResponses = $this->dispatchJobBatch($chunk, $base);
-            foreach ($chunk as $jobId => $job) {
-                $response = $chunkResponses[$jobId] ?? null;
-                if ($response instanceof Response) {
-                    Cs2CapApiPool::handleResponse((string) $job['account']['label'], $response);
-                    $responses[$jobId] = $response;
-                }
-            }
-        }
-
-        return $responses;
-    }
-
-    /**
-     * @param  array<string, array<string, mixed>>  $batch
-     * @return array<string, Response>
-     */
-    private function dispatchJobBatch(array $batch, string $base): array
-    {
-        /** @var array<string, Response> $chunkResponses */
-        $chunkResponses = Http::pool(function (Pool $pool) use ($batch, $base) {
-            foreach ($batch as $jobId => $job) {
-                $headers = [
-                    'Authorization' => 'Bearer '.$job['account']['api_key'],
-                    'Accept' => 'application/json',
-                    'Accept-Encoding' => 'gzip',
-                ];
-
-                if ($job['kind'] === 'batch') {
-                    $pool->as($jobId)
-                        ->timeout(60)
-                        ->withHeaders($headers)
-                        ->post("{$base}/prices/batch", [
-                            'market_hash_names' => $job['names'],
-                            'providers' => [$job['provider']],
-                            'currency' => strtoupper((string) $job['currency']),
-                        ]);
-
-                    continue;
-                }
-
-                $pool->as($jobId)
-                    ->timeout(25)
-                    ->withHeaders($headers)
-                    ->get("{$base}/prices", $this->pricesQueryForJob($job));
-            }
-        });
-
-        return $chunkResponses;
-    }
-
-    /**
-     * @param  array<string, array<string, array<string, mixed>>> $queues
-     */
-    private function anyQueueNonEmpty(array $queues): bool
-    {
-        foreach ($queues as $queue) {
-            if ($queue !== []) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param  array<string, mixed>  $job
-     * @return array<string, mixed>
-     */
-    private function pricesQueryForJob(array $job): array
-    {
-        $query = [
-            'market_hash_name' => $job['market_hash_name'],
-            'providers' => $job['provider'],
-            'currency' => strtoupper((string) $job['currency']),
-            'limit' => 5,
-        ];
-
-        $phase = $job['phase'] ?? null;
-        if (is_string($phase) && trim($phase) !== '') {
-            $query['phase'] = $phase;
-        }
-
-        return $query;
-    }
-
-    /**
-     * @param  array<string, mixed>  $job
-     * @param  array<string, array<string, mixed>>  $buff
-     * @param  array<string, array<string, mixed>>  $empire
-     */
-    private function applyJobResponse(array $job, mixed $response, array &$buff, array &$empire): bool
-    {
-        if (! $response instanceof Response || ! $response->successful()) {
-            return false;
-        }
-
-        if ($job['kind'] === 'batch') {
-            foreach ($response->json('items') ?? [] as $block) {
-                if (! is_array($block)) {
-                    continue;
-                }
-                $hash = trim((string) ($block['market_hash_name'] ?? ''));
-                if ($hash === '') {
-                    continue;
-                }
-                foreach ($block['quotes'] ?? [] as $quote) {
-                    if (! is_array($quote)) {
-                        continue;
-                    }
-                    $this->applyQuoteRow($hash, $quote, (string) $job['currency'], $buff, $empire);
-                }
-            }
-
-            return true;
-        }
-
-        $hash = trim((string) ($job['market_hash_name'] ?? ''));
-        foreach ($response->json('items') ?? [] as $quote) {
-            if (! is_array($quote)) {
-                continue;
-            }
-            $this->applyQuoteRow($hash, $quote, (string) $job['currency'], $buff, $empire);
-        }
-
-        return true;
-    }
-
-    /**
-     * @param  array<string, mixed>  $quote
-     * @param  array<string, array<string, mixed>>  $buff
-     * @param  array<string, array<string, mixed>>  $empire
-     */
-    private function applyQuoteRow(string $hash, array $quote, string $currency, array &$buff, array &$empire): void
-    {
-        $provider = (string) ($quote['provider'] ?? '');
-        $minor = isset($quote['lowest_ask']) ? (int) $quote['lowest_ask'] : null;
-        $amount = $this->minorToDecimal($minor, strtoupper($currency));
-        $quantity = isset($quote['quantity']) ? (int) $quote['quantity'] : null;
-        $url = $quote['url'] ?? $quote['link'] ?? null;
-        $error = $minor === null ? 'Không có listing' : null;
-
-        if ($provider === 'buff163') {
-            $buff[$hash] = [
-                'sell_min_price' => $amount,
-                'sell_num' => $quantity,
-                'buff_url' => $url,
-                'error' => $error,
-            ];
-
-            return;
-        }
-
-        if ($provider === 'csgoempire') {
-            $empire[$hash] = [
-                'empire_price_usd' => $amount,
-                'listing_count' => $quantity,
-                'empire_url' => $url,
-                'error' => $error,
-            ];
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $job
-     * @param  array<string, array<string, mixed>>  $buff
-     * @param  array<string, array<string, mixed>>  $empire
-     */
-    private function applyJobFailure(array $job, mixed $response, array &$buff, array &$empire): void
-    {
-        $error = $this->responseErrorMessage($response);
-        $hashes = $job['kind'] === 'batch'
-            ? ($job['names'] ?? [])
-            : [trim((string) ($job['market_hash_name'] ?? ''))];
-
-        foreach ($hashes as $hash) {
-            $hash = trim((string) $hash);
-            if ($hash === '') {
-                continue;
-            }
-
-            if (($job['provider'] ?? '') === 'buff163') {
-                $buff[$hash] = [
-                    'sell_min_price' => null,
-                    'sell_num' => null,
-                    'buff_url' => null,
-                    'error' => $error,
-                ];
-            } elseif (($job['provider'] ?? '') === 'csgoempire') {
-                $empire[$hash] = [
-                    'empire_price_usd' => null,
-                    'listing_count' => null,
-                    'empire_url' => null,
-                    'error' => $error,
-                ];
-            }
-        }
-    }
-
-    private function shouldRetryJob(mixed $response): bool
-    {
-        if (! $response instanceof Response) {
-            return true;
-        }
-
-        if ($response->successful()) {
-            return false;
-        }
-
-        if ($response->status() === 401) {
-            return false;
-        }
-
-        if ($response->status() === 403 && ! $this->isBatchAccessDenied($response)) {
-            return false;
-        }
-
-        if ($response->status() === 429) {
-            $code = (string) ($response->json('code') ?? '');
-
-            return $code !== 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED';
-        }
-
-        return in_array($response->status(), [408, 425, 429, 500, 502, 503, 504], true);
-    }
-
-    private function prefersBatchEndpoint(string $label): bool
-    {
-        if (! filter_var(config('cs2price.cs2cap_use_batch', false), FILTER_VALIDATE_BOOL)) {
-            return false;
-        }
-
-        $snapshot = Cs2CapApiPool::quotaSnapshot($label);
-        $tier = strtolower((string) ($snapshot['tier'] ?? ''));
-
-        return $tier !== 'free';
-    }
-
-    private function isBatchAccessDenied(mixed $response): bool
-    {
-        if (! $response instanceof Response) {
-            return false;
-        }
-
-        if (! in_array($response->status(), [402, 403], true)) {
-            return false;
-        }
-
-        $detail = strtolower((string) ($response->json('detail') ?? $response->json('message') ?? ''));
-
-        return str_contains($detail, 'batch')
-            || str_contains($detail, 'subscription')
-            || str_contains($detail, 'tier');
-    }
-
-    /**
-     * @param  array<string, mixed>  $batchJob
-     * @return array<string, array<string, mixed>>
-     */
-    private function expandBatchJobToSingleJobs(array $batchJob): array
-    {
-        $jobs = [];
-        $account = $batchJob['account'];
-        $provider = (string) ($batchJob['provider'] ?? '');
-
-        foreach ($batchJob['names'] ?? [] as $index => $name) {
-            $hash = trim((string) $name);
-            if ($hash === '') {
-                continue;
-            }
-
-            $jobs[$this->jobId('fb', $hash, $index, $provider)] = [
-                'account' => $account,
-                'kind' => 'single',
-                'provider' => $provider,
-                'currency' => $batchJob['currency'] ?? 'CNY',
-                'market_hash_name' => $hash,
-                'phase' => null,
-            ];
-        }
-
-        return $jobs;
-    }
-
-    private function responseErrorMessage(mixed $response): string
-    {
-        if (! $response instanceof Response) {
-            return 'CS2Cap không phản hồi';
-        }
-
-        if ($response->status() === 429) {
-            $code = (string) ($response->json('code') ?? '');
-            if ($code === 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED') {
-                return 'CS2Cap hết quota tháng';
-            }
-
-            return 'CS2Cap rate limited';
-        }
-
-        if ($response->status() === 401) {
-            return 'CS2Cap key invalid';
-        }
-
-        $detail = $response->json('detail');
-        if (is_string($detail) && $detail !== '') {
-            return 'CS2Cap: '.$detail;
-        }
-
-        return 'CS2Cap HTTP '.$response->status();
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $steamItems
-     */
-    private function itemsMemoKey(array $steamItems): string
-    {
-        $normalized = array_map(function (array $item) {
-            return [
-                trim((string) ($item['market_hash_name'] ?? '')),
-                isset($item['phase']) && $item['phase'] !== '' ? (string) $item['phase'] : null,
-            ];
-        }, $steamItems);
-
-        sort($normalized);
-
-        return md5(json_encode($normalized, JSON_UNESCAPED_UNICODE) ?: '');
-    }
-
-    private function jobId(int|string $shardIndex, string $type, int|string $chunkIndex, string $provider): string
-    {
-        return implode('-', [$shardIndex, $type, $chunkIndex, $provider]);
+        return $result;
     }
 
     private function minorToDecimal(?int $minor, string $currency): ?float
@@ -729,6 +165,7 @@ class Cs2CapService
             return null;
         }
 
+        // CS2Cap: fiat thường chia 100; VND thường là đồng nguyên (không lẻ).
         $divisor = $currency === 'VND' ? 1 : 100;
 
         return round($minor / $divisor, $currency === 'VND' ? 0 : 2);
@@ -758,5 +195,73 @@ class Cs2CapService
             'empire_url' => null,
             'error' => null,
         ];
+    }
+
+    /**
+     * Gọi CS2Cap với pool key; cooldown nếu 429.
+     *
+     * @return array{amount: float|null, quantity: int|null, url: string|null, error: string|null}
+     */
+    private function fetchQuoteWithPool(string $marketHashName, string $provider, string $currency, ?string $phase = null): array
+    {
+        if (! $this->isConfigured()) {
+            return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap chưa cấu hình'];
+        }
+
+        $account = Cs2CapApiPool::next();
+        if ($account === null) {
+            return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap hết quota tháng hoặc chưa cấu hình key'];
+        }
+
+        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
+        $query = [
+            'market_hash_name' => $marketHashName,
+            'providers' => $provider,
+            'currency' => strtoupper($currency),
+            'limit' => 5,
+        ];
+        if (is_string($phase) && $phase !== '') {
+            $query['phase'] = $phase;
+        }
+
+        $response = Http::timeout(25)
+            ->withHeaders([
+                'Authorization' => 'Bearer '.$account['api_key'],
+                'Accept' => 'application/json',
+                'Accept-Encoding' => 'gzip',
+            ])
+            ->get("{$base}/prices", $query);
+
+        Cs2CapApiPool::handleResponse($account['label'], $response);
+
+        if ($response->status() === 429) {
+            return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap rate limited'];
+        }
+
+        if ($response->status() === 401) {
+            return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap key invalid'];
+        }
+
+        if (! $response->successful()) {
+            return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap HTTP '.$response->status()];
+        }
+
+        $items = $response->json('items') ?? [];
+        foreach ($items as $row) {
+            if (($row['provider'] ?? '') !== $provider) {
+                continue;
+            }
+
+            $minor = isset($row['lowest_ask']) ? (int) $row['lowest_ask'] : null;
+
+            return [
+                'amount' => $this->minorToDecimal($minor, strtoupper($currency)),
+                'quantity' => isset($row['quantity']) ? (int) $row['quantity'] : null,
+                'url' => $row['url'] ?? $row['link'] ?? null,
+                'error' => $minor === null ? 'Không có listing' : null,
+            ];
+        }
+
+        return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'Không có giá trên '.$provider];
     }
 }

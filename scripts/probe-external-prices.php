@@ -90,31 +90,6 @@ foreach ($sample as $name) {
     }
 }
 
-echo "\n=== CS2Cap batch (first 3 names) currency=VND ===\n";
-$batchBody = [
-    'market_hash_names' => array_slice($names, 0, 3),
-    'providers' => ['buff163', 'csgoempire'],
-    'currency' => 'VND',
-];
-$r = httpJson('POST', $base.'/prices/batch', [
-    'Authorization' => 'Bearer '.$apiKey,
-    'Accept' => 'application/json',
-    'Content-Type' => 'application/json',
-    'Accept-Encoding' => 'gzip',
-], $batchBody);
-echo "HTTP {$r['code']}\n";
-if ($r['code'] === 200) {
-    foreach ($r['body']['items'] ?? [] as $block) {
-        echo ($block['market_hash_name'] ?? '?').":\n";
-        foreach ($block['quotes'] ?? [] as $q) {
-            $ask = $q['lowest_ask'] ?? 0;
-            echo "  {$q['provider']}: {$ask} minor units VND\n";
-        }
-    }
-} else {
-    echo substr((string) $r['raw'], 0, 500)."\n";
-}
-
 echo "\n=== PriceForge (X-API-Key) — if key is PriceForge ===\n";
 $testName = rawurlencode($sample[0] ?? 'AK-47 | Redline (Field-Tested)');
 $r = httpJson('GET', "https://api.priceforge.dev/api/v1/prices/{$testName}", [

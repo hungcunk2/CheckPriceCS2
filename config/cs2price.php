@@ -156,14 +156,6 @@ return [
     'cs2cap_cooldown_seconds' => (int) env('CS2CAP_COOLDOWN_SECONDS', 30),
     'cs2cap_use_inventory' => filter_var(env('CS2CAP_USE_INVENTORY', false), FILTER_VALIDATE_BOOL),
     'cs2cap_use_buff' => filter_var(env('CS2CAP_USE_BUFF', false), FILTER_VALIDATE_BOOL),
-    // FREE tier CS2Cap không có /prices/batch — để false; bật khi key paid.
-    'cs2cap_use_batch' => filter_var(env('CS2CAP_USE_BATCH', false), FILTER_VALIDATE_BOOL),
-    /** Paid tier: tối đa 100 item / batch; FREE dùng GET /prices từng skin. */
-    'cs2cap_batch_max_items' => max(1, (int) env('CS2CAP_BATCH_MAX_ITEMS', 100)),
-    // 0 = auto: song song 1 req/key mỗi vòng (15 key FREE ≈ 15 req cùng lúc). Paid batch: set 4–8.
-    'cs2cap_concurrency' => max(0, (int) env('CS2CAP_CONCURRENCY', 0)),
-    // Nghỉ giữa mỗi vòng (mỗi key tối đa 1 req/vòng). FREE 20/min/key → ~3500ms.
-    'cs2cap_request_delay_ms' => max(0, (int) env('CS2CAP_REQUEST_DELAY_MS', 3500)),
 
     // Cache ảnh catalog CS2Cap theo market_hash_name (giây), mặc định 30 ngày.
     'cs2cap_catalog_image_cache_seconds' => (int) env('CS2CAP_CATALOG_IMAGE_CACHE_SECONDS', 86400 * 30),
