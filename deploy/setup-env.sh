@@ -55,7 +55,12 @@ set_env DB_USERNAME "${DB_USERNAME:-checkpricecs2}"
 
 set_env SESSION_DRIVER file
 set_env CACHE_STORE file
-set_env QUEUE_CONNECTION sync
+if ! grep -q '^QUEUE_CONNECTION=.\+' .env 2>/dev/null; then
+  set_env QUEUE_CONNECTION "${QUEUE_CONNECTION:-database}"
+fi
+if ! grep -q '^SYNC_USE_QUEUE=.\+' .env 2>/dev/null; then
+  set_env SYNC_USE_QUEUE "${SYNC_USE_QUEUE:-true}"
+fi
 
 set_env ADMIN_USERNAME "${ADMIN_USERNAME:-admin}"
 set_env CNY_TO_VND "${CNY_TO_VND:-3750}"

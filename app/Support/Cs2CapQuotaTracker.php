@@ -57,8 +57,25 @@ final class Cs2CapQuotaTracker
         $code = (string) ($response->json('code') ?? '');
         $remainingInt = $monthlyHeaders ? self::parseHeaderInt($remaining) : null;
 
-        if ($code === 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED' || ($monthlyHeaders && $remainingInt === 0)) {
+        if ($code === 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED') {
             self::markExhausted($label, $ttl);
+
+            return;
+        }
+
+        if ($monthlyHeaders && $remainingInt === 0 && $limitInt !== null && $limitInt > self::MAX_RPM_LIMIT) {
+            self::markExhausted($label, $ttl);
+        }
+    }
+
+    /** Key vừa xác thực OK — gỡ cờ exhausted do RPM / cache cũ. */
+    public static function acknowledgeValidKey(string $label): void
+    {
+        Cache::forget(self::exhaustedKey($label));
+
+        $limit = Cache::get(self::key($label, 'limit'));
+        if ($limit === null || (int) $limit <= self::MAX_RPM_LIMIT) {
+            Cache::forget(self::key($label, 'remaining'));
         }
     }
 
@@ -83,17 +100,32 @@ final class Cs2CapQuotaTracker
         }
 
         $remaining = Cache::get(self::key($label, 'remaining'));
-        $limit = Cache::get(self::key($label, 'limit'));
-
         if ($remaining === null) {
             return false;
         }
 
+        $limit = Cache::get(self::key($label, 'limit'));
         if ($limit !== null && (int) $limit <= self::MAX_RPM_LIMIT) {
             return false;
         }
 
+        if ($limit === null || (int) $limit <= self::MAX_RPM_LIMIT) {
+            return false;
+        }
+
         return (int) $remaining <= 0;
+    }
+
+    public static function forgetAll(): int
+    {
+        $cleared = 0;
+
+        foreach (Cs2CapApiPool::accounts() as $account) {
+            self::forget((string) $account['label']);
+            $cleared++;
+        }
+
+        return $cleared;
     }
 
     public static function markExhausted(string $label, int $ttlSeconds = 86400): void
@@ -173,10 +205,7 @@ final class Cs2CapQuotaTracker
 
     private static function looksLikeMonthlyQuotaHeaders(?int $limit, ?int $reset): bool
     {
-        if ($reset !== null && self::isUnixTimestamp($reset)) {
-            return true;
-        }
-
+        // Chỉ tin quota tháng khi limit lớn (vd. 1000/mo). $reset unix cũng có trên RPM — bỏ qua.
         return $limit !== null && $limit > self::MAX_RPM_LIMIT;
     }
 

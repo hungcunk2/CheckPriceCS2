@@ -35,6 +35,25 @@ class Cs2CapApiPool
         return self::accounts() !== [];
     }
 
+    public static function hasUsableKey(): bool
+    {
+        return self::available() !== [];
+    }
+
+    public static function unusableReason(): string
+    {
+        $accounts = self::accounts();
+        if ($accounts === []) {
+            return 'Chưa có API key CS2Cap — thêm trong Admin → Buff & cs.trade, hoặc CS2CAP_API_KEY + CS2CAP_ENABLED=true trong .env rồi config:cache.';
+        }
+
+        if (self::available() !== []) {
+            return '';
+        }
+
+        return 'Có '.count($accounts).' key CS2Cap nhưng pool coi là hết quota tháng — Admin bấm Kiểm tra key, hoặc chạy: php artisan cs2cap:clear-quota-cache';
+    }
+
     /**
      * Key còn quota tháng — không lọc theo cooldown phút.
      *

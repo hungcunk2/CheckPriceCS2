@@ -47,12 +47,12 @@ class Cs2CapInventoryService
     public function fetch(string $steamIdOrVanity): array
     {
         if (! Cs2CapApiPool::isConfigured()) {
-            throw new RuntimeException('CS2Cap chưa cấu hình API key.');
+            throw new RuntimeException(Cs2CapApiPool::unusableReason());
         }
 
         $account = Cs2CapApiPool::next();
         if ($account === null) {
-            throw new RuntimeException('CS2Cap hết quota tháng hoặc chưa cấu hình key — thử lại sau khi reset.');
+            throw new RuntimeException(Cs2CapApiPool::unusableReason());
         }
 
         $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');

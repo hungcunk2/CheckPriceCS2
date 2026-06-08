@@ -91,7 +91,7 @@ class Cs2CapService
         }
 
         if (Cs2CapApiPool::available() === []) {
-            $error = 'CS2Cap hết quota tháng hoặc chưa cấu hình key';
+            $error = Cs2CapApiPool::unusableReason() ?: 'CS2Cap không có key khả dụng';
             foreach (array_keys($buff) as $hash) {
                 $buff[$hash]['error'] = $error;
                 $empire[$hash]['error'] = $error;

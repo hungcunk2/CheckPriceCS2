@@ -186,6 +186,23 @@ class Cs2CapApiKeyController extends Controller
      */
     private function probeCredentials(string $label, string $apiKey): array
     {
+        $apiKey = trim($apiKey);
+        if ($apiKey === '') {
+            return [
+                'ok' => false,
+                'message' => $label.': API key trống trong DB',
+                'label' => $label,
+                'details' => [
+                    'account_http_status' => null,
+                    'prices_http_status' => null,
+                    'effective_quota' => null,
+                    'quota_remaining' => null,
+                    'quota_limit' => null,
+                    'quota_reset' => null,
+                ],
+            ];
+        }
+
         $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
 
         $response = Http::timeout(20)->withHeaders([
@@ -201,6 +218,10 @@ class Cs2CapApiKeyController extends Controller
             Cs2CapQuotaTracker::recordEffectiveQuota($label, (int) $effectiveQuota);
         }
 
+        if ($ok) {
+            Cs2CapQuotaTracker::acknowledgeValidKey($label);
+        }
+
         $prices = Http::timeout(20)->withHeaders([
             'Authorization' => 'Bearer '.$apiKey,
             'Accept' => 'application/json',
@@ -212,24 +233,31 @@ class Cs2CapApiKeyController extends Controller
         Cs2CapQuotaTracker::recordFromResponse($label, $prices);
 
         $snapshot = Cs2CapQuotaTracker::snapshot($label);
-        $tier = $snapshot['tier'] ?? null;
+        $tier = is_array($meta) ? ($meta['tier'] ?? ($snapshot['tier'] ?? null)) : ($snapshot['tier'] ?? null);
 
         $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi');
+        if ($ok && ! $prices->successful()) {
+            $message .= ' · /prices HTTP '.$prices->status();
+            if ($prices->status() === 429) {
+                $message .= ' (giới hạn tạm — key vẫn hợp lệ)';
+            }
+        }
+
+        $details = array_merge([
+            'account_http_status' => $response->status(),
+            'prices_http_status' => $prices->status(),
+            'tier' => $tier,
+            'effective_quota' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
+            'quota_remaining' => null,
+            'quota_limit' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
+            'quota_reset' => null,
+        ], $snapshot ?? []);
 
         return [
             'ok' => $ok,
             'message' => $message,
             'label' => $label,
-            'details' => array_merge([
-                'account_http_status' => $response->status(),
-                'prices_http_status' => $prices->status(),
-            ], $snapshot ?? [
-                'tier' => $tier,
-                'effective_quota' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
-                'quota_remaining' => null,
-                'quota_limit' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
-                'quota_reset' => null,
-            ]),
+            'details' => $details,
         ];
     }
 
