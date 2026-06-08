@@ -342,6 +342,61 @@
         });
     });
 
+    document.querySelectorAll('form.js-ajax-delete').forEach((form) => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const confirmMsg = form.dataset.confirm || 'Xóa mục này?';
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            const btn = form.querySelector('button[type="submit"]');
+            const icon = btn?.querySelector('i');
+            if (btn) btn.disabled = true;
+            if (icon) icon.classList.add('fa-spin');
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new FormData(form),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok || json.ok === false) {
+                    showToast(json.message || 'Không xóa được', 'danger');
+                    return;
+                }
+
+                showToast(json.message || 'Đã xóa', 'success');
+
+                const mode = form.dataset.deleteRow;
+                if (mode === 'empire-key') {
+                    const id = form.dataset.empireKeyId || json.empire_key_id;
+                    document.querySelector(`tr[data-empire-key-id="${id}"]`)?.remove();
+                } else if (mode === 'cs2cap-key') {
+                    const id = form.dataset.cs2capKeyId || json.cs2cap_key_id;
+                    document.querySelector(`tr[data-cs2cap-key-id="${id}"]`)?.remove();
+                } else if (mode === 'buff') {
+                    const label = form.dataset.buffLabel || json.label;
+                    const row = label ? document.querySelector(`tr[data-buff-label="${CSS.escape(label)}"]`) : null;
+                    if (row) {
+                        row.querySelector('a[href*="buff-accounts"][href*="edit"]')?.remove();
+                        form.remove();
+                    }
+                }
+            } catch (err) {
+                showToast(err.message || 'Lỗi kết nối', 'danger');
+            } finally {
+                if (btn) btn.disabled = false;
+                if (icon) icon.classList.remove('fa-spin');
+            }
+        });
+    });
+
     document.querySelectorAll('.cs2cap-key-quota-cell script.cs2cap-quota-initial').forEach(function (el) {
         try {
             const details = JSON.parse(el.textContent || 'null');
@@ -452,7 +507,9 @@
                                         </button>
                                     </form>
                                     <a href="{{ route('admin.buff-accounts.empire-keys.edit', $ek->id) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
-                                    <form method="POST" action="{{ route('admin.buff-accounts.empire-keys.destroy', $ek->id) }}" class="d-inline" onsubmit="return confirm('Xóa key {{ $ek->label }}?');">
+                                    <form method="POST" action="{{ route('admin.buff-accounts.empire-keys.destroy', $ek->id) }}"
+                                          class="d-inline js-ajax-delete" data-delete-row="empire-key" data-empire-key-id="{{ $ek->id }}"
+                                          data-confirm="Xóa key {{ $ek->label }}?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
@@ -585,7 +642,9 @@
                                     </button>
                                 </form>
                                 <a href="{{ route('admin.buff-accounts.cs2cap-keys.edit', $k->id) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
-                                <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.destroy', $k->id) }}" class="d-inline" onsubmit="return confirm('Xóa key {{ $k->label }}?');">
+                                <form method="POST" action="{{ route('admin.buff-accounts.cs2cap-keys.destroy', $k->id) }}"
+                                      class="d-inline js-ajax-delete" data-delete-row="cs2cap-key" data-cs2cap-key-id="{{ $k->id }}"
+                                      data-confirm="Xóa key {{ $k->label }}?">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
@@ -721,7 +780,9 @@
                                     <a href="{{ route('admin.buff-accounts.edit', $managed->id) }}" class="btn btn-sm btn-outline-secondary" title="Sửa">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form method="POST" action="{{ route('admin.buff-accounts.destroy', $managed->id) }}" class="d-inline" onsubmit="return confirm('Xóa acc {{ $account['label'] }}?');">
+                                    <form method="POST" action="{{ route('admin.buff-accounts.destroy', $managed->id) }}"
+                                          class="d-inline js-ajax-delete" data-delete-row="buff" data-buff-label="{{ $account['label'] }}"
+                                          data-confirm="Xóa acc {{ $account['label'] }}?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">

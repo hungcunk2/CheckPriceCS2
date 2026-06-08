@@ -74,9 +74,17 @@ class EmpireApiKeyController extends Controller
             ->with('success', 'Đã cập nhật API key Empire.');
     }
 
-    public function destroy(int $empireKey): RedirectResponse
+    public function destroy(Request $request, int $empireKey): JsonResponse|RedirectResponse
     {
         $this->store->delete($empireKey);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Đã xóa API key Empire.',
+                'empire_key_id' => $empireKey,
+            ]);
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')

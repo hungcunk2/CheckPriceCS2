@@ -74,9 +74,17 @@ class Cs2CapApiKeyController extends Controller
             ->with('success', 'Đã cập nhật API key CS2Cap.');
     }
 
-    public function destroy(int $cs2capKey): RedirectResponse
+    public function destroy(Request $request, int $cs2capKey): JsonResponse|RedirectResponse
     {
         $this->store->delete($cs2capKey);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Đã xóa API key CS2Cap.',
+                'cs2cap_key_id' => $cs2capKey,
+            ]);
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')

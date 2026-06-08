@@ -143,9 +143,20 @@ class BuffAccountController extends Controller
             ->with('success', 'Đã cập nhật acc '.$account->label.'.');
     }
 
-    public function destroy(int $buffAccount): RedirectResponse
+    public function destroy(Request $request, int $buffAccount): JsonResponse|RedirectResponse
     {
+        $account = $this->store->find($buffAccount);
+        $label = $account ? (string) $account->label : null;
+
         $this->store->delete($buffAccount);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Đã xóa acc Buff.',
+                'label' => $label,
+            ]);
+        }
 
         return redirect()
             ->route('admin.buff-accounts.index')
