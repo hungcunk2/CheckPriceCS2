@@ -1,0 +1,17 @@
+[Unit]
+Description=CheckPriceCS2 Laravel queue worker
+After=network.target mysql.service mariadb.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/checkpricecs2
+ExecStart=/usr/bin/php artisan queue:work database --sleep=3 --tries=1 --timeout=600 --max-time=3600
+StandardOutput=append:/var/www/checkpricecs2/storage/logs/queue-worker.log
+StandardError=append:/var/www/checkpricecs2/storage/logs/queue-worker.log
+
+[Install]
+WantedBy=multi-user.target

@@ -35,7 +35,10 @@ final class SubscriptionSyncPolicy
         return self::PLAN_LIMITS[$plan]['manual_refresh_per_day'];
     }
 
-    /** Shop + admin: mỗi lần sync — kho Steam/CS2Cap mới + giá Buff/Empire mới (bỏ cache site). */
+    /**
+     * Shop + admin: mỗi lần sync — giá Buff/Empire mới (bỏ cache DB giá).
+     * Không bao gồm kho Steam/CS2Cap (xem requiresFreshInventory).
+     */
     public static function requiresFreshSync(?string $plan, bool $isAdminContext = false): bool
     {
         if ($isAdminContext) {
@@ -49,6 +52,16 @@ final class SubscriptionSyncPolicy
     public static function requiresFreshPrices(?string $plan, bool $isAdminContext = false): bool
     {
         return self::requiresFreshSync($plan, $isAdminContext);
+    }
+
+    /**
+     * Tải lại danh sách skin từ Steam/CS2Cap (bỏ cache kho).
+     * Auto-sync: dùng cache kho (~4h) — giá vẫn có thể fresh qua requiresFreshSync().
+     * Refresh thủ công (admin/member bấm nút): luôn tải kho mới.
+     */
+    public static function requiresFreshInventory(bool $isManualRefresh = false): bool
+    {
+        return $isManualRefresh;
     }
 
     public static function isDueForAutoSync(string|\Carbon\CarbonInterface|null $lastCheckedAt, ?string $plan, bool $isAdminInventory = false): bool

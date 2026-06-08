@@ -44,4 +44,13 @@ if ! crontab -u "$WEB_USER" -l 2>/dev/null | grep -qF "schedule:run"; then
 fi
 
 systemctl reload php8.3-fpm nginx
+
+QUEUE_UNIT="/etc/systemd/system/checkpricecs2-queue.service"
+if [ -f deploy/checkpricecs2-queue.service ]; then
+  cp deploy/checkpricecs2-queue.service "$QUEUE_UNIT"
+  systemctl daemon-reload
+  systemctl enable checkpricecs2-queue.service 2>/dev/null || true
+  systemctl restart checkpricecs2-queue.service 2>/dev/null || echo "Cảnh báo: không restart queue worker — kiểm tra QUEUE_CONNECTION=database và systemctl status checkpricecs2-queue"
+fi
+
 echo "Deploy xong."

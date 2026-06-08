@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\TrackedInventory;
+use App\Models\User;
 use App\Support\InventorySteamProfileResolver;
 use App\Support\InventoryUrlMatcher;
+use App\Support\SubscriptionSyncPolicy;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -19,6 +21,88 @@ class TrackedInventoryStore
         return $this->mapQuery(
             TrackedInventory::query()->orderByDesc('last_total_cny')->orderByDesc('id')
         );
+    }
+
+    /**
+     * Kho đến hạn auto-sync — lọc SQL (MariaDB/MySQL), không load toàn bộ bảng.
+     *
+     * @return Collection<int, object>
+     */
+    public function dueForAutoSync(): Collection
+    {
+        if (! Schema::hasTable('tracked_inventories')) {
+            return collect();
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return $this->dueForAutoSyncFallback();
+        }
+
+        $rows = TrackedInventory::query()
+            ->leftJoin('users', 'users.id', '=', 'tracked_inventories.user_id')
+            ->select('tracked_inventories.*')
+            ->where(function ($query) {
+                $query->whereNull('tracked_inventories.last_checked_at')
+                    ->orWhereRaw($this->dueForAutoSyncSql(), [now()]);
+            })
+            ->orderBy('tracked_inventories.last_checked_at')
+            ->orderBy('tracked_inventories.id')
+            ->get();
+
+        return $rows->map(fn (TrackedInventory $row) => $this->asObject($row));
+    }
+
+    private function dueForAutoSyncSql(): string
+    {
+        return 'tracked_inventories.last_checked_at <= DATE_SUB(?, INTERVAL (
+            CASE
+                WHEN tracked_inventories.user_id IS NULL THEN 1
+                WHEN users.subscription_plan = \'shop\' THEN 1
+                WHEN users.subscription_plan = \'max\' THEN 2
+                WHEN users.subscription_plan = \'plus\' THEN 4
+                WHEN users.subscription_plan = \'pro\' THEN 8
+                ELSE 8
+            END
+        ) HOUR)';
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    private function dueForAutoSyncFallback(): Collection
+    {
+        $candidates = TrackedInventory::query()
+            ->where(function ($query) {
+                $query->whereNull('last_checked_at')
+                    ->orWhere('last_checked_at', '<=', now()->subHour());
+            })
+            ->orderBy('last_checked_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (TrackedInventory $row) => $this->asObject($row));
+
+        if ($candidates->isEmpty()) {
+            return collect();
+        }
+
+        $usersById = User::query()
+            ->whereIn('id', $candidates->pluck('user_id')->filter()->unique()->values())
+            ->get()
+            ->keyBy('id');
+
+        return $candidates->filter(function (object $row) use ($usersById) {
+            $plan = null;
+            if ($row->user_id !== null && isset($usersById[(int) $row->user_id])) {
+                $plan = $usersById[(int) $row->user_id]->subscription_plan;
+            }
+
+            return SubscriptionSyncPolicy::isDueForAutoSync(
+                $row->last_checked_at ?? null,
+                $plan,
+                $row->user_id === null,
+            );
+        })->values();
     }
 
     /**

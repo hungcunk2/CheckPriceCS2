@@ -69,6 +69,7 @@ Route::middleware(['auth', 'member'])->prefix('tai-khoan')->name('member.')->gro
     Route::put('/kho/{inventory}', [MemberInventoryController::class, 'update'])->name('inventories.update');
     Route::delete('/kho/{inventory}', [MemberInventoryController::class, 'destroy'])->name('inventories.destroy');
     Route::post('/kho/{inventory}/refresh', [MemberInventoryController::class, 'refresh'])->name('inventories.refresh');
+    Route::get('/kho/{inventory}/sync-status', [MemberInventoryController::class, 'syncStatus'])->name('inventories.sync-status');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -87,6 +88,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/inventories/{inventory}', [AdminInventoryController::class, 'update'])->name('inventories.update');
         Route::delete('/inventories/{inventory}', [AdminInventoryController::class, 'destroy'])->name('inventories.destroy');
         Route::post('/inventories/{inventory}/refresh', [AdminInventoryController::class, 'refresh'])->name('inventories.refresh');
+        Route::get('/inventories/{inventory}/sync-status', [AdminInventoryController::class, 'syncStatus'])->name('inventories.sync-status');
 
         Route::get('/blog', [AdminBlogController::class, 'index'])->name('blog.index');
         Route::get('/blog/create', [AdminBlogController::class, 'create'])->name('blog.create');

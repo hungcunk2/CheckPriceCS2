@@ -47,6 +47,8 @@ return [
     // Tự động quét kho Steam + giá Buff (scheduler).
     'price_auto_sync_enabled' => filter_var(env('BUFF_PRICE_AUTO_SYNC', true), FILTER_VALIDATE_BOOL),
     'price_auto_sync_minutes' => (int) env('BUFF_PRICE_AUTO_SYNC_MINUTES', 15),
+    // Đồng bộ kho/giá qua queue (cron + nút ⟳). Tắt hoặc QUEUE_CONNECTION=sync = chạy đồng bộ trong process.
+    'sync_use_queue' => filter_var(env('SYNC_USE_QUEUE', true), FILTER_VALIDATE_BOOL),
     'request_delay_ms' => (int) env('BUFF_REQUEST_DELAY_MS', 800),
     'buff_concurrency' => (int) env('BUFF_CONCURRENCY', 1),
     'check_max_execution_seconds' => (int) env('CHECK_MAX_EXECUTION_SECONDS', 600),
@@ -54,8 +56,8 @@ return [
     'steam_request_delay_ms' => (int) env('STEAM_REQUEST_DELAY_MS', 1500),
     // Nghỉ giữa mỗi kho khi phải gọi Steam (ms). Mặc định 20 phút — tránh 429.
     'steam_request_delay_between_inventories_ms' => (int) env('STEAM_REQUEST_DELAY_BETWEEN_INVENTORIES_MS', 1_200_000),
-    // Cache list skin Steam: cron dùng lại, không gọi API (kho ít đổi trong ngày).
-    'steam_inventory_cache_seconds' => (int) env('STEAM_INVENTORY_CACHE_SECONDS', 86400),
+    // Cache danh sách skin (Steam/CS2Cap): auto-sync dùng lại tối đa N giây (mặc định 4h, khớp cache giá).
+    'steam_inventory_cache_seconds' => (int) env('STEAM_INVENTORY_CACHE_SECONDS', 14400),
 
     // Khách tra giá trên trang chủ: tối đa 1 lần / IP / N giây (mặc định 5 phút).
     'guest_check_cooldown_seconds' => (int) env('GUEST_CHECK_COOLDOWN_SECONDS', 300),

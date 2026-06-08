@@ -3,6 +3,9 @@
     $refreshRouteTemplate = ($tableMode ?? 'admin') === 'member'
         ? route('member.inventories.refresh', ['inventory' => 0])
         : route('admin.inventories.refresh', ['inventory' => 0]);
+    $syncStatusRouteTemplate = ($tableMode ?? 'admin') === 'member'
+        ? route('member.inventories.sync-status', ['inventory' => 0])
+        : route('admin.inventories.sync-status', ['inventory' => 0]);
 @endphp
 <script src="{{ asset('js/inventory-weapon-filter.js') }}"></script>
 <script>
@@ -51,6 +54,64 @@ function showInvToast(message, type, extraHtml) {
     setTimeout(() => div.remove(), 12000);
 }
 
+function applyRefreshJsonToRow(row, json) {
+    if (!row) return;
+    const identityCell = row.querySelector('.inv-identity-cell');
+    const buffCell = row.querySelector('.inv-buff-price-cell');
+    const empireCell = row.querySelector('.inv-empire-price-cell');
+    const countCell = row.querySelector('.inv-item-count-cell');
+    const updatedCell = row.querySelector('.inv-updated-cell');
+    if (identityCell && json.identity_html) identityCell.innerHTML = json.identity_html;
+    if (buffCell && json.buff_price_html) buffCell.innerHTML = json.buff_price_html;
+    if (empireCell && json.empire_price_html) empireCell.innerHTML = json.empire_price_html;
+    if (countCell) {
+        const label = json.item_count_label ?? (json.item_count != null ? String(json.item_count) : null);
+        if (label != null) {
+            countCell.innerHTML = '<span class="' + (json.inventory_empty ? 'text-muted small' : '') + '">' + label + '</span>';
+        }
+    }
+    if (updatedCell && json.last_checked_at) updatedCell.textContent = json.last_checked_at;
+}
+
+function refreshDetailHint(id) {
+    const detail = document.getElementById('admin-inv-items-' + id);
+    return detail?.classList.contains('show')
+        ? '<span class="d-block small mt-1">Bảng skin bên dưới chưa tự cập nhật — thu gọn rồi mở lại hoặc F5.</span>'
+        : '';
+}
+
+async function pollInventorySyncStatus(id, row) {
+    const statusUrl = @json($syncStatusRouteTemplate).replace('/0/', '/' + id + '/');
+    const maxAttempts = 180;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise(r => setTimeout(r, attempt === 0 ? 1500 : 2000));
+        const res = await fetch(statusUrl, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+        let json = {};
+        try {
+            json = await res.json();
+        } catch (parseErr) {
+            continue;
+        }
+        if (json.status === 'done' && json.ok) {
+            applyRefreshJsonToRow(row, json);
+            showInvToast(json.message || 'Đã cập nhật giá.', 'success', refreshDetailHint(id));
+            return;
+        }
+        if (json.status === 'failed' || (!json.ok && res.status >= 400)) {
+            throw new Error(json.message || 'Đồng bộ thất bại.');
+        }
+        if (json.status === 'idle' && attempt > 3) {
+            throw new Error('Không nhận được trạng thái đồng bộ — thử lại hoặc F5.');
+        }
+    }
+    throw new Error('Đồng bộ quá lâu — kiểm tra queue worker hoặc thử lại.');
+}
+
 @if($enableRefresh)
 document.querySelectorAll('.btn-refresh').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -81,28 +142,13 @@ document.querySelectorAll('.btn-refresh').forEach(btn => {
                 showInvToast(json.message || ('Lỗi check giá (HTTP ' + res.status + ')'), 'danger');
                 return;
             }
-            if (row) {
-                const identityCell = row.querySelector('.inv-identity-cell');
-                const buffCell = row.querySelector('.inv-buff-price-cell');
-                const empireCell = row.querySelector('.inv-empire-price-cell');
-                const countCell = row.querySelector('.inv-item-count-cell');
-                const updatedCell = row.querySelector('.inv-updated-cell');
-                if (identityCell && json.identity_html) identityCell.innerHTML = json.identity_html;
-                if (buffCell && json.buff_price_html) buffCell.innerHTML = json.buff_price_html;
-                if (empireCell && json.empire_price_html) empireCell.innerHTML = json.empire_price_html;
-                if (countCell) {
-                    const label = json.item_count_label ?? (json.item_count != null ? String(json.item_count) : null);
-                    if (label != null) {
-                        countCell.innerHTML = '<span class="' + (json.inventory_empty ? 'text-muted small' : '') + '">' + label + '</span>';
-                    }
-                }
-                if (updatedCell && json.last_checked_at) updatedCell.textContent = json.last_checked_at;
+            if (json.queued) {
+                showInvToast(json.message || 'Đang đồng bộ nền…', 'info');
+                await pollInventorySyncStatus(id, row);
+                return;
             }
-            const detail = document.getElementById('admin-inv-items-' + id);
-            const hint = detail?.classList.contains('show')
-                ? '<span class="d-block small mt-1">Bảng skin bên dưới chưa tự cập nhật — thu gọn rồi mở lại hoặc F5.</span>'
-                : '';
-            showInvToast(json.message || 'Đã cập nhật giá.', 'success', hint);
+            applyRefreshJsonToRow(row, json);
+            showInvToast(json.message || 'Đã cập nhật giá.', 'success', refreshDetailHint(id));
         } catch (err) {
             showInvToast(err.message || 'Lỗi kết nối', 'danger');
         } finally {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\InventoryPriceChecker;
+use App\Services\InventorySyncService;
 use App\Services\PriceHistoryService;
 use App\Services\TrackedInventoryStore;
 use App\Services\ItemImageService;
@@ -13,6 +14,8 @@ use App\Support\Cs2PriceFeatures;
 use App\Support\EmpireItemEnricher;
 use App\Support\InventoryResultPersister;
 use App\Support\InventorySnapshotReader;
+use App\Support\InventorySyncDispatch;
+use App\Support\InventorySyncStatus;
 use App\Support\InventoryDisplay;
 use App\Support\InventoryWeaponStats;
 use Illuminate\Http\JsonResponse;
@@ -140,63 +143,36 @@ class InventoryController extends Controller
             ->with('success', 'Đã xóa kho khỏi danh sách.');
     }
 
-    public function refresh(Request $request, int $inventory, InventoryPriceChecker $checker): JsonResponse|RedirectResponse
+    public function refresh(Request $request, int $inventory, InventorySyncService $sync): JsonResponse|RedirectResponse
     {
         $row = $this->store->findForAdmin($inventory, $this->adminUsername());
         if (! $row) {
             return response()->json(['ok' => false, 'message' => 'Không tìm thấy kho.'], 404);
         }
 
+        if ($request->wantsJson() && InventorySyncDispatch::shouldQueue()) {
+            InventorySyncDispatch::dispatch([$inventory], isManualRefresh: true);
+
+            return response()->json([
+                'ok' => true,
+                'queued' => true,
+                'inventory_id' => $inventory,
+                'message' => 'Đang đồng bộ nền — vui lòng đợi vài giây…',
+            ]);
+        }
+
         $this->extendExecutionTime();
 
         try {
-            $result = $checker->checkUrl(
-                $row->url,
-                $row->label ?? null,
-                refreshSteam: true,
-                empireMode: 'admin',
-                forceFreshPrices: true,
-            );
-            $this->persister->persist($result, $inventory, (bool) ($row->is_public ?? false));
+            $syncResult = $sync->syncByInventoryIds([$inventory], isManualRefresh: true);
+            if ($syncResult['failed'] > 0) {
+                throw new RuntimeException($syncResult['messages'][0] ?? 'Đồng bộ thất bại.');
+            }
+
             $row = $this->store->findForAdmin($inventory, $this->adminUsername());
 
             if ($request->wantsJson()) {
-                $empireNote = '';
-                if (Cs2PriceFeatures::empireEnabled()) {
-                    $empireCount = (int) ($result['empire_priced_count'] ?? 0);
-                    $empireNote = ', Empire: '.$empireCount.' skin';
-                    if ($empireCount === 0) {
-                        $empireNote .= ' (kiểm tra API key Empire / EMPIRE_ENABLED)';
-                    }
-                }
-
-                $syncMessage = ! empty($result['inventory_empty'])
-                    ? 'Đã cập nhật — kho hiện chưa có item.'
-                    : sprintf(
-                        'Đã cập nhật — %d/%d skin có giá Buff%s.',
-                        (int) $result['priced_count'],
-                        (int) $result['item_count'],
-                        $empireNote
-                    );
-
-                return response()->json([
-                    'ok' => true,
-                    'message' => $syncMessage,
-                    'inventory_id' => $inventory,
-                    'item_count' => (int) $result['item_count'],
-                    'inventory_empty' => ! empty($result['inventory_empty']),
-                    'item_count_label' => ! empty($result['inventory_empty'])
-                        ? 'Kho hiện chưa có item'
-                        : (string) (int) $result['item_count'],
-                    'priced_count' => (int) $result['priced_count'],
-                    'empire_priced_count' => (int) ($result['empire_priced_count'] ?? 0),
-                    'total_cny' => (float) $result['total_cny'],
-                    'total_empire_cny' => (float) ($result['total_empire_cny'] ?? 0),
-                    'last_checked_at' => Carbon::now()->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i'),
-                    'buff_price_html' => $this->renderInventoryBuffPriceCell($result),
-                    'empire_price_html' => $this->renderInventoryEmpirePriceCell($result),
-                    'identity_html' => $row ? InventoryDisplay::listIdentityHtml($row) : '',
-                ]);
+                return response()->json($this->refreshJsonFromRow($row));
             }
 
             return redirect()
@@ -219,6 +195,41 @@ class InventoryController extends Controller
 
             return back()->with('error', $message);
         }
+    }
+
+    public function syncStatus(int $inventory): JsonResponse
+    {
+        $row = $this->store->findForAdmin($inventory, $this->adminUsername());
+        if (! $row) {
+            return response()->json(['ok' => false, 'message' => 'Không tìm thấy kho.'], 404);
+        }
+
+        $status = InventorySyncStatus::get($inventory);
+        if ($status === null) {
+            return response()->json(['ok' => true, 'status' => 'idle']);
+        }
+
+        if (($status['status'] ?? '') === 'done') {
+            $row = $this->store->findForAdmin($inventory, $this->adminUsername());
+
+            return response()->json(array_merge($this->refreshJsonFromRow($row), [
+                'status' => 'done',
+            ]));
+        }
+
+        if (($status['status'] ?? '') === 'failed') {
+            return response()->json([
+                'ok' => false,
+                'status' => 'failed',
+                'message' => $status['message'] ?? 'Đồng bộ thất bại.',
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'status' => $status['status'] ?? 'running',
+            'message' => $status['message'] ?? 'Đang đồng bộ…',
+        ]);
     }
 
     /**
@@ -349,6 +360,73 @@ class InventoryController extends Controller
     /**
      * @param  array<string, mixed>  $result
      */
+    /**
+     * @return array<string, mixed>
+     */
+    private function refreshJsonFromRow(?object $row): array
+    {
+        if (! $row) {
+            return ['ok' => false, 'message' => 'Không tìm thấy kho.'];
+        }
+
+        $result = $this->resultArrayFromRow($row);
+        $empireNote = '';
+        if (Cs2PriceFeatures::empireEnabled()) {
+            $empireCount = (int) ($result['empire_priced_count'] ?? 0);
+            $empireNote = ', Empire: '.$empireCount.' skin';
+            if ($empireCount === 0) {
+                $empireNote .= ' (kiểm tra API key Empire / EMPIRE_ENABLED)';
+            }
+        }
+
+        $syncMessage = ! empty($result['inventory_empty'])
+            ? 'Đã cập nhật — kho hiện chưa có item.'
+            : sprintf(
+                'Đã cập nhật — %d/%d skin có giá Buff%s.',
+                (int) $result['priced_count'],
+                (int) $result['item_count'],
+                $empireNote
+            );
+
+        return [
+            'ok' => true,
+            'message' => $syncMessage,
+            'inventory_id' => (int) $row->id,
+            'item_count' => (int) $result['item_count'],
+            'inventory_empty' => ! empty($result['inventory_empty']),
+            'item_count_label' => ! empty($result['inventory_empty'])
+                ? 'Kho hiện chưa có item'
+                : (string) (int) $result['item_count'],
+            'priced_count' => (int) $result['priced_count'],
+            'empire_priced_count' => (int) ($result['empire_priced_count'] ?? 0),
+            'total_cny' => (float) $result['total_cny'],
+            'total_empire_cny' => (float) ($result['total_empire_cny'] ?? 0),
+            'last_checked_at' => Carbon::now()->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i'),
+            'buff_price_html' => $this->renderInventoryBuffPriceCell($result),
+            'empire_price_html' => $this->renderInventoryEmpirePriceCell($result),
+            'identity_html' => InventoryDisplay::listIdentityHtml($row),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resultArrayFromRow(object $row): array
+    {
+        $snapshot = is_array($row->last_snapshot ?? null)
+            ? $row->last_snapshot
+            : (array) json_decode(json_encode($row->last_snapshot ?? []), true);
+
+        return [
+            'total_cny' => (float) ($row->last_total_cny ?? 0),
+            'total_empire_cny' => (float) ($snapshot['total_empire_cny'] ?? 0),
+            'item_count' => (int) ($row->item_count ?? 0),
+            'priced_count' => (int) ($row->priced_count ?? 0),
+            'empire_priced_count' => (int) ($snapshot['empire_priced_count'] ?? 0),
+            'inventory_empty' => (bool) ($snapshot['inventory_empty'] ?? false),
+        ];
+    }
+
     private function renderInventoryBuffPriceCell(array $result): string
     {
         $totalCny = (float) ($result['total_cny'] ?? 0);

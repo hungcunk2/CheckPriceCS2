@@ -20,7 +20,7 @@ class Cs2CapInventoryService
     public function fetchCached(string $steamIdOrVanity, bool $refresh = false): array
     {
         $cacheKey = 'cs2cap_inventory:'.$steamIdOrVanity;
-        $ttl = max(300, (int) config('cs2price.steam_inventory_cache_seconds', 86400));
+        $ttl = max(300, (int) config('cs2price.steam_inventory_cache_seconds', 14400));
 
         if (! $refresh) {
             $cached = Cache::get($cacheKey);
