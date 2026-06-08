@@ -65,6 +65,59 @@ class Cs2CapApiPool
         return $account;
     }
 
+    /**
+     * Chia danh sách skin đều cho từng key đang available (đọc DB mỗi lần gọi).
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array{account: array{label: string, api_key: string}, items: list<array<string, mixed>>}>
+     */
+    public static function shardSteamItems(array $items): array
+    {
+        $keys = self::available();
+        if ($keys === [] || $items === []) {
+            return [];
+        }
+
+        $bucketCount = count($keys);
+        $buckets = array_fill(0, $bucketCount, []);
+
+        foreach (array_values($items) as $index => $item) {
+            $buckets[$index % $bucketCount][] = $item;
+        }
+
+        $shards = [];
+        foreach ($buckets as $bucketIndex => $bucketItems) {
+            if ($bucketItems === []) {
+                continue;
+            }
+            $shards[] = [
+                'account' => $keys[$bucketIndex],
+                'items' => $bucketItems,
+            ];
+        }
+
+        return $shards;
+    }
+
+    /**
+     * Key khác để retry chunk lỗi; nếu chỉ còn 1 key thì trả lại key đó.
+     */
+    public static function pickRetryAccount(string $failedLabel): ?array
+    {
+        $available = self::available();
+        if ($available === []) {
+            return null;
+        }
+
+        foreach ($available as $account) {
+            if ($account['label'] !== $failedLabel) {
+                return $account;
+            }
+        }
+
+        return $available[0];
+    }
+
     public static function handleResponse(string $label, Response $response): void
     {
         Cs2CapQuotaTracker::recordFromResponse($label, $response);
