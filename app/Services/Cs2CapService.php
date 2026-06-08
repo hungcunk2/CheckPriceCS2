@@ -132,30 +132,56 @@ class Cs2CapService
                 }
             }
 
-            foreach (array_chunk($noPhase, $maxBatch) as $batchIndex => $batch) {
-                $names = array_values(array_unique(array_filter(array_map(
-                    fn (array $row) => trim((string) ($row['market_hash_name'] ?? '')),
-                    $batch,
-                ))));
+            if ($this->prefersBatchEndpoint((string) $account['label'])) {
+                foreach (array_chunk($noPhase, $maxBatch) as $batchIndex => $batch) {
+                    $names = array_values(array_unique(array_filter(array_map(
+                        fn (array $row) => trim((string) ($row['market_hash_name'] ?? '')),
+                        $batch,
+                    ))));
 
-                if ($names === []) {
-                    continue;
+                    if ($names === []) {
+                        continue;
+                    }
+
+                    $jobs[$this->jobId($shardIndex, 'batch', $batchIndex, 'buff')] = [
+                        'account' => $account,
+                        'kind' => 'batch',
+                        'provider' => 'buff163',
+                        'currency' => $buffCurrency,
+                        'names' => $names,
+                    ];
+                    $jobs[$this->jobId($shardIndex, 'batch', $batchIndex, 'empire')] = [
+                        'account' => $account,
+                        'kind' => 'batch',
+                        'provider' => 'csgoempire',
+                        'currency' => $empireCurrency,
+                        'names' => $names,
+                    ];
                 }
+            } else {
+                foreach ($noPhase as $singleIndex => $item) {
+                    $hash = trim((string) ($item['market_hash_name'] ?? ''));
+                    if ($hash === '') {
+                        continue;
+                    }
 
-                $jobs[$this->jobId($shardIndex, 'batch', $batchIndex, 'buff')] = [
-                    'account' => $account,
-                    'kind' => 'batch',
-                    'provider' => 'buff163',
-                    'currency' => $buffCurrency,
-                    'names' => $names,
-                ];
-                $jobs[$this->jobId($shardIndex, 'batch', $batchIndex, 'empire')] = [
-                    'account' => $account,
-                    'kind' => 'batch',
-                    'provider' => 'csgoempire',
-                    'currency' => $empireCurrency,
-                    'names' => $names,
-                ];
+                    $jobs[$this->jobId($shardIndex, 'single', $singleIndex, 'buff')] = [
+                        'account' => $account,
+                        'kind' => 'single',
+                        'provider' => 'buff163',
+                        'currency' => $buffCurrency,
+                        'market_hash_name' => $hash,
+                        'phase' => null,
+                    ];
+                    $jobs[$this->jobId($shardIndex, 'single', $singleIndex, 'empire')] = [
+                        'account' => $account,
+                        'kind' => 'single',
+                        'provider' => 'csgoempire',
+                        'currency' => $empireCurrency,
+                        'market_hash_name' => $hash,
+                        'phase' => null,
+                    ];
+                }
             }
 
             foreach ($withPhase as $phaseIndex => $item) {
@@ -199,6 +225,7 @@ class Cs2CapService
 
         $responses = $this->executeJobPool($jobs);
         $failed = [];
+        $singleFallbackJobs = [];
 
         foreach ($jobs as $jobId => $job) {
             $response = $responses[$jobId] ?? null;
@@ -206,9 +233,29 @@ class Cs2CapService
                 continue;
             }
 
+            if ($job['kind'] === 'batch' && $this->isBatchAccessDenied($response)) {
+                foreach ($this->expandBatchJobToSingleJobs($job) as $fallbackId => $fallbackJob) {
+                    $singleFallbackJobs[$fallbackId] = $fallbackJob;
+                }
+
+                continue;
+            }
+
             if ($this->shouldRetryJob($response)) {
                 $failed[$jobId] = ['job' => $job, 'response' => $response];
             } else {
+                $this->applyJobFailure($job, $response, $buff, $empire);
+            }
+        }
+
+        if ($singleFallbackJobs !== []) {
+            $fallbackResponses = $this->executeJobPool($singleFallbackJobs);
+            foreach ($singleFallbackJobs as $fallbackId => $job) {
+                $response = $fallbackResponses[$fallbackId] ?? null;
+                if ($this->applyJobResponse($job, $response, $buff, $empire)) {
+                    continue;
+                }
+
                 $this->applyJobFailure($job, $response, $buff, $empire);
             }
         }
@@ -424,7 +471,11 @@ class Cs2CapService
             return false;
         }
 
-        if (in_array($response->status(), [401, 403], true)) {
+        if ($response->status() === 401) {
+            return false;
+        }
+
+        if ($response->status() === 403 && ! $this->isBatchAccessDenied($response)) {
             return false;
         }
 
@@ -435,6 +486,64 @@ class Cs2CapService
         }
 
         return in_array($response->status(), [408, 425, 429, 500, 502, 503, 504], true);
+    }
+
+    private function prefersBatchEndpoint(string $label): bool
+    {
+        if (! filter_var(config('cs2price.cs2cap_use_batch', false), FILTER_VALIDATE_BOOL)) {
+            return false;
+        }
+
+        $snapshot = Cs2CapApiPool::quotaSnapshot($label);
+        $tier = strtolower((string) ($snapshot['tier'] ?? ''));
+
+        return $tier !== 'free';
+    }
+
+    private function isBatchAccessDenied(mixed $response): bool
+    {
+        if (! $response instanceof Response) {
+            return false;
+        }
+
+        if (! in_array($response->status(), [402, 403], true)) {
+            return false;
+        }
+
+        $detail = strtolower((string) ($response->json('detail') ?? $response->json('message') ?? ''));
+
+        return str_contains($detail, 'batch')
+            || str_contains($detail, 'subscription')
+            || str_contains($detail, 'tier');
+    }
+
+    /**
+     * @param  array<string, mixed>  $batchJob
+     * @return array<string, array<string, mixed>>
+     */
+    private function expandBatchJobToSingleJobs(array $batchJob): array
+    {
+        $jobs = [];
+        $account = $batchJob['account'];
+        $provider = (string) ($batchJob['provider'] ?? '');
+
+        foreach ($batchJob['names'] ?? [] as $index => $name) {
+            $hash = trim((string) $name);
+            if ($hash === '') {
+                continue;
+            }
+
+            $jobs[$this->jobId('fb', $hash, $index, $provider)] = [
+                'account' => $account,
+                'kind' => 'single',
+                'provider' => $provider,
+                'currency' => $batchJob['currency'] ?? 'CNY',
+                'market_hash_name' => $hash,
+                'phase' => null,
+            ];
+        }
+
+        return $jobs;
     }
 
     private function responseErrorMessage(mixed $response): string
