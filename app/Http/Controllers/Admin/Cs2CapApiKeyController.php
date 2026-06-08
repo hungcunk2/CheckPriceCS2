@@ -186,23 +186,27 @@ class Cs2CapApiKeyController extends Controller
         ])->get("{$base}/account/key");
 
         $ok = $response->successful();
-        Cs2CapQuotaTracker::recordFromResponse($label, $response);
 
         $meta = $response->json('key') ?? null;
+        $effectiveQuota = is_array($meta) ? ($meta['effective_quota_requests_per_month'] ?? null) : null;
+        if (is_int($effectiveQuota) || (is_string($effectiveQuota) && ctype_digit($effectiveQuota))) {
+            Cs2CapQuotaTracker::recordEffectiveQuota($label, (int) $effectiveQuota);
+        }
 
-        $fx = Http::timeout(20)->withHeaders([
+        $prices = Http::timeout(20)->withHeaders([
             'Authorization' => 'Bearer '.$apiKey,
             'Accept' => 'application/json',
-        ])->get("{$base}/fx");
+        ])->get("{$base}/prices", [
+            'market_hash_name' => 'AK-47 | Redline (Field-Tested)',
+            'providers' => 'buff',
+            'currency' => 'CNY',
+            'limit' => 1,
+        ]);
 
-        Cs2CapQuotaTracker::recordFromResponse($label, $fx);
+        Cs2CapQuotaTracker::recordFromResponse($label, $prices);
 
-        $remaining = $fx->header('X-RateLimit-Remaining');
-        $limit = $fx->header('X-RateLimit-Limit');
-        $reset = $fx->header('X-RateLimit-Reset');
-        $tier = $fx->header('X-RateLimit-Tier') ?? $response->header('X-RateLimit-Tier');
-
-        $effectiveQuota = is_array($meta) ? ($meta['effective_quota_requests_per_month'] ?? null) : null;
+        $snapshot = Cs2CapQuotaTracker::snapshot($label);
+        $tier = $snapshot['tier'] ?? null;
 
         $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi');
 
@@ -210,15 +214,16 @@ class Cs2CapApiKeyController extends Controller
             'ok' => $ok,
             'message' => $message,
             'label' => $label,
-            'details' => [
-                'tier' => $tier ?: null,
-                'effective_quota' => $effectiveQuota,
-                'quota_remaining' => is_string($remaining) && ctype_digit($remaining) ? (int) $remaining : $remaining,
-                'quota_limit' => is_string($limit) && ctype_digit($limit) ? (int) $limit : ($limit ?? $effectiveQuota),
-                'quota_reset' => is_string($reset) && ctype_digit($reset) ? (int) $reset : $reset,
+            'details' => array_merge([
                 'account_http_status' => $response->status(),
-                'fx_http_status' => $fx->status(),
-            ],
+                'prices_http_status' => $prices->status(),
+            ], $snapshot ?? [
+                'tier' => $tier,
+                'effective_quota' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
+                'quota_remaining' => null,
+                'quota_limit' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
+                'quota_reset' => null,
+            ]),
         ];
     }
 

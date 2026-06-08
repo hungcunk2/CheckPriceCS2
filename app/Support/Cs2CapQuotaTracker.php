@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Cache;
 
 final class Cs2CapQuotaTracker
 {
+    /** RPM tối đa theo tier CS2Cap (Quant) — header nhỏ hơn hoặc bằng là quota/phút, không phải tháng. */
+    private const MAX_RPM_LIMIT = 300;
+
     public static function recordFromResponse(string $label, Response $response): void
     {
         $remaining = $response->header('X-RateLimit-Remaining');
@@ -14,18 +17,24 @@ final class Cs2CapQuotaTracker
         $reset = $response->header('X-RateLimit-Reset');
         $tier = $response->header('X-RateLimit-Tier');
 
-        $ttl = self::ttlUntilReset($reset);
+        $limitInt = self::parseHeaderInt($limit);
+        $resetInt = self::parseHeaderInt($reset);
+        $monthlyHeaders = self::looksLikeMonthlyQuotaHeaders($limitInt, $resetInt);
+        $ttl = self::ttlUntilReset($resetInt);
 
-        if ($remaining !== null && $remaining !== '' && ctype_digit((string) $remaining)) {
-            Cache::put(self::key($label, 'remaining'), (int) $remaining, $ttl);
-        }
+        if ($monthlyHeaders) {
+            $remainingInt = self::parseHeaderInt($remaining);
+            if ($remainingInt !== null) {
+                Cache::put(self::key($label, 'remaining'), $remainingInt, $ttl);
+            }
 
-        if ($limit !== null && $limit !== '' && ctype_digit((string) $limit)) {
-            Cache::put(self::key($label, 'limit'), (int) $limit, $ttl);
-        }
+            if ($limitInt !== null) {
+                Cache::put(self::key($label, 'limit'), $limitInt, $ttl);
+            }
 
-        if ($reset !== null && $reset !== '' && ctype_digit((string) $reset)) {
-            Cache::put(self::key($label, 'reset'), (int) $reset, $ttl);
+            if ($resetInt !== null && self::isUnixTimestamp($resetInt)) {
+                Cache::put(self::key($label, 'reset'), $resetInt, $ttl);
+            }
         }
 
         if (is_string($tier) && $tier !== '') {
@@ -37,13 +46,16 @@ final class Cs2CapQuotaTracker
         }
 
         $code = (string) ($response->json('code') ?? '');
-        $remainingInt = ($remaining !== null && $remaining !== '' && ctype_digit((string) $remaining))
-            ? (int) $remaining
-            : null;
+        $remainingInt = $monthlyHeaders ? self::parseHeaderInt($remaining) : null;
 
-        if ($code === 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED' || $remainingInt === 0) {
+        if ($code === 'RATE_LIMIT_MONTHLY_QUOTA_EXCEEDED' || ($monthlyHeaders && $remainingInt === 0)) {
             self::markExhausted($label, $ttl);
         }
+    }
+
+    public static function recordEffectiveQuota(string $label, int $effectiveQuota): void
+    {
+        Cache::put(self::key($label, 'effective_quota'), $effectiveQuota, 86400 * 35);
     }
 
     public static function isExhausted(string $label): bool
@@ -53,8 +65,17 @@ final class Cs2CapQuotaTracker
         }
 
         $remaining = Cache::get(self::key($label, 'remaining'));
+        $limit = Cache::get(self::key($label, 'limit'));
 
-        return $remaining !== null && (int) $remaining <= 0;
+        if ($remaining === null) {
+            return false;
+        }
+
+        if ($limit !== null && (int) $limit <= self::MAX_RPM_LIMIT) {
+            return false;
+        }
+
+        return (int) $remaining <= 0;
     }
 
     public static function markExhausted(string $label, int $ttlSeconds = 86400): void
@@ -64,22 +85,33 @@ final class Cs2CapQuotaTracker
     }
 
     /**
-     * @return array{tier: string|null, quota_remaining: int|null, quota_limit: int|null, quota_reset: int|null}|null
+     * @return array{tier: string|null, effective_quota: int|null, quota_remaining: int|null, quota_limit: int|null, quota_reset: int|null}|null
      */
     public static function snapshot(string $label): ?array
     {
         $remaining = Cache::get(self::key($label, 'remaining'));
         $limit = Cache::get(self::key($label, 'limit'));
+        $effectiveQuota = Cache::get(self::key($label, 'effective_quota'));
 
-        if ($remaining === null && $limit === null) {
+        if ($limit !== null && (int) $limit <= self::MAX_RPM_LIMIT) {
+            $remaining = null;
+            $limit = null;
+        }
+
+        if ($remaining === null && $limit === null && $effectiveQuota === null) {
             return null;
         }
 
+        $limitInt = $limit !== null ? (int) $limit : null;
+        $reset = Cache::get(self::key($label, 'reset'));
+        $resetInt = $reset !== null ? (int) $reset : null;
+
         return [
             'tier' => Cache::get(self::key($label, 'tier')),
+            'effective_quota' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
             'quota_remaining' => $remaining !== null ? (int) $remaining : null,
-            'quota_limit' => $limit !== null ? (int) $limit : null,
-            'quota_reset' => Cache::get(self::key($label, 'reset')),
+            'quota_limit' => $limitInt ?? ($effectiveQuota !== null ? (int) $effectiveQuota : null),
+            'quota_reset' => self::isUnixTimestamp($resetInt) ? $resetInt : null,
         ];
     }
 
@@ -93,14 +125,45 @@ final class Cs2CapQuotaTracker
         return 'cs2cap_quota:'.md5($label).':exhausted';
     }
 
-    private static function ttlUntilReset(?string $resetHeader): int
+    private static function ttlUntilReset(?int $reset): int
     {
-        if ($resetHeader !== null && $resetHeader !== '' && ctype_digit((string) $resetHeader)) {
-            $ttl = (int) $resetHeader - time();
+        if ($reset === null) {
+            return 86400;
+        }
+
+        if (self::isUnixTimestamp($reset)) {
+            $ttl = $reset - time();
 
             return max(60, min($ttl, 86400 * 35));
         }
 
-        return 86400;
+        return max(60, min($reset, 86400));
+    }
+
+    private static function parseHeaderInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (! ctype_digit((string) $value)) {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    private static function looksLikeMonthlyQuotaHeaders(?int $limit, ?int $reset): bool
+    {
+        if ($reset !== null && self::isUnixTimestamp($reset)) {
+            return true;
+        }
+
+        return $limit !== null && $limit > self::MAX_RPM_LIMIT;
+    }
+
+    private static function isUnixTimestamp(?int $value): bool
+    {
+        return $value !== null && $value >= 1_000_000_000;
     }
 }

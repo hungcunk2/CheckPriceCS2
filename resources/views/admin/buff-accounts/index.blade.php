@@ -173,7 +173,7 @@
 
     function formatUnix(ts) {
         const num = Number(ts);
-        if (!Number.isFinite(num) || num <= 0) return '';
+        if (!Number.isFinite(num) || num < 1_000_000_000) return '';
         try {
             const d = new Date(num * 1000);
             const pad = (x) => String(x).padStart(2, '0');
@@ -211,7 +211,7 @@
             }
         } else if (details.effective_quota != null) {
             html += `<div class="mt-1 text-muted">Hạn mức ${formatInt(details.effective_quota)}/tháng</div>`;
-            html += `<div class="text-muted" style="font-size: 0.75rem;">Chưa có số còn lại (cần gọi /fx)</div>`;
+            html += `<div class="text-muted" style="font-size: 0.75rem;">Chưa có số còn lại (bấm Kiểm tra)</div>`;
         }
 
         const resetStr = formatUnix(reset);
