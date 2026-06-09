@@ -47,7 +47,7 @@ class AdminStatisticsExportService
         $support = $stats['support'] ?? [];
         $api = $stats['api_ops'] ?? [];
 
-        CsvExportWriter::row($handle, ['Báo cáo', 'Dashboard thống kê', now()->format('d/m/Y H:i')]);
+        CsvExportWriter::row($handle, ['Báo cáo', 'Theo dõi hệ thống', now()->format('d/m/Y H:i')]);
 
         CsvExportWriter::section($handle, 'TỔNG QUAN');
         CsvExportWriter::row($handle, ['Chỉ số', 'Giá trị']);

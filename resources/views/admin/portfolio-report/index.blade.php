@@ -30,7 +30,9 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <p class="text-muted small mb-0">
-        Tổng hợp tất cả kho (admin + member). Dữ liệu lịch sử ghi sau mỗi lần sync thành công.
+        <strong>Tất cả kho</strong> (admin + member): tổng giá trị Buff/Empire, skin tăng/giảm, thêm/mất.
+        Dữ liệu ghi sau mỗi lần sync. Vận hành site (user, doanh thu, API…) →
+        <a href="{{ route('admin.statistics.index') }}">Theo dõi hệ thống</a>.
     </p>
     <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="btn-group btn-group-sm">

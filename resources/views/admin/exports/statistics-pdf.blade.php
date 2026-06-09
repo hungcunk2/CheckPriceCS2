@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard thống kê</title>
+    <title>Theo dõi hệ thống</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #222; }
         h1 { font-size: 16px; margin: 0 0 4px; }
@@ -28,7 +28,7 @@
     $fmtVnd = fn ($v) => number_format((int) $v, 0, ',', '.').' đ';
 @endphp
 
-<h1>Dashboard thống kê — {{ $site_name }}</h1>
+<h1>Theo dõi hệ thống — {{ $site_name }}</h1>
 <div class="meta">Xuất lúc: {{ $generated_at }}</div>
 
 @if(! empty($api['critical_alert']))

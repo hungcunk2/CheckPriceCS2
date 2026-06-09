@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Dashboard thống kê')
-@section('page-title', 'Dashboard thống kê')
+@section('title', 'Theo dõi hệ thống')
+@section('page-title', 'Theo dõi hệ thống')
 
 @push('styles')
 <style>
@@ -36,6 +36,11 @@
     </div>
 @endif
 
+<p class="text-muted small mb-2">
+    Vận hành site: user trả phí, doanh thu, sync, CS2Cap, hỗ trợ — <strong>chỉ admin</strong>.
+    Báo cáo giá trị & biến động skin theo từng kho → <a href="{{ route('admin.portfolio-report.index') }}">Thống kê kho</a>.
+</p>
+
 <nav class="nav nav-pills flex-wrap gap-1 mb-3 small align-items-center">
     <a class="nav-link py-1 px-2" href="#overview">Tổng quan</a>
     <a class="nav-link py-1 px-2" href="#subscription">Gói & doanh thu</a>
@@ -43,7 +48,6 @@
     <a class="nav-link py-1 px-2" href="#aum">Tài sản</a>
     <a class="nav-link py-1 px-2" href="#support">Hỗ trợ</a>
     <a class="nav-link py-1 px-2" href="#api">CS2Cap / API</a>
-    <a class="nav-link py-1 px-2" href="{{ route('admin.portfolio-report.index') }}">Thống kê kho →</a>
     <span class="ms-auto">
         @include('admin.partials.export-buttons', [
             'csvUrl' => url('/admin/thong-ke/export/csv'),

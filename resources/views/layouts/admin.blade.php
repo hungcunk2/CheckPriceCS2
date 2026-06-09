@@ -27,12 +27,6 @@
                 <div class="nav-section">
                     <div class="nav-section-title">QUẢN LÝ</div>
                     <ul class="nav-menu">
-                        <li class="nav-item {{ request()->routeIs('admin.statistics.*') ? 'active' : '' }}">
-                            <a href="{{ route('admin.statistics.index') }}" class="nav-link">
-                                <i class="fas fa-gauge-high"></i>
-                                <span>Dashboard</span>
-                            </a>
-                        </li>
                         <li class="nav-item {{ request()->routeIs('admin.inventories.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.inventories.index') }}" class="nav-link">
                                 <i class="fas fa-boxes"></i>
@@ -56,6 +50,12 @@
                 <div class="nav-section">
                     <div class="nav-section-title">HỆ THỐNG</div>
                     <ul class="nav-menu">
+                        <li class="nav-item {{ request()->routeIs('admin.statistics.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.statistics.index') }}" class="nav-link">
+                                <i class="fas fa-gauge-high"></i>
+                                <span>Theo dõi hệ thống</span>
+                            </a>
+                        </li>
                         <li class="nav-item {{ request()->routeIs('admin.buff-accounts.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.buff-accounts.index') }}" class="nav-link">
                                 <i class="fas fa-user-shield"></i>

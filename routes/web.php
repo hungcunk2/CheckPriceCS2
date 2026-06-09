@@ -78,7 +78,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
 
     Route::middleware(EnsureAdmin::class)->group(function () {
-        Route::get('/', fn () => redirect()->route('admin.statistics.index'));
+        Route::get('/', fn () => redirect()->route('admin.inventories.index'));
 
         Route::get('/thong-ke', [StatisticsController::class, 'index'])->name('statistics.index');
         Route::get('/thong-ke/export/csv', [StatisticsController::class, 'exportCsv'])->name('statistics.export.csv');
