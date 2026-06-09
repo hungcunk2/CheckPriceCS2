@@ -12,10 +12,14 @@ class InventoryPortfolioReportService
     public function __construct(
         private InventorySnapshotStore $snapshots,
         private PriceHistoryStore $priceHistory,
+        private ItemImageService $images,
     ) {}
 
     /** @var array<int, string> */
     private array $inventoryLabels = [];
+
+    /** @var array<int, array{avatar_url: string|null}> */
+    private array $inventoryMeta = [];
 
     /**
      * @return array{
@@ -36,9 +40,19 @@ class InventoryPortfolioReportService
         $since = $now->copy()->subDays($periodDays);
 
         $inventories = TrackedInventory::query()->orderBy('sort_order')->orderBy('id')->get();
-        $this->inventoryLabels = $inventories->mapWithKeys(fn (TrackedInventory $inv) => [
-            $inv->id => $this->inventoryLabel($inv),
-        ])->all();
+        $this->inventoryLabels = [];
+        $this->inventoryMeta = [];
+
+        foreach ($inventories as $inv) {
+            $id = (int) $inv->id;
+            $this->inventoryLabels[$id] = $this->inventoryLabel($inv);
+            $this->inventoryMeta[$id] = [
+                'avatar_url' => $this->images->avatarUrlForDisplay(
+                    (string) ($inv->steam_id ?? ''),
+                    $inv->steam_avatar_url ?? null,
+                ),
+            ];
+        }
 
         $currentTotals = $this->aggregateCurrentTotals($inventories);
         $pastTotals = $this->aggregatePastTotals($inventories, $since);
@@ -62,10 +76,10 @@ class InventoryPortfolioReportService
                 && InventoryValueSnapshot::query()->where('recorded_at', '<=', $since)->exists(),
             'summary' => $this->buildSummary($currentTotals, $pastTotals, $periodDays),
             'trend' => $trend,
-            'gainers' => array_slice($gainers, 0, 100),
-            'losers' => array_slice($losers, 0, 100),
-            'added' => array_slice($added, 0, 100),
-            'removed' => array_slice($removed, 0, 100),
+            'gainers' => $this->enrichRows(array_slice($gainers, 0, 100)),
+            'losers' => $this->enrichRows(array_slice($losers, 0, 100)),
+            'added' => $this->enrichRows(array_slice($added, 0, 100)),
+            'removed' => $this->enrichRows(array_slice($removed, 0, 100)),
         ];
     }
 
@@ -212,6 +226,8 @@ class InventoryPortfolioReportService
                 $movers[] = [
                     'market_hash_name' => (string) ($item['market_hash_name'] ?? ''),
                     'display_name' => (string) ($item['display_name'] ?? $item['market_hash_name'] ?? ''),
+                    'icon_url' => $item['icon_url'] ?? null,
+                    'steam_icon_url' => $item['steam_icon_url'] ?? null,
                     'inventory_id' => (int) $inv->id,
                     'inventory_label' => $label,
                     'amount' => $amount,
@@ -241,6 +257,11 @@ class InventoryPortfolioReportService
             $past = $this->snapshots->itemSetAt((int) $inv->id, $since);
             $label = $this->inventoryLabels[(int) $inv->id] ?? ('#'.$inv->id);
 
+            // Chưa có snapshot đầu kỳ → bỏ qua kho này (tránh liệt kê cả kho như "mới thêm").
+            if ($past === []) {
+                continue;
+            }
+
             foreach ($current as $assetId => $item) {
                 if (isset($past[$assetId])) {
                     continue;
@@ -249,6 +270,8 @@ class InventoryPortfolioReportService
                 $added[] = [
                     'market_hash_name' => (string) ($item['market_hash_name'] ?? ''),
                     'display_name' => (string) ($item['display_name'] ?? $item['market_hash_name'] ?? ''),
+                    'icon_url' => $item['icon_url'] ?? null,
+                    'steam_icon_url' => $item['steam_icon_url'] ?? null,
                     'inventory_id' => (int) $inv->id,
                     'inventory_label' => $label,
                     'amount' => max(1, (int) ($item['amount'] ?? 1)),
@@ -305,6 +328,8 @@ class InventoryPortfolioReportService
                 'buff_price_cny' => $item['buff_price_cny'] ?? null,
                 'line_total_cny' => $item['line_total_cny'] ?? null,
                 'line_total_empire_cny' => $item['line_total_empire_cny'] ?? null,
+                'icon_url' => $item['icon_url'] ?? $item['steam_icon_url'] ?? null,
+                'steam_icon_url' => $item['steam_icon_url'] ?? $item['icon_url'] ?? null,
             ];
         }
 
@@ -368,6 +393,29 @@ class InventoryPortfolioReportService
         }
 
         return round((($to - $from) / $from) * 100, 2);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function enrichRows(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $enriched = $this->images->enrichItemRowForDisplay([
+                'market_hash_name' => (string) ($row['market_hash_name'] ?? ''),
+                'icon_url' => $row['icon_url'] ?? $row['steam_icon_url'] ?? null,
+                'steam_icon_url' => $row['steam_icon_url'] ?? $row['icon_url'] ?? null,
+            ]);
+
+            $row['icon_url'] = $enriched['icon_url'] ?? null;
+            $row['steam_icon_hint'] = $enriched['steam_icon_hint'] ?? '';
+
+            $invId = (int) ($row['inventory_id'] ?? 0);
+            $row['inventory_avatar_url'] = $this->inventoryMeta[$invId]['avatar_url'] ?? null;
+
+            return $row;
+        }, $rows);
     }
 
     private function inventoryLabel(TrackedInventory $inv): string

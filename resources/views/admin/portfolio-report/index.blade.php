@@ -3,6 +3,10 @@
 @section('title', 'Thống kê kho')
 @section('page-title', 'Thống kê kho')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/app.css') }}">
+@endpush
+
 @section('content')
 @php
     $summary = $report['summary'] ?? [];
@@ -161,7 +165,7 @@
             'icon' => 'fa-plus-circle text-primary',
             'rows' => $report['added'] ?? [],
             'mode' => 'composition',
-            'empty' => 'Không phát hiện skin mới (so với snapshot đầu kỳ).',
+            'empty' => 'Không phát hiện skin mới (so với snapshot gần nhất trước đầu kỳ).',
         ])
     </div>
     <div class="col-lg-6">
@@ -170,7 +174,7 @@
             'icon' => 'fa-minus-circle text-secondary',
             'rows' => $report['removed'] ?? [],
             'mode' => 'composition',
-            'empty' => 'Không phát hiện skin bị bán/chuyển (so với snapshot đầu kỳ).',
+            'empty' => 'Không phát hiện skin bị bán/chuyển (so với snapshot gần nhất trước đầu kỳ).',
         ])
     </div>
 </div>
