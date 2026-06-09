@@ -84,7 +84,7 @@
                 <tr>
                     <th>Skin</th>
                     <th class="text-end">Giá trị Buff</th>
-                    <th class="text-end">Empire ¥</th>
+                    <th class="text-end">Empire coin</th>
                     <th>Kho</th>
                 </tr>
                 </thead>
@@ -124,8 +124,8 @@
                             @endif
                         </td>
                         <td class="text-end text-nowrap">
-                            @if(isset($row['line_total_empire_cny']))
-                                {{ number_format((float) $row['line_total_empire_cny'], 2, ',', '.') }} ¥
+                            @if(isset($row['line_total_empire_coins']))
+                                {{ number_format((float) $row['line_total_empire_coins'], 2, ',', '.') }} coin
                             @else
                                 —
                             @endif

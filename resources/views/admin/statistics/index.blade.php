@@ -14,6 +14,19 @@
     .bar-chart-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0d6efd, #6610f2); }
     .bar-chart-value { width: 5.5rem; text-align: right; font-size: .78rem; white-space: nowrap; }
     .section-anchor { scroll-margin-top: 1rem; }
+    .aum-pair-row > [class*="col-"] { display: flex; }
+    .aum-pair-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        width: 100%;
+        min-height: 420px;
+    }
+    .aum-pair-panel__body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
 </style>
 @endpush
 
@@ -35,11 +48,6 @@
         <i class="fas fa-triangle-exclamation me-1"></i> {{ $api['alert_message'] }}
     </div>
 @endif
-
-<p class="text-muted small mb-2">
-    Vận hành site: user trả phí, doanh thu, sync, CS2Cap, hỗ trợ — <strong>chỉ admin</strong>.
-    Báo cáo giá trị & biến động skin theo kho admin → <a href="{{ route('admin.portfolio-report.index') }}">Thống kê kho</a>.
-</p>
 
 <nav class="nav nav-pills flex-wrap gap-1 mb-3 small align-items-center">
     <a class="nav-link py-1 px-2" href="#overview">Tổng quan</a>

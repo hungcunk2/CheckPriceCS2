@@ -44,10 +44,16 @@
         <td></td>
     </tr>
     <tr>
-        <td>Empire CNY</td>
-        <td class="num">{{ number_format($current['total_empire_cny'] ?? 0, 2, ',', '.') }} ¥</td>
-        <td class="num">{{ isset($delta['total_empire_cny']) ? number_format($delta['total_empire_cny'], 2, ',', '.') : '—' }}</td>
-        <td class="num">{{ $deltaPct['total_empire_cny'] ?? '—' }}</td>
+        <td>Empire coin</td>
+        <td class="num">{{ number_format($current['total_empire_coins'] ?? 0, 2, ',', '.') }} coin</td>
+        <td class="num">{{ isset($delta['total_empire_coins']) ? (($delta['total_empire_coins'] >= 0 ? '+' : '').number_format($delta['total_empire_coins'], 2, ',', '.')) : '—' }}</td>
+        <td class="num">{{ $deltaPct['total_empire_coins'] ?? '—' }}</td>
+    </tr>
+    <tr>
+        <td>Empire USD</td>
+        <td class="num">{{ \App\Support\Currency::formatUsd($current['total_empire_usd'] ?? null) }}</td>
+        <td class="num">{{ isset($delta['total_empire_usd']) ? \App\Support\Currency::formatUsd($delta['total_empire_usd']) : '—' }}</td>
+        <td></td>
     </tr>
     <tr>
         <td>Số skin</td>
@@ -60,12 +66,13 @@
 @if(! empty($report['trend']))
 <h2>Biến động theo ngày</h2>
 <table>
-    <tr><th>Ngày</th><th class="num">Buff ¥</th><th class="num">Empire ¥</th><th class="num">VND</th></tr>
+    <tr><th>Ngày</th><th class="num">Buff ¥</th><th class="num">Empire coin</th><th class="num">Empire USD</th><th class="num">VND</th></tr>
     @foreach($report['trend'] as $row)
         <tr>
             <td>{{ $row['date'] }}</td>
             <td class="num">{{ number_format($row['total_cny'], 2, ',', '.') }}</td>
-            <td class="num">{{ number_format($row['total_empire_cny'], 2, ',', '.') }}</td>
+            <td class="num">{{ number_format($row['total_empire_coins'] ?? 0, 2, ',', '.') }}</td>
+            <td class="num">{{ \App\Support\Currency::formatUsd($row['total_empire_usd'] ?? null) }}</td>
             <td class="num">{{ $fmtVnd($row['total_vnd']) }}</td>
         </tr>
     @endforeach

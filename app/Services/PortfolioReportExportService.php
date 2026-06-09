@@ -54,16 +54,18 @@ class PortfolioReportExportService
         CsvExportWriter::row($handle, ['Chỉ số', 'Hiện tại', 'Biến động', '%']);
         CsvExportWriter::row($handle, ['Buff CNY', $current['total_cny'] ?? '', $delta['total_cny'] ?? '', $deltaPct['total_cny'] ?? '']);
         CsvExportWriter::row($handle, ['Buff VND', $current['total_vnd'] ?? '', $delta['total_vnd'] ?? '', '']);
-        CsvExportWriter::row($handle, ['Empire CNY', $current['total_empire_cny'] ?? '', $delta['total_empire_cny'] ?? '', $deltaPct['total_empire_cny'] ?? '']);
+        CsvExportWriter::row($handle, ['Empire coin', $current['total_empire_coins'] ?? '', $delta['total_empire_coins'] ?? '', $deltaPct['total_empire_coins'] ?? '']);
+        CsvExportWriter::row($handle, ['Empire USD', $current['total_empire_usd'] ?? '', $delta['total_empire_usd'] ?? '', '']);
         CsvExportWriter::row($handle, ['Số skin', $current['item_count'] ?? '', $delta['item_count'] ?? '', '']);
 
         CsvExportWriter::section($handle, 'BIẾN ĐỘNG THEO NGÀY');
-        CsvExportWriter::row($handle, ['Ngày', 'Buff CNY', 'Empire CNY', 'Buff VND']);
+        CsvExportWriter::row($handle, ['Ngày', 'Buff CNY', 'Empire coin', 'Empire USD', 'Buff VND']);
         foreach ($data['trend'] ?? [] as $row) {
             CsvExportWriter::row($handle, [
                 $row['date'] ?? '',
                 $row['total_cny'] ?? '',
-                $row['total_empire_cny'] ?? '',
+                $row['total_empire_coins'] ?? '',
+                $row['total_empire_usd'] ?? '',
                 $row['total_vnd'] ?? '',
             ]);
         }
@@ -95,27 +97,27 @@ class PortfolioReportExportService
         }
 
         CsvExportWriter::section($handle, 'SKIN MỚI THÊM');
-        CsvExportWriter::row($handle, ['Skin', 'SL', 'Giá Buff ¥', 'Line CNY', 'Empire CNY', 'Kho']);
+        CsvExportWriter::row($handle, ['Skin', 'SL', 'Giá Buff ¥', 'Line CNY', 'Empire coin', 'Kho']);
         foreach ($data['added'] ?? [] as $row) {
             CsvExportWriter::row($handle, [
                 $row['display_name'] ?? $row['market_hash_name'],
                 $row['amount'] ?? 1,
                 $row['buff_price_cny'] ?? '',
                 $row['line_total_cny'] ?? '',
-                $row['line_total_empire_cny'] ?? '',
+                $row['line_total_empire_coins'] ?? '',
                 $row['inventory_label'] ?? '',
             ]);
         }
 
         CsvExportWriter::section($handle, 'SKIN MẤT');
-        CsvExportWriter::row($handle, ['Skin', 'SL', 'Giá Buff ¥', 'Line CNY', 'Empire CNY', 'Kho']);
+        CsvExportWriter::row($handle, ['Skin', 'SL', 'Giá Buff ¥', 'Line CNY', 'Empire coin', 'Kho']);
         foreach ($data['removed'] ?? [] as $row) {
             CsvExportWriter::row($handle, [
                 $row['display_name'] ?? $row['market_hash_name'],
                 $row['amount'] ?? 1,
                 $row['buff_price_cny'] ?? '',
                 $row['line_total_cny'] ?? '',
-                $row['line_total_empire_cny'] ?? '',
+                $row['line_total_empire_coins'] ?? '',
                 $row['inventory_label'] ?? '',
             ]);
         }

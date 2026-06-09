@@ -73,16 +73,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="panel-admin rounded border p-3 h-100">
-            <div class="text-muted small">Tổng Empire (CNY)</div>
-            <div class="fs-5 fw-semibold">{{ $fmtCny($current['total_empire_cny'] ?? null) }}</div>
-            @if($delta)
-                <div class="small {{ ($delta['total_empire_cny'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
-                    {{ $fmtSignedCny($delta['total_empire_cny'] ?? null) }}
-                    @if($deltaPct)<span class="ms-1">({{ $fmtPct($deltaPct['total_empire_cny'] ?? null) }})</span>@endif
-                </div>
-            @endif
-        </div>
+        @include('partials.portfolio-empire-summary', compact('current', 'delta', 'deltaPct') + ['fmtPct' => $fmtPct])
     </div>
     <div class="col-md-3">
         <div class="panel-admin rounded border p-3 h-100">
@@ -121,7 +112,7 @@
                 <tr>
                     <th>Ngày</th>
                     <th class="text-end">Buff ¥</th>
-                    <th class="text-end">Empire ¥</th>
+                    <th class="text-end">Empire coin</th>
                     <th class="text-end">Buff VND</th>
                 </tr>
                 </thead>
@@ -130,7 +121,13 @@
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
                         <td class="text-end">{{ $fmtCny($row['total_cny'] ?? null) }}</td>
-                        <td class="text-end">{{ $fmtCny($row['total_empire_cny'] ?? null) }}</td>
+                        <td class="text-end">
+                            @if(isset($row['total_empire_coins']))
+                                {{ number_format((float) $row['total_empire_coins'], 2, ',', '.') }} coin
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="text-end">{{ number_format((int) ($row['total_vnd'] ?? 0), 0, ',', '.') }} ₫</td>
                     </tr>
                 @endforeach

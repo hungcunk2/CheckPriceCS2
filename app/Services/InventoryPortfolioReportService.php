@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\InventoryItemSnapshot;
 use App\Models\InventoryValueSnapshot;
 use App\Models\TrackedInventory;
+use App\Support\Currency;
 use Carbon\Carbon;
 
 class InventoryPortfolioReportService
@@ -68,9 +69,17 @@ class InventoryPortfolioReportService
 
         [$added, $removed] = $this->collectCompositionChanges($inventories, $since);
 
-        $trend = $this->snapshots->tablesExist()
+        $trend = array_map(function (array $row): array {
+            $empireCny = (float) ($row['total_empire_cny'] ?? 0);
+            $empireCoins = $this->cnyToEmpireCoins($empireCny);
+
+            return array_merge($row, [
+                'total_empire_coins' => $empireCoins,
+                'total_empire_usd' => Currency::empireCoinsToUsd($empireCoins),
+            ]);
+        }, $this->snapshots->tablesExist()
             ? $this->snapshots->dailyPortfolioTotals($since->copy()->subDay(), $inventoryIds)
-            : [];
+            : []);
 
         $hasPastSnapshot = $this->snapshots->tablesExist()
             && $inventoryIds !== []
@@ -106,6 +115,8 @@ class InventoryPortfolioReportService
             'total_cny' => 0.0,
             'total_vnd' => 0,
             'total_empire_cny' => 0.0,
+            'total_empire_coins' => 0.0,
+            'total_empire_usd' => 0.0,
             'total_empire_vnd' => 0,
             'item_count' => 0,
         ];
@@ -114,10 +125,16 @@ class InventoryPortfolioReportService
             $totals['total_cny'] += (float) ($inv->last_total_cny ?? 0);
             $totals['total_vnd'] += (int) ($inv->last_total_vnd ?? 0);
             $snap = is_array($inv->last_snapshot) ? $inv->last_snapshot : [];
+            $empireCoins = $this->sumEmpireCoinsFromSnapshot($snap);
             $totals['total_empire_cny'] += (float) ($snap['total_empire_cny'] ?? 0);
+            $totals['total_empire_coins'] += $empireCoins;
+            $totals['total_empire_usd'] += (float) (Currency::empireCoinsToUsd($empireCoins) ?? 0);
             $totals['total_empire_vnd'] += (int) ($snap['total_empire_vnd'] ?? 0);
             $totals['item_count'] += (int) ($inv->item_count ?? 0);
         }
+
+        $totals['total_empire_coins'] = round($totals['total_empire_coins'], 2);
+        $totals['total_empire_usd'] = round($totals['total_empire_usd'], 2);
 
         return $totals;
     }
@@ -132,6 +149,8 @@ class InventoryPortfolioReportService
             'total_cny' => 0.0,
             'total_vnd' => 0,
             'total_empire_cny' => 0.0,
+            'total_empire_coins' => 0.0,
+            'total_empire_usd' => 0.0,
             'total_empire_vnd' => 0,
             'item_count' => 0,
         ];
@@ -144,9 +163,13 @@ class InventoryPortfolioReportService
                 continue;
             }
             $found++;
+            $empireCny = (float) ($snap->total_empire_cny ?? 0);
+            $empireCoins = $this->cnyToEmpireCoins($empireCny);
             $totals['total_cny'] += (float) $snap->total_cny;
             $totals['total_vnd'] += (int) $snap->total_vnd;
-            $totals['total_empire_cny'] += (float) ($snap->total_empire_cny ?? 0);
+            $totals['total_empire_cny'] += $empireCny;
+            $totals['total_empire_coins'] += $empireCoins;
+            $totals['total_empire_usd'] += (float) (Currency::empireCoinsToUsd($empireCoins) ?? 0);
             $totals['total_empire_vnd'] += (int) ($snap->total_empire_vnd ?? 0);
             $totals['item_count'] += (int) $snap->item_count;
         }
@@ -154,6 +177,9 @@ class InventoryPortfolioReportService
         if ($found === 0) {
             return array_merge($totals, ['missing' => true]);
         }
+
+        $totals['total_empire_coins'] = round($totals['total_empire_coins'], 2);
+        $totals['total_empire_usd'] = round($totals['total_empire_usd'], 2);
 
         return $totals;
     }
@@ -172,6 +198,8 @@ class InventoryPortfolioReportService
             'current' => [
                 'total_cny' => round($current['total_cny'], 2),
                 'total_vnd' => $current['total_vnd'],
+                'total_empire_coins' => round((float) $current['total_empire_coins'], 2),
+                'total_empire_usd' => round((float) $current['total_empire_usd'], 2),
                 'total_empire_cny' => round($current['total_empire_cny'], 2),
                 'total_empire_vnd' => $current['total_empire_vnd'],
                 'item_count' => $current['item_count'],
@@ -179,6 +207,8 @@ class InventoryPortfolioReportService
             'past' => $missingPast ? null : [
                 'total_cny' => round((float) $past['total_cny'], 2),
                 'total_vnd' => (int) $past['total_vnd'],
+                'total_empire_coins' => round((float) $past['total_empire_coins'], 2),
+                'total_empire_usd' => round((float) $past['total_empire_usd'], 2),
                 'total_empire_cny' => round((float) $past['total_empire_cny'], 2),
                 'total_empire_vnd' => (int) $past['total_empire_vnd'],
                 'item_count' => (int) $past['item_count'],
@@ -186,13 +216,15 @@ class InventoryPortfolioReportService
             'delta' => $missingPast ? null : [
                 'total_cny' => round($current['total_cny'] - (float) $past['total_cny'], 2),
                 'total_vnd' => $current['total_vnd'] - (int) $past['total_vnd'],
+                'total_empire_coins' => round($current['total_empire_coins'] - (float) $past['total_empire_coins'], 2),
+                'total_empire_usd' => round($current['total_empire_usd'] - (float) $past['total_empire_usd'], 2),
                 'total_empire_cny' => round($current['total_empire_cny'] - (float) $past['total_empire_cny'], 2),
                 'total_empire_vnd' => $current['total_empire_vnd'] - (int) $past['total_empire_vnd'],
                 'item_count' => $current['item_count'] - (int) $past['item_count'],
             ],
             'delta_pct' => $missingPast ? null : [
                 'total_cny' => $this->percentChange((float) $past['total_cny'], $current['total_cny']),
-                'total_empire_cny' => $this->percentChange((float) $past['total_empire_cny'], $current['total_empire_cny']),
+                'total_empire_coins' => $this->percentChange((float) $past['total_empire_coins'], $current['total_empire_coins']),
             ],
             'missing_past' => $missingPast,
         ];
@@ -290,6 +322,7 @@ class InventoryPortfolioReportService
                     'amount' => max(1, (int) ($item['amount'] ?? 1)),
                     'line_total_cny' => isset($item['line_total_cny']) ? round((float) $item['line_total_cny'], 2) : null,
                     'line_total_empire_cny' => isset($item['line_total_empire_cny']) ? round((float) $item['line_total_empire_cny'], 2) : null,
+                    'line_total_empire_coins' => $this->lineEmpireCoinsFromItem($item),
                     'buff_price_cny' => isset($item['buff_price_cny']) ? round((float) $item['buff_price_cny'], 2) : null,
                 ];
             }
@@ -307,6 +340,9 @@ class InventoryPortfolioReportService
                     'amount' => (int) $row->amount,
                     'line_total_cny' => $row->line_total_cny !== null ? round((float) $row->line_total_cny, 2) : null,
                     'line_total_empire_cny' => $row->line_total_empire_cny !== null ? round((float) $row->line_total_empire_cny, 2) : null,
+                    'line_total_empire_coins' => $row->line_total_empire_cny !== null
+                        ? $this->cnyToEmpireCoins((float) $row->line_total_empire_cny)
+                        : null,
                     'buff_price_cny' => $row->buff_price_cny !== null ? round((float) $row->buff_price_cny, 2) : null,
                 ];
             }
@@ -341,6 +377,8 @@ class InventoryPortfolioReportService
                 'buff_price_cny' => $item['buff_price_cny'] ?? null,
                 'line_total_cny' => $item['line_total_cny'] ?? null,
                 'line_total_empire_cny' => $item['line_total_empire_cny'] ?? null,
+                'empire_price_coins' => $item['empire_price_coins'] ?? null,
+                'line_total_empire_coins' => $this->lineEmpireCoinsFromItem($item),
                 'icon_url' => $item['icon_url'] ?? $item['steam_icon_url'] ?? null,
                 'steam_icon_url' => $item['steam_icon_url'] ?? $item['icon_url'] ?? null,
             ];
@@ -445,6 +483,55 @@ class InventoryPortfolioReportService
 
             return $row;
         }, $rows);
+    }
+
+    /**
+     * @param  array<string, mixed>  $snapshot
+     */
+    private function sumEmpireCoinsFromSnapshot(array $snapshot): float
+    {
+        $total = 0.0;
+
+        foreach ($snapshot['items'] ?? [] as $raw) {
+            $item = (array) $raw;
+            $lineCoins = $this->lineEmpireCoinsFromItem($item);
+            if ($lineCoins !== null) {
+                $total += $lineCoins;
+            }
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function lineEmpireCoinsFromItem(array $item): ?float
+    {
+        $coins = $item['empire_price_coins'] ?? null;
+        if ($coins === null) {
+            $lineCny = $item['line_total_empire_cny'] ?? null;
+
+            return $lineCny !== null ? $this->cnyToEmpireCoins((float) $lineCny) : null;
+        }
+
+        $amount = max(1, (int) ($item['amount'] ?? 1));
+
+        return round((float) $coins * $amount, 2);
+    }
+
+    private function cnyToEmpireCoins(float $cny): float
+    {
+        if ($cny <= 0) {
+            return 0.0;
+        }
+
+        $cnyPerCoin = Currency::empireCoinsToCny(1.0);
+        if ($cnyPerCoin === null || $cnyPerCoin <= 0) {
+            return 0.0;
+        }
+
+        return round($cny / $cnyPerCoin, 2);
     }
 
     private function inventoryLabel(TrackedInventory $inv): string
