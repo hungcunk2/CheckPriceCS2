@@ -193,7 +193,7 @@ class InventorySnapshotStore
             ->delete();
     }
 
-    private function tablesExist(): bool
+    public function tablesExist(): bool
     {
         static $exists = null;
 

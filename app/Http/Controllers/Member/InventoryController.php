@@ -421,7 +421,7 @@ class InventoryController extends Controller
             $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'member', forceFreshPrices: $forceFresh);
             $row = $this->findOwned($id);
 
-            $this->persister->persistForUser($result, $user->id, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->persister->persistForUser($result, $user->id, $id);
             $this->refreshLimiter->record($user);
 
             $message = ! empty($result['inventory_empty'])
@@ -452,7 +452,7 @@ class InventoryController extends Controller
             $result = $checker->loadInventorySnapshot($url, $label, refreshSteam: true);
             $row = $this->findOwned($id);
 
-            $this->persister->persistForUser($result, $this->requireUser()->id, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->persister->persistForUser($result, $this->requireUser()->id, $id);
 
             $message = ! empty($result['inventory_empty'])
                 ? 'Đã lưu — kho hiện chưa có item.'

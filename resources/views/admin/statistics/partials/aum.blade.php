@@ -3,16 +3,16 @@
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="panel-admin rounded border p-3">
-                <div class="text-muted small">Kho public</div>
-                <div class="fw-semibold">{{ $aum['public']['count'] ?? 0 }} kho</div>
-                <div class="small">{{ \App\Support\SubscriptionPlans::formatVnd($aum['public']['total_vnd'] ?? 0) }}</div>
+                <div class="text-muted small">Kho admin</div>
+                <div class="fw-semibold">{{ $aum['admin']['count'] ?? 0 }} kho</div>
+                <div class="small">{{ \App\Support\SubscriptionPlans::formatVnd($aum['admin']['total_vnd'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="panel-admin rounded border p-3">
-                <div class="text-muted small">Kho private</div>
-                <div class="fw-semibold">{{ $aum['private']['count'] ?? 0 }} kho</div>
-                <div class="small">{{ \App\Support\SubscriptionPlans::formatVnd($aum['private']['total_vnd'] ?? 0) }}</div>
+                <div class="text-muted small">Kho member</div>
+                <div class="fw-semibold">{{ $aum['member']['count'] ?? 0 }} kho</div>
+                <div class="small">{{ \App\Support\SubscriptionPlans::formatVnd($aum['member']['total_vnd'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-md-4">
@@ -36,7 +36,6 @@
                                 <td>{{ $i + 1 }}</td>
                                 <td>
                                     <a href="{{ route('admin.inventories.edit', $row['id']) }}">{{ $row['label'] }}</a>
-                                    @if($row['is_public'])<span class="badge text-bg-info ms-1">Public</span>@endif
                                 </td>
                                 <td class="small">{{ $row['owner'] }}</td>
                                 <td class="text-end text-nowrap">{{ \App\Support\SubscriptionPlans::formatVnd($row['total_vnd']) }}</td>

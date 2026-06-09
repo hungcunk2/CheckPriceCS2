@@ -292,7 +292,7 @@ class InventoryController extends Controller
         try {
             $result = $checker->checkUrl($url, $label, refreshSteam: true, empireMode: 'admin', forceFreshPrices: true);
             $row = $this->store->findForAdmin($id, $this->adminUsername());
-            $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->persister->persist($result, $id);
 
             $message = ! empty($result['inventory_empty'])
                 ? 'Đã lưu — kho hiện chưa có item.'
@@ -321,7 +321,7 @@ class InventoryController extends Controller
         try {
             $result = $checker->loadInventorySnapshot($url, $label, refreshSteam: true);
             $row = $this->store->findForAdmin($id, $this->adminUsername());
-            $this->persister->persist($result, $id, $row ? (bool) ($row->is_public ?? false) : false);
+            $this->persister->persist($result, $id);
 
             $message = ! empty($result['inventory_empty'])
                 ? 'Đã lưu — kho hiện chưa có item.'

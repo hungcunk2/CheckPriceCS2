@@ -51,12 +51,6 @@
                                 <span>Blog</span>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('public.inventories') }}" class="nav-link" target="_blank">
-                                <i class="fas fa-external-link-alt"></i>
-                                <span>Xem trang công khai</span>
-                            </a>
-                        </li>
                     </ul>
                 </div>
                 <div class="nav-section">

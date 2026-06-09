@@ -134,19 +134,6 @@ class TrackedInventoryStore
         return $this->memberInventoryQuery($userId)->count();
     }
 
-    /**
-     * @return Collection<int, object>
-     */
-    public function publicInventories(): Collection
-    {
-        return TrackedInventory::query()
-            ->where('is_public', true)
-            ->orderByDesc('last_total_cny')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (TrackedInventory $row) => $this->asObject($row));
-    }
-
     public function find(int $id): ?object
     {
         $row = TrackedInventory::query()->find($id);
@@ -240,16 +227,6 @@ class TrackedInventoryStore
             ->delete() > 0;
     }
 
-    public function findPublic(int $id): ?object
-    {
-        $row = TrackedInventory::query()
-            ->where('id', $id)
-            ->where('is_public', true)
-            ->first();
-
-        return $row ? $this->asObject($row) : null;
-    }
-
     public function hasDuplicateForUser(int $userId, string $url, ?int $exceptId = null): bool
     {
         return $this->findOwnedDuplicate($url, ownerUserId: $userId, exceptId: $exceptId) !== null;
@@ -295,9 +272,7 @@ class TrackedInventoryStore
             $model->fill($payload);
             $model->save();
         } else {
-            $model = TrackedInventory::query()->create(array_merge([
-                'is_public' => (bool) ($payload['is_public'] ?? false),
-            ], $payload));
+            $model = TrackedInventory::query()->create($payload);
         }
 
         return $this->asObject($model);
@@ -330,7 +305,7 @@ class TrackedInventoryStore
     {
         $allowed = [
             'user_id', 'admin_username', 'label', 'notes', 'url', 'steam_id', 'steam_persona_name', 'steam_avatar_url',
-            'is_public', 'sort_order', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
+            'sort_order', 'trade_at', 'last_checked_at', 'last_total_cny', 'last_total_vnd',
             'item_count', 'priced_count', 'failed_count', 'last_snapshot',
         ];
 

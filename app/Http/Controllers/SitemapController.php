@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\TrackedInventoryStore;
 use App\Support\BlogPosts;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
 {
-    public function __invoke(TrackedInventoryStore $store): Response
+    public function __invoke(): Response
     {
         $urls = [
             [
@@ -20,11 +19,6 @@ class SitemapController extends Controller
                 'loc' => route('public.pricing'),
                 'changefreq' => 'monthly',
                 'priority' => '0.9',
-            ],
-            [
-                'loc' => route('public.inventories'),
-                'changefreq' => 'hourly',
-                'priority' => '0.85',
             ],
             [
                 'loc' => route('blog.index'),

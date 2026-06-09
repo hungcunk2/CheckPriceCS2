@@ -71,40 +71,6 @@ class SiteMeta
     /**
      * @return array<string, mixed>
      */
-    public static function forInventory(object $inventory): array
-    {
-        $label = InventoryDisplay::title($inventory);
-        $totalCny = (float) ($inventory->last_total_cny ?? 0);
-        $itemCount = (int) ($inventory->item_count ?? 0);
-
-        $description = $itemCount > 0
-            ? sprintf(
-                'Kho %s: %d skin tradable, tổng tham khảo ¥%s (Buff163). Xem chi tiết trên CheckPrice CS2.',
-                $label,
-                $itemCount,
-                number_format($totalCny, 2)
-            )
-            : sprintf('Kho đồ CS2 của %s trên CheckPrice CS2 — giá Buff163, VND/USD.', $label);
-
-        $avatar = $inventory->steam_avatar_url ?? null;
-        $image = is_string($avatar) && $avatar !== '' ? $avatar : self::ogImagePath();
-
-        return self::make([
-            'title' => $label.' — '.config('site.name'),
-            'description' => $description,
-            'canonical' => route('public.inventories').'#kho-'.$inventory->id,
-            'url' => route('public.inventories').'#kho-'.$inventory->id,
-            'type' => 'article',
-            'image' => $image,
-            'image_width' => is_string($avatar) && $avatar !== '' ? 184 : config('site.og_image_width'),
-            'image_height' => is_string($avatar) && $avatar !== '' ? 184 : config('site.og_image_height'),
-            'image_alt' => 'Avatar Steam — '.$label,
-        ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     public static function noindex(string $title): array
     {
         return self::make([

@@ -15,7 +15,6 @@
             </div>
             <div class="lp-footer-links">
                 <a href="{{ route('public.pricing') }}">Bảng giá gói</a>
-                <a href="{{ route('public.inventories') }}">Kho công khai</a>
                 <a href="{{ route('blog.index') }}">Blog</a>
                 <a href="{{ route('login') }}">Đăng nhập</a>
                 <a href="{{ route('public.landing') }}#faq">FAQ</a>

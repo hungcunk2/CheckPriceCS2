@@ -16,7 +16,6 @@ class TrackedInventory extends Model
         'steam_id',
         'steam_persona_name',
         'steam_avatar_url',
-        'is_public',
         'sort_order',
         'trade_at',
         'last_checked_at',
@@ -31,7 +30,6 @@ class TrackedInventory extends Model
     protected function casts(): array
     {
         return [
-            'is_public' => 'boolean',
             'trade_at' => 'datetime',
             'last_checked_at' => 'datetime',
             'last_total_cny' => 'float',

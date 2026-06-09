@@ -117,7 +117,7 @@ class AdminStatisticsExportService
         }
 
         CsvExportWriter::section($handle, 'TOP 10 KHO (AUM)');
-        CsvExportWriter::row($handle, ['Kho', 'Loại', 'VND', 'CNY', 'Skin', 'Public']);
+        CsvExportWriter::row($handle, ['Kho', 'Loại', 'VND', 'CNY', 'Skin']);
         foreach ($aum['top_inventories'] ?? [] as $row) {
             CsvExportWriter::row($handle, [
                 $row['label'],
@@ -125,7 +125,6 @@ class AdminStatisticsExportService
                 $row['total_vnd'],
                 $row['total_cny'],
                 $row['item_count'],
-                ! empty($row['is_public']) ? 'Yes' : 'No',
             ]);
         }
 

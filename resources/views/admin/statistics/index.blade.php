@@ -46,8 +46,8 @@
     <a class="nav-link py-1 px-2" href="{{ route('admin.portfolio-report.index') }}">Thống kê kho →</a>
     <span class="ms-auto">
         @include('admin.partials.export-buttons', [
-            'csvUrl' => route('admin.statistics.export.csv'),
-            'pdfUrl' => route('admin.statistics.export.pdf'),
+            'csvUrl' => url('/admin/thong-ke/export/csv'),
+            'pdfUrl' => url('/admin/thong-ke/export/pdf'),
         ])
     </span>
 </nav>

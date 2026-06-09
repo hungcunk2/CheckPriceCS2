@@ -128,10 +128,9 @@ final class InventorySyncService
                         $payload,
                         (int) $row->user_id,
                         (int) $row->id,
-                        (bool) ($row->is_public ?? false),
                     );
                 } else {
-                    $this->persister->persist($payload, (int) $row->id, (bool) ($row->is_public ?? false));
+                    $this->persister->persist($payload, (int) $row->id);
                 }
 
                 if ($trackStatus) {

@@ -40,8 +40,8 @@
             @endforeach
         </div>
         @include('admin.partials.export-buttons', [
-            'csvUrl' => route('admin.portfolio-report.export.csv', ['days' => $days]),
-            'pdfUrl' => route('admin.portfolio-report.export.pdf', ['days' => $days]),
+            'csvUrl' => url('/admin/portfolio-report/export/csv?days='.$days),
+            'pdfUrl' => url('/admin/portfolio-report/export/pdf?days='.$days),
         ])
     </div>
 </div>

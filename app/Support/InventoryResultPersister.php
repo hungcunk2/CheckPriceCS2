@@ -17,7 +17,7 @@ class InventoryResultPersister
     /**
      * @param  array<string, mixed>  $result
      */
-    public function persist(array $result, ?int $id = null, ?bool $isPublic = null): object
+    public function persist(array $result, ?int $id = null): object
     {
         $label = $result['label'] ?? null;
         if ($label && str_starts_with($label, 'http')) {
@@ -48,10 +48,6 @@ class InventoryResultPersister
                 'items' => $result['items'] ?? [],
             ],
         ];
-
-        if ($isPublic !== null) {
-            $payload['is_public'] = $isPublic;
-        }
 
         $row = $this->store->upsert($payload, $id);
 
@@ -64,7 +60,7 @@ class InventoryResultPersister
     /**
      * @param  array<string, mixed>  $result
      */
-    public function persistForUser(array $result, int $userId, int $id, ?bool $isPublic = null): object
+    public function persistForUser(array $result, int $userId, int $id): object
     {
         $label = $result['label'] ?? null;
         if ($label && str_starts_with($label, 'http')) {
@@ -95,10 +91,6 @@ class InventoryResultPersister
                 'items' => $result['items'] ?? [],
             ],
         ];
-
-        if ($isPublic !== null) {
-            $payload['is_public'] = $isPublic;
-        }
 
         $row = $this->store->upsertForUser($userId, $payload, $id);
 

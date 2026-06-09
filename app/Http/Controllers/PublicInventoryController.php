@@ -4,12 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\InventoryPriceChecker;
 use App\Services\SteamInventoryService;
-use App\Services\TrackedInventoryStore;
 use App\Support\Cs2PriceFeatures;
-use App\Support\EmpireItemEnricher;
 use App\Support\ExchangeRateStore;
-use App\Support\InventorySnapshotReader;
-use App\Support\InventoryWeaponStats;
 use App\Support\SiteMeta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,10 +18,6 @@ use RuntimeException;
 
 class PublicInventoryController extends Controller
 {
-    public function __construct(
-        private TrackedInventoryStore $store,
-    ) {}
-
     public function landing(Request $request): View
     {
         $cs2cap = app(\App\Services\Cs2CapService::class);
@@ -285,48 +277,4 @@ class PublicInventoryController extends Controller
         ]);
     }
 
-    public function index(): View
-    {
-        $query = trim((string) request('q', ''));
-
-        $inventories = $this->store->publicInventories();
-
-        if ($query !== '') {
-            $needle = mb_strtolower($query);
-            $inventories = $inventories->filter(function (object $inv) use ($needle, $query) {
-                return str_contains(mb_strtolower((string) ($inv->label ?? '')), $needle)
-                    || str_contains(mb_strtolower((string) ($inv->steam_persona_name ?? '')), $needle)
-                    || str_contains((string) ($inv->steam_id ?? ''), $query);
-            })->values();
-        }
-
-        $inventories = $inventories->map(function (object $inv) {
-            $inv->display_items = EmpireItemEnricher::enrich(
-                InventorySnapshotReader::itemsFromInventory($inv),
-                fetchMissing: false,
-            );
-            $images = app(\App\Services\ItemImageService::class);
-            $inv->display_items = array_map(
-                fn (array $item) => $images->enrichItemRowForDisplay($item),
-                $inv->display_items,
-            );
-            $inv->weapon_stats = InventoryWeaponStats::summarize($inv->display_items);
-
-            return $inv;
-        });
-
-        return view('public.index', [
-            'inventories' => $inventories,
-            'searchQuery' => $query,
-            'meta' => SiteMeta::forRequest('Bảng giá kho CS2'),
-        ]);
-    }
-
-    /** URL cũ /kho/{id} → danh sách kho công khai (không còn trang chi tiết riêng). */
-    public function redirectLegacyInventory(int $inventory): \Illuminate\Http\RedirectResponse
-    {
-        abort_unless($this->store->findPublic($inventory), 404);
-
-        return redirect()->to(route('public.inventories').'#kho-'.$inventory, 301);
-    }
 }

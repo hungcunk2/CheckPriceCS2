@@ -52,11 +52,14 @@ class InventoryPortfolioReportService
 
         [$added, $removed] = $this->collectCompositionChanges($inventories, $since);
 
-        $trend = $this->snapshots->dailyPortfolioTotals($since->copy()->subDay());
+        $trend = $this->snapshots->tablesExist()
+            ? $this->snapshots->dailyPortfolioTotals($since->copy()->subDay())
+            : [];
 
         return [
             'period_days' => $periodDays,
-            'has_data' => InventoryValueSnapshot::query()->where('recorded_at', '<=', $since)->exists(),
+            'has_data' => $this->snapshots->tablesExist()
+                && InventoryValueSnapshot::query()->where('recorded_at', '<=', $since)->exists(),
             'summary' => $this->buildSummary($currentTotals, $pastTotals, $periodDays),
             'trend' => $trend,
             'gainers' => array_slice($gainers, 0, 100),
@@ -305,7 +308,7 @@ class InventoryPortfolioReportService
             ];
         }
 
-        if ($map !== []) {
+        if ($map !== [] || ! $this->snapshots->tablesExist()) {
             return $map;
         }
 

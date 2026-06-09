@@ -13,7 +13,7 @@ if [ ! -f .env ]; then
   bash deploy/setup-env.sh
 fi
 
-composer install --no-dev --optimize-autoloader --no-interaction
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
 
 if [ -f scripts/generate-og-share.php ] && [ ! -f public/images/og-share.jpg ]; then
   php scripts/generate-og-share.php || true

@@ -84,7 +84,6 @@ class ImportJsonToDatabaseCommand extends Command
                 'steam_id' => $row['steam_id'] ?? null,
                 'steam_persona_name' => $row['steam_persona_name'] ?? null,
                 'steam_avatar_url' => $row['steam_avatar_url'] ?? null,
-                'is_public' => (bool) ($row['is_public'] ?? true),
                 'sort_order' => (int) ($row['sort_order'] ?? 0),
                 'last_checked_at' => ! empty($row['last_checked_at'])
                     ? \Carbon\Carbon::parse($row['last_checked_at'])

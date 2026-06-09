@@ -32,7 +32,7 @@ fi
 
 cd "$APP_DIR"
 
-composer install --no-dev --optimize-autoloader --no-interaction
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
 
 bash "$APP_DIR/deploy/setup-env.sh"
 bash "$APP_DIR/deploy/configure-mysql.sh"

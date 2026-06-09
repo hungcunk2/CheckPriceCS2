@@ -33,12 +33,11 @@ Route::get('/api/guest/steam-avatar/stream', [PublicInventoryController::class, 
 Route::get('/bang-gia', [PublicInventoryController::class, 'pricing'])->name('public.pricing');
 Route::get('/thanh-toan', [CheckoutController::class, 'show'])->name('public.checkout');
 Route::post('/thanh-toan', [CheckoutController::class, 'store'])->name('public.checkout.submit');
-Route::get('/kho-cong-khai', [PublicInventoryController::class, 'index'])->name('public.inventories');
+Route::redirect('/kho-cong-khai', '/', 301)->name('public.inventories');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post}', [BlogController::class, 'show'])->whereNumber('post')->name('blog.show');
 Route::get('/blog/{slug}', [BlogController::class, 'redirectFromSlug'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('blog.legacy');
-Route::get('/kho/{inventory}', [PublicInventoryController::class, 'redirectLegacyInventory'])
-    ->whereNumber('inventory');
+Route::redirect('/kho/{inventory}', '/', 301)->whereNumber('inventory');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 Route::get('/dang-nhap', [MemberAuthController::class, 'showLogin'])->name('login');

@@ -267,30 +267,30 @@ class AdminStatisticsService
     {
         $inventories = TrackedInventory::query()->get();
         $top = [];
-        $publicVnd = 0;
-        $privateVnd = 0;
-        $publicCount = 0;
-        $privateCount = 0;
+        $adminVnd = 0;
+        $memberVnd = 0;
+        $adminCount = 0;
+        $memberCount = 0;
         $allItems = [];
 
         foreach ($inventories as $inv) {
             $vnd = (int) ($inv->last_total_vnd ?? 0);
+            $isAdmin = $inv->user_id === null;
             $top[] = [
                 'id' => $inv->id,
                 'label' => $this->inventoryLabel($inv),
                 'total_vnd' => $vnd,
                 'total_cny' => (float) ($inv->last_total_cny ?? 0),
                 'item_count' => (int) ($inv->item_count ?? 0),
-                'is_public' => (bool) $inv->is_public,
-                'owner' => $inv->user_id === null ? 'Admin' : 'Member',
+                'owner' => $isAdmin ? 'Admin' : 'Member',
             ];
 
-            if ($inv->is_public) {
-                $publicVnd += $vnd;
-                $publicCount++;
+            if ($isAdmin) {
+                $adminVnd += $vnd;
+                $adminCount++;
             } else {
-                $privateVnd += $vnd;
-                $privateCount++;
+                $memberVnd += $vnd;
+                $memberCount++;
             }
 
             $snap = is_array($inv->last_snapshot) ? $inv->last_snapshot : [];
@@ -303,8 +303,8 @@ class AdminStatisticsService
 
         return [
             'top_inventories' => array_slice($top, 0, 10),
-            'public' => ['count' => $publicCount, 'total_vnd' => $publicVnd],
-            'private' => ['count' => $privateCount, 'total_vnd' => $privateVnd],
+            'admin' => ['count' => $adminCount, 'total_vnd' => $adminVnd],
+            'member' => ['count' => $memberCount, 'total_vnd' => $memberVnd],
             'weapon_stats' => InventoryWeaponStats::summarize($allItems),
         ];
     }
