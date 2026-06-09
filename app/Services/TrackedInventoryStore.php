@@ -118,6 +118,28 @@ class TrackedInventoryStore
     }
 
     /**
+     * @return Collection<int, TrackedInventory>
+     */
+    public function modelsForAdmin(string $adminUsername): Collection
+    {
+        return $this->adminInventoryQuery($adminUsername)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, TrackedInventory>
+     */
+    public function modelsForUser(int $userId): Collection
+    {
+        return $this->memberInventoryQuery($userId)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
      * @return Collection<int, object>
      */
     public function forUser(int $userId): Collection

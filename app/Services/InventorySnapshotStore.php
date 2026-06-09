@@ -111,16 +111,23 @@ class InventorySnapshotStore
     }
 
     /**
+     * @param  list<int>  $inventoryIds
      * @return list<array{date: string, total_cny: float, total_vnd: int, total_empire_cny: float, total_empire_vnd: int}>
      */
-    public function dailyPortfolioTotals(Carbon $since): array
+    public function dailyPortfolioTotals(Carbon $since, array $inventoryIds = []): array
     {
         if (! $this->tablesExist()) {
             return [];
         }
 
-        $rows = InventoryValueSnapshot::query()
-            ->where('recorded_at', '>=', $since)
+        $query = InventoryValueSnapshot::query()
+            ->where('recorded_at', '>=', $since);
+
+        if ($inventoryIds !== []) {
+            $query->whereIn('inventory_id', $inventoryIds);
+        }
+
+        $rows = $query
             ->orderBy('recorded_at')
             ->get(['inventory_id', 'total_cny', 'total_vnd', 'total_empire_cny', 'total_empire_vnd', 'recorded_at']);
 

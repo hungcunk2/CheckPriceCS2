@@ -13,6 +13,7 @@ class InventoryPortfolioReportService
         private InventorySnapshotStore $snapshots,
         private PriceHistoryStore $priceHistory,
         private ItemImageService $images,
+        private TrackedInventoryStore $inventories,
     ) {}
 
     /** @var array<int, string> */
@@ -33,13 +34,14 @@ class InventoryPortfolioReportService
      *   removed: list<array<string, mixed>>
      * }
      */
-    public function build(int $periodDays): array
+    public function build(int $periodDays, ?int $userId = null, ?string $adminUsername = null): array
     {
         $periodDays = in_array($periodDays, [1, 7, 30], true) ? $periodDays : 7;
         $now = now($this->timezone());
         $since = $now->copy()->subDays($periodDays);
 
-        $inventories = TrackedInventory::query()->orderBy('sort_order')->orderBy('id')->get();
+        $inventories = $this->resolveInventories($userId, $adminUsername);
+        $inventoryIds = $inventories->pluck('id')->map(fn ($id) => (int) $id)->all();
         $this->inventoryLabels = [];
         $this->inventoryMeta = [];
 
@@ -67,13 +69,24 @@ class InventoryPortfolioReportService
         [$added, $removed] = $this->collectCompositionChanges($inventories, $since);
 
         $trend = $this->snapshots->tablesExist()
-            ? $this->snapshots->dailyPortfolioTotals($since->copy()->subDay())
+            ? $this->snapshots->dailyPortfolioTotals($since->copy()->subDay(), $inventoryIds)
             : [];
+
+        $hasPastSnapshot = $this->snapshots->tablesExist()
+            && $inventoryIds !== []
+            && InventoryValueSnapshot::query()
+                ->whereIn('inventory_id', $inventoryIds)
+                ->where('recorded_at', '<=', $since)
+                ->exists();
 
         return [
             'period_days' => $periodDays,
-            'has_data' => $this->snapshots->tablesExist()
-                && InventoryValueSnapshot::query()->where('recorded_at', '<=', $since)->exists(),
+            'scope' => [
+                'user_id' => $userId,
+                'admin_username' => $adminUsername,
+                'inventory_count' => count($inventoryIds),
+            ],
+            'has_data' => $hasPastSnapshot,
             'summary' => $this->buildSummary($currentTotals, $pastTotals, $periodDays),
             'trend' => $trend,
             'gainers' => $this->enrichRows(array_slice($gainers, 0, 100)),
@@ -399,6 +412,22 @@ class InventoryPortfolioReportService
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, mixed>>
      */
+    /**
+     * @return \Illuminate\Support\Collection<int, TrackedInventory>
+     */
+    private function resolveInventories(?int $userId, ?string $adminUsername)
+    {
+        if ($userId !== null) {
+            return $this->inventories->modelsForUser($userId);
+        }
+
+        if ($adminUsername !== null && $adminUsername !== '') {
+            return $this->inventories->modelsForAdmin($adminUsername);
+        }
+
+        return TrackedInventory::query()->orderBy('sort_order')->orderBy('id')->get();
+    }
+
     private function enrichRows(array $rows): array
     {
         return array_map(function (array $row): array {

@@ -11,10 +11,10 @@ class PortfolioReportExportService
         private InventoryPortfolioReportService $report,
     ) {}
 
-    public function csvResponse(int $days): StreamedResponse
+    public function csvResponse(int $days, ?int $userId = null, ?string $adminUsername = null): StreamedResponse
     {
         $days = in_array($days, [1, 7, 30], true) ? $days : 7;
-        $data = $this->report->build($days);
+        $data = $this->report->build($days, $userId, $adminUsername);
         $filename = 'thong-ke-kho-'.$days.'ngay-'.now()->format('Y-m-d-His').'.csv';
 
         return CsvExportWriter::download($filename, function ($handle) use ($data, $days) {
@@ -25,13 +25,13 @@ class PortfolioReportExportService
     /**
      * @return array<string, mixed>
      */
-    public function pdfData(int $days): array
+    public function pdfData(int $days, ?int $userId = null, ?string $adminUsername = null): array
     {
         $days = in_array($days, [1, 7, 30], true) ? $days : 7;
 
         return [
             'days' => $days,
-            'report' => $this->report->build($days),
+            'report' => $this->report->build($days, $userId, $adminUsername),
             'generated_at' => now()->timezone(config('cs2price.timezone', 'Asia/Ho_Chi_Minh'))->format('d/m/Y H:i'),
             'site_name' => config('site.name', 'CheckPrice CS2'),
         ];

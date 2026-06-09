@@ -17,6 +17,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Admin\SupportChatController as AdminSupportChatController;
 use App\Http\Controllers\Member\DashboardController;
 use App\Http\Controllers\Member\InventoryController as MemberInventoryController;
+use App\Http\Controllers\Member\PortfolioReportController as MemberPortfolioReportController;
 use App\Http\Controllers\Member\SupportChatController as MemberSupportChatController;
 use App\Http\Controllers\PublicInventoryController;
 use App\Http\Controllers\SitemapController;
@@ -71,6 +72,9 @@ Route::middleware(['auth', 'member'])->prefix('tai-khoan')->name('member.')->gro
     Route::delete('/kho/{inventory}', [MemberInventoryController::class, 'destroy'])->name('inventories.destroy');
     Route::post('/kho/{inventory}/refresh', [MemberInventoryController::class, 'refresh'])->name('inventories.refresh');
     Route::get('/kho/{inventory}/sync-status', [MemberInventoryController::class, 'syncStatus'])->name('inventories.sync-status');
+    Route::get('/thong-ke-kho', [MemberPortfolioReportController::class, 'index'])->name('portfolio-report.index');
+    Route::get('/thong-ke-kho/export/csv', [MemberPortfolioReportController::class, 'exportCsv'])->name('portfolio-report.export.csv');
+    Route::get('/thong-ke-kho/export/pdf', [MemberPortfolioReportController::class, 'exportPdf'])->name('portfolio-report.export.pdf');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {

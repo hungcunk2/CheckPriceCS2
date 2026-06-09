@@ -33,6 +33,12 @@
                                 <span>Kho đồ Steam</span>
                             </a>
                         </li>
+                        <li class="nav-item {{ request()->routeIs('member.portfolio-report.*') ? 'active' : '' }}">
+                            <a href="{{ route('member.portfolio-report.index') }}" class="nav-link">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Thống kê kho</span>
+                            </a>
+                        </li>
                         <li class="nav-item {{ request()->routeIs('member.dashboard') ? 'active' : '' }}">
                             <a href="{{ route('member.dashboard') }}" class="nav-link">
                                 <i class="fas fa-user-circle"></i>

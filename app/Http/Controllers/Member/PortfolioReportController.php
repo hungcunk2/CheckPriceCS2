@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
 use App\Services\InventoryPortfolioReportService;
@@ -16,22 +16,24 @@ class PortfolioReportController extends Controller
     public function index(Request $request, InventoryPortfolioReportService $report): View
     {
         $days = $this->resolveDays($request);
+        $userId = (int) $request->user()->id;
 
-        return view('admin.portfolio-report.index', [
+        return view('member.portfolio-report.index', [
             'days' => $days,
-            'report' => $report->build($days, adminUsername: $this->adminUsername()),
+            'report' => $report->build($days, userId: $userId),
         ]);
     }
 
     public function exportCsv(Request $request, PortfolioReportExportService $export): StreamedResponse
     {
-        return $export->csvResponse($this->resolveDays($request), adminUsername: $this->adminUsername());
+        return $export->csvResponse($this->resolveDays($request), userId: (int) $request->user()->id);
     }
 
     public function exportPdf(Request $request, PortfolioReportExportService $export): Response
     {
         $days = $this->resolveDays($request);
-        $data = $export->pdfData($days, adminUsername: $this->adminUsername());
+        $userId = (int) $request->user()->id;
+        $data = $export->pdfData($days, userId: $userId);
         $filename = 'thong-ke-kho-'.$days.'ngay-'.now()->format('Y-m-d-His').'.pdf';
 
         return Pdf::loadView('admin.exports.portfolio-pdf', $data)
@@ -44,10 +46,5 @@ class PortfolioReportController extends Controller
         $days = (int) $request->query('days', 7);
 
         return in_array($days, [1, 7, 30], true) ? $days : 7;
-    }
-
-    private function adminUsername(): string
-    {
-        return (string) session('admin_username', config('admin.username'));
     }
 }

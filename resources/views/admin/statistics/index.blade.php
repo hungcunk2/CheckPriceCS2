@@ -38,7 +38,7 @@
 
 <p class="text-muted small mb-2">
     Vận hành site: user trả phí, doanh thu, sync, CS2Cap, hỗ trợ — <strong>chỉ admin</strong>.
-    Báo cáo giá trị & biến động skin theo từng kho → <a href="{{ route('admin.portfolio-report.index') }}">Thống kê kho</a>.
+    Báo cáo giá trị & biến động skin theo kho admin → <a href="{{ route('admin.portfolio-report.index') }}">Thống kê kho</a>.
 </p>
 
 <nav class="nav nav-pills flex-wrap gap-1 mb-3 small align-items-center">

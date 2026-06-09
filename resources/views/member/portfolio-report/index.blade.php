@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.member')
 
 @section('title', 'Thống kê kho')
 @section('page-title', 'Thống kê kho')
@@ -34,21 +34,20 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <p class="text-muted small mb-0">
-        <strong>Chỉ kho của tài khoản admin đang đăng nhập</strong>
+        <strong>Chỉ kho của tài khoản bạn</strong>
         ({{ (int) ($report['scope']['inventory_count'] ?? 0) }} kho): tổng giá trị Buff/Empire, skin tăng/giảm, thêm/mất.
-        Dữ liệu ghi sau mỗi lần sync. Vận hành toàn site →
-        <a href="{{ route('admin.statistics.index') }}">Theo dõi hệ thống</a>.
+        Dữ liệu ghi sau mỗi lần đồng bộ.
     </p>
     <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="btn-group btn-group-sm">
             @foreach ([1 => '1 ngày', 7 => '7 ngày', 30 => '30 ngày'] as $d => $label)
-                <a href="{{ route('admin.portfolio-report.index', ['days' => $d]) }}"
+                <a href="{{ route('member.portfolio-report.index', ['days' => $d]) }}"
                    class="btn {{ $days === $d ? 'btn-primary' : 'btn-outline-secondary' }}">{{ $label }}</a>
             @endforeach
         </div>
         @include('admin.partials.export-buttons', [
-            'csvUrl' => url('/admin/portfolio-report/export/csv?days='.$days),
-            'pdfUrl' => url('/admin/portfolio-report/export/pdf?days='.$days),
+            'csvUrl' => url('/tai-khoan/thong-ke-kho/export/csv?days='.$days),
+            'pdfUrl' => url('/tai-khoan/thong-ke-kho/export/pdf?days='.$days),
         ])
     </div>
 </div>
