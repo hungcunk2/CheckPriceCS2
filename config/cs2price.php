@@ -73,6 +73,9 @@ return [
     'price_history_days' => (int) env('PRICE_HISTORY_DAYS', 90),
     'price_history_max_points' => (int) env('PRICE_HISTORY_MAX_POINTS', 3000),
 
+    // Snapshot tổng giá trị kho + từng skin (báo cáo admin), giữ tối đa N ngày.
+    'inventory_snapshot_days' => (int) env('INVENTORY_SNAPSHOT_DAYS', 90),
+
     /*
     | CSGOEmpire — giá tham chiếu từ withdraw market (listing thấp nhất).
     | empire_fetch_mode=paginate: quét theo trang (nhanh, ~20 req/10s).

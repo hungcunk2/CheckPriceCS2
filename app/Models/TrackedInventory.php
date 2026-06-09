@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrackedInventory extends Model
 {
@@ -36,5 +37,10 @@ class TrackedInventory extends Model
             'last_total_cny' => 'float',
             'last_snapshot' => 'array',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

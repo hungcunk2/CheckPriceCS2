@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Services\PriceHistoryService;
+use App\Services\InventorySnapshotStore;
 use App\Services\TrackedInventoryStore;
 
 class InventoryResultPersister
@@ -10,6 +11,7 @@ class InventoryResultPersister
     public function __construct(
         private TrackedInventoryStore $store,
         private PriceHistoryService $priceHistory,
+        private InventorySnapshotStore $snapshots,
     ) {}
 
     /**
@@ -54,6 +56,7 @@ class InventoryResultPersister
         $row = $this->store->upsert($payload, $id);
 
         $this->priceHistory->recordFromItems($result['items'] ?? [], $payload['last_checked_at']);
+        $this->snapshots->record((int) $row->id, $result, $payload['last_checked_at']);
 
         return $row;
     }
@@ -100,6 +103,7 @@ class InventoryResultPersister
         $row = $this->store->upsertForUser($userId, $payload, $id);
 
         $this->priceHistory->recordFromItems($result['items'] ?? [], $payload['last_checked_at']);
+        $this->snapshots->record((int) $row->id, $result, $payload['last_checked_at']);
 
         return $row;
     }

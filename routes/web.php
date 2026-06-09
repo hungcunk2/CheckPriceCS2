@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\EmpireProxyController;
 use App\Http\Controllers\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\Admin\PaymentSettingController;
 use App\Http\Controllers\Admin\PlanOrderController;
+use App\Http\Controllers\Admin\PortfolioReportController;
+use App\Http\Controllers\Admin\StatisticsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\MemberAuthController;
@@ -77,7 +79,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
 
     Route::middleware(EnsureAdmin::class)->group(function () {
-        Route::get('/', fn () => redirect()->route('admin.inventories.index'));
+        Route::get('/', fn () => redirect()->route('admin.statistics.index'));
+
+        Route::get('/thong-ke', [StatisticsController::class, 'index'])->name('statistics.index');
+        Route::get('/thong-ke/export/csv', [StatisticsController::class, 'exportCsv'])->name('statistics.export.csv');
+        Route::get('/thong-ke/export/pdf', [StatisticsController::class, 'exportPdf'])->name('statistics.export.pdf');
 
         Route::get('/inventories', [AdminInventoryController::class, 'index'])->name('inventories.index');
         Route::get('/inventories/create', [AdminInventoryController::class, 'create'])->name('inventories.create');
@@ -89,6 +95,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/inventories/{inventory}', [AdminInventoryController::class, 'destroy'])->name('inventories.destroy');
         Route::post('/inventories/{inventory}/refresh', [AdminInventoryController::class, 'refresh'])->name('inventories.refresh');
         Route::get('/inventories/{inventory}/sync-status', [AdminInventoryController::class, 'syncStatus'])->name('inventories.sync-status');
+
+        Route::get('/portfolio-report', [PortfolioReportController::class, 'index'])->name('portfolio-report.index');
+        Route::get('/portfolio-report/export/csv', [PortfolioReportController::class, 'exportCsv'])->name('portfolio-report.export.csv');
+        Route::get('/portfolio-report/export/pdf', [PortfolioReportController::class, 'exportPdf'])->name('portfolio-report.export.pdf');
 
         Route::get('/blog', [AdminBlogController::class, 'index'])->name('blog.index');
         Route::get('/blog/create', [AdminBlogController::class, 'create'])->name('blog.create');

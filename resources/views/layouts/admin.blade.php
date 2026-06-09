@@ -27,10 +27,22 @@
                 <div class="nav-section">
                     <div class="nav-section-title">QUẢN LÝ</div>
                     <ul class="nav-menu">
+                        <li class="nav-item {{ request()->routeIs('admin.statistics.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.statistics.index') }}" class="nav-link">
+                                <i class="fas fa-gauge-high"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
                         <li class="nav-item {{ request()->routeIs('admin.inventories.*') ? 'active' : '' }}">
                             <a href="{{ route('admin.inventories.index') }}" class="nav-link">
                                 <i class="fas fa-boxes"></i>
                                 <span>Kho đồ Steam</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{ request()->routeIs('admin.portfolio-report.*') ? 'active' : '' }}">
+                            <a href="{{ route('admin.portfolio-report.index') }}" class="nav-link">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Thống kê kho</span>
                             </a>
                         </li>
                         <li class="nav-item {{ request()->routeIs('admin.blog.*') ? 'active' : '' }}">
