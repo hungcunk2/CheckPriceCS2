@@ -213,7 +213,6 @@ class Cs2CapService
             return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap hết quota tháng hoặc chưa cấu hình key'];
         }
 
-        $base = Cs2CapHttp::baseUrl();
         $query = [
             'market_hash_name' => $marketHashName,
             'providers' => $provider,
@@ -224,8 +223,7 @@ class Cs2CapService
             $query['phase'] = $phase;
         }
 
-        $response = Cs2CapHttp::client($account['api_key'], 25)
-            ->get("{$base}/prices", $query);
+        $response = Cs2CapHttp::get($account['api_key'], '/prices', $query, 25);
 
         Cs2CapApiPool::handleResponse($account['label'], $response);
 

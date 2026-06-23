@@ -680,6 +680,17 @@
             <dd class="col-sm-9">{{ config('cs2price.cs2cap_use_inventory', false) ? 'CS2CAP_USE_INVENTORY=true' : 'Tắt' }}</dd>
             <dt class="col-sm-3">Dùng giá Buff</dt>
             <dd class="col-sm-9">{{ config('cs2price.cs2cap_use_buff', false) ? 'CS2CAP_USE_BUFF=true' : 'Tắt' }}</dd>
+            <dt class="col-sm-3">Proxy CS2Cap</dt>
+            <dd class="col-sm-9">
+                @php($proxyMode = config('cs2price.cs2cap_use_proxy'))
+                @if($proxyMode === true || $proxyMode === 'true' || $proxyMode === '1')
+                    <code>CS2CAP_USE_PROXY=true</code> (bắt buộc qua proxy)
+                @elseif($proxyMode === false || $proxyMode === 'false' || $proxyMode === '0')
+                    <code>CS2CAP_USE_PROXY=false</code> — đang dùng IP VPS
+                @else
+                    Tự động qua proxy 5Stars khi đã có key xoay
+                @endif
+            </dd>
             <dt class="col-sm-3">Currency Buff</dt>
             <dd class="col-sm-9"><code>{{ config('cs2price.cs2cap_buff_currency', 'CNY') }}</code></dd>
         </dl>

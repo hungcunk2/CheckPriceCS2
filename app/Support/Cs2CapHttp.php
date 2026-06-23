@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\Http;
 
 final class Cs2CapHttp
 {
+    private static bool $lastRequestViaProxy = false;
+
+    public static function lastRequestViaProxy(): bool
+    {
+        return self::$lastRequestViaProxy;
+    }
+
     public static function normalizeApiKey(string $apiKey): string
     {
         $apiKey = trim($apiKey);
@@ -21,29 +28,47 @@ final class Cs2CapHttp
         return rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
     }
 
-    public static function client(string $apiKey, int $timeoutSeconds = 20): PendingRequest
+    /**
+     * GET CS2Cap — mặc định qua proxy xoay 5Stars (nếu đã cấu hình key), không dùng IP VPS.
+     */
+    public static function get(string $apiKey, string $path, array $query = [], int $timeoutSeconds = 20): Response
     {
-        $pending = Http::timeout($timeoutSeconds)
-            ->withHeaders([
-                'Authorization' => 'Bearer '.self::normalizeApiKey($apiKey),
-                'Accept' => 'application/json',
-                'Accept-Encoding' => 'gzip',
-                'User-Agent' => 'CheckPriceCS2/1.0',
-            ])
-            ->withOptions([
-                'curl' => [
-                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
-                ],
-            ]);
+        $url = self::url($path);
+        $preferProxy = self::shouldPreferProxy();
 
-        if (filter_var(config('cs2price.cs2cap_use_proxy', false), FILTER_VALIDATE_BOOL)) {
-            $proxy = app(FiveStarsRotatingProxyService::class)->currentProxyUrl();
-            if (is_string($proxy) && $proxy !== '') {
-                $pending = $pending->withOptions(['proxy' => $proxy]);
-            }
+        self::$lastRequestViaProxy = $preferProxy && self::proxyAvailable();
+        $response = self::buildClient($apiKey, $timeoutSeconds, $preferProxy)->get($url, $query);
+
+        if (! self::isIpBanned($response) || self::$lastRequestViaProxy || ! self::proxyAvailable()) {
+            return $response;
         }
 
-        return $pending;
+        self::$lastRequestViaProxy = true;
+
+        return self::buildClient($apiKey, $timeoutSeconds, true)->get($url, $query);
+    }
+
+    /**
+     * @deprecated Dùng get() để có fallback proxy khi IP bị cấm.
+     */
+    public static function client(string $apiKey, int $timeoutSeconds = 20): PendingRequest
+    {
+        self::$lastRequestViaProxy = self::shouldPreferProxy();
+
+        return self::buildClient($apiKey, $timeoutSeconds, self::$lastRequestViaProxy);
+    }
+
+    public static function isIpBanned(Response $response): bool
+    {
+        return $response->status() === 403
+            && $response->json('code') === 'ACCOUNT_IP_BANNED';
+    }
+
+    public static function proxyAvailable(): bool
+    {
+        $proxy = app(FiveStarsRotatingProxyService::class)->currentProxyUrl();
+
+        return is_string($proxy) && $proxy !== '';
     }
 
     public static function maskKey(string $apiKey): string
@@ -99,15 +124,68 @@ final class Cs2CapHttp
         if ($err['detail'] !== null) {
             $parts[] = $err['detail'];
         }
-        if ($status === 403 && $err['is_json']) {
-            $parts[] = 'Key đúng nhưng thiếu quyền endpoint hoặc tài khoản bị hạn chế';
+
+        if ($err['code'] === 'ACCOUNT_IP_BANNED') {
+            if (self::proxyAvailable()) {
+                $parts[] = 'Đã có proxy 5Stars — deploy bản mới hoặc CS2CAP_USE_PROXY=true';
+            } else {
+                $parts[] = 'IP VPS bị CS2Cap cấm — thêm key proxy xoay 5Stars trong Admin';
+            }
+        } elseif ($status === 403 && $err['is_json']) {
+            $parts[] = 'Key đúng nhưng thiếu quyền endpoint';
         } elseif ($status === 403 && ! $err['is_json']) {
-            $parts[] = 'Có thể IP VPS bị chặn — thử CS2CAP_USE_PROXY=true hoặc curl trên VPS';
+            $parts[] = 'Có thể IP VPS bị chặn';
         }
+
         if ($keyHint !== null) {
             $parts[] = "key DB {$keyHint}";
         }
 
         return $endpoint.': '.implode(' — ', $parts);
+    }
+
+    private static function shouldPreferProxy(): bool
+    {
+        $setting = config('cs2price.cs2cap_use_proxy');
+        if ($setting !== null && $setting !== '') {
+            return filter_var($setting, FILTER_VALIDATE_BOOL);
+        }
+
+        // Mặc định: có key xoay 5Stars → CS2Cap đi qua proxy, tránh IP VPS bị cấm.
+        return app(FiveStarsRotatingProxyService::class)->isConfigured();
+    }
+
+    private static function url(string $path): string
+    {
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return self::baseUrl().'/'.ltrim($path, '/');
+    }
+
+    private static function buildClient(string $apiKey, int $timeoutSeconds, bool $viaProxy): PendingRequest
+    {
+        $pending = Http::timeout($timeoutSeconds)
+            ->withHeaders([
+                'Authorization' => 'Bearer '.self::normalizeApiKey($apiKey),
+                'Accept' => 'application/json',
+                'Accept-Encoding' => 'gzip',
+                'User-Agent' => 'CheckPriceCS2/1.0',
+            ])
+            ->withOptions([
+                'curl' => [
+                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                ],
+            ]);
+
+        if ($viaProxy) {
+            $proxy = app(FiveStarsRotatingProxyService::class)->currentProxyUrl();
+            if (is_string($proxy) && $proxy !== '') {
+                $pending = $pending->withOptions(['proxy' => $proxy]);
+            }
+        }
+
+        return $pending;
     }
 }

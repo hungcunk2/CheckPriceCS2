@@ -160,8 +160,8 @@ return [
     'cs2cap_cooldown_seconds' => (int) env('CS2CAP_COOLDOWN_SECONDS', 60),
     'cs2cap_use_inventory' => filter_var(env('CS2CAP_USE_INVENTORY', false), FILTER_VALIDATE_BOOL),
     'cs2cap_use_buff' => filter_var(env('CS2CAP_USE_BUFF', false), FILTER_VALIDATE_BOOL),
-    // Gọi CS2Cap qua proxy 5Stars khi IP VPS bị API chặn (403).
-    'cs2cap_use_proxy' => filter_var(env('CS2CAP_USE_PROXY', false), FILTER_VALIDATE_BOOL),
+    // CS2Cap qua proxy 5Stars: null/không set = tự bật khi có key xoay; true/false = ép bật/tắt.
+    'cs2cap_use_proxy' => env('CS2CAP_USE_PROXY'),
 
     // Cache ảnh catalog CS2Cap theo market_hash_name (giây), mặc định 30 ngày.
     'cs2cap_catalog_image_cache_seconds' => (int) env('CS2CAP_CATALOG_IMAGE_CACHE_SECONDS', 86400 * 30),

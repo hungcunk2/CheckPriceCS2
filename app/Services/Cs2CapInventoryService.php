@@ -55,11 +55,9 @@ class Cs2CapInventoryService
             throw new RuntimeException(Cs2CapApiPool::unusableReason());
         }
 
-        $base = Cs2CapHttp::baseUrl();
-        $response = Cs2CapHttp::client($account['api_key'], 30)
-            ->get("{$base}/inventory/steam/lookup", [
-                'steam_id' => $steamIdOrVanity,
-            ]);
+        $response = Cs2CapHttp::get($account['api_key'], '/inventory/steam/lookup', [
+            'steam_id' => $steamIdOrVanity,
+        ], 30);
 
         Cs2CapApiPool::handleResponse($account['label'], $response);
 
@@ -67,6 +65,9 @@ class Cs2CapInventoryService
             throw new RuntimeException('CS2Cap API key không hợp lệ.');
         }
         if ($response->status() === 403) {
+            if (Cs2CapHttp::isIpBanned($response)) {
+                throw new RuntimeException('CS2Cap cấm IP server (ACCOUNT_IP_BANNED) — bật proxy 5Stars (CS2CAP_USE_PROXY=true).');
+            }
             throw new RuntimeException('CS2Cap không cho phép tra kho (403).');
         }
         if (! $response->successful()) {

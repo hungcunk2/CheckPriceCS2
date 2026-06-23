@@ -68,12 +68,10 @@ class Cs2CapCatalogService
             return ['catalog_image' => null, 'steam_icon' => null];
         }
 
-        $base = Cs2CapHttp::baseUrl();
-        $resp = Cs2CapHttp::client($account['api_key'], 20)
-            ->get("{$base}/items", [
-                'market_hash_name' => $marketHashName,
-                'limit' => 1,
-            ]);
+        $resp = Cs2CapHttp::get($account['api_key'], '/items', [
+            'market_hash_name' => $marketHashName,
+            'limit' => 1,
+        ], 20);
 
         Cs2CapApiPool::handleResponse($account['label'], $resp);
 

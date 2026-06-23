@@ -207,10 +207,9 @@ class Cs2CapApiKeyController extends Controller
             ];
         }
 
-        $base = Cs2CapHttp::baseUrl();
-
-        $response = Cs2CapHttp::client($apiKey, 20)->get("{$base}/account/key");
+        $response = Cs2CapHttp::get($apiKey, '/account/key', [], 20);
         $accountError = self::parseApiError($response);
+        $viaProxy = Cs2CapHttp::lastRequestViaProxy();
 
         $ok = $response->successful();
 
@@ -224,11 +223,12 @@ class Cs2CapApiKeyController extends Controller
             Cs2CapQuotaTracker::acknowledgeValidKey($label);
         }
 
-        $prices = Cs2CapHttp::client($apiKey, 20)->get("{$base}/prices", [
+        $prices = Cs2CapHttp::get($apiKey, '/prices', [
             'market_hash_name' => 'AK-47 | Redline (Field-Tested)',
             'limit' => 1,
-        ]);
+        ], 20);
         $pricesError = self::parseApiError($prices);
+        $viaProxy = $viaProxy || Cs2CapHttp::lastRequestViaProxy();
 
         Cs2CapQuotaTracker::recordFromResponse($label, $prices);
 
@@ -237,6 +237,9 @@ class Cs2CapApiKeyController extends Controller
 
         if ($ok) {
             $message = $label.': HTTP '.$response->status().' — OK';
+            if ($viaProxy) {
+                $message .= ' (qua proxy 5Stars)';
+            }
             if (! $prices->successful()) {
                 $message .= ' · '.Cs2CapHttp::formatHttpError('/prices', $prices, $keyHint);
                 if ($prices->status() === 429) {
@@ -258,7 +261,7 @@ class Cs2CapApiKeyController extends Controller
             'key_hint' => $keyHint,
             'api_error_code' => $accountError['code'] ?? $pricesError['code'] ?? null,
             'api_error_detail' => $accountError['detail'] ?? $pricesError['detail'] ?? null,
-            'uses_proxy' => filter_var(config('cs2price.cs2cap_use_proxy', false), FILTER_VALIDATE_BOOL),
+            'uses_proxy' => $viaProxy,
         ], $snapshot ?? []);
 
         return [
