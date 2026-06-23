@@ -682,7 +682,9 @@
             <dd class="col-sm-9">{{ config('cs2price.cs2cap_use_buff', false) ? 'CS2CAP_USE_BUFF=true' : 'Tắt' }}</dd>
             <dt class="col-sm-3">Proxy CS2Cap</dt>
             <dd class="col-sm-9">
-                @php($proxyMode = config('cs2price.cs2cap_use_proxy'))
+                @php
+                    $proxyMode = config('cs2price.cs2cap_use_proxy');
+                @endphp
                 @if($proxyMode === true || $proxyMode === 'true' || $proxyMode === '1')
                     <code>CS2CAP_USE_PROXY=true</code> (bắt buộc qua proxy)
                 @elseif($proxyMode === false || $proxyMode === 'false' || $proxyMode === '0')
