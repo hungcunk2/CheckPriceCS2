@@ -242,6 +242,14 @@
             ? '<span class="badge text-bg-success">OK</span>'
             : '<span class="badge text-bg-danger">Lỗi</span>';
         let html = badge + `<div class="text-muted">${escapeHtml(result?.message ?? '—')}</div>`;
+        const detail = result?.details?.api_error_detail;
+        const keyHint = result?.details?.key_hint;
+        if (!ok && detail) {
+            html += `<div class="text-danger" style="font-size: 0.75rem;">${escapeHtml(detail)}</div>`;
+        }
+        if (!ok && keyHint) {
+            html += `<div class="text-muted" style="font-size: 0.75rem;">Key trong DB: ${escapeHtml(keyHint)}</div>`;
+        }
         const at = formatCheckedAt(new Date().toISOString());
         if (at) html += `<div class="text-muted" style="font-size: 0.75rem;">${at}</div>`;
         checkCell.innerHTML = html;

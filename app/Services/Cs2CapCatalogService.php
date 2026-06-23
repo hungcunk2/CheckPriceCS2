@@ -4,10 +4,10 @@ namespace App\Services;
 
 use App\Models\ItemCatalogImage;
 use App\Support\Cs2CapApiPool;
+use App\Support\Cs2CapHttp;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 
 class Cs2CapCatalogService
 {
@@ -68,12 +68,8 @@ class Cs2CapCatalogService
             return ['catalog_image' => null, 'steam_icon' => null];
         }
 
-        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
-        $resp = Http::timeout(20)
-            ->withHeaders([
-                'Authorization' => 'Bearer '.$account['api_key'],
-                'Accept' => 'application/json',
-            ])
+        $base = Cs2CapHttp::baseUrl();
+        $resp = Cs2CapHttp::client($account['api_key'], 20)
             ->get("{$base}/items", [
                 'market_hash_name' => $marketHashName,
                 'limit' => 1,

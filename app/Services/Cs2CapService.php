@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Support\Cs2CapApiPool;
-use Illuminate\Support\Facades\Http;
+use App\Support\Cs2CapHttp;
 
 /**
  * CS2Cap aggregator — Buff theo CNY, Empire theo USD (hai request / skin vì mỗi call chỉ một currency).
@@ -213,7 +213,7 @@ class Cs2CapService
             return ['amount' => null, 'quantity' => null, 'url' => null, 'error' => 'CS2Cap hết quota tháng hoặc chưa cấu hình key'];
         }
 
-        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
+        $base = Cs2CapHttp::baseUrl();
         $query = [
             'market_hash_name' => $marketHashName,
             'providers' => $provider,
@@ -224,12 +224,7 @@ class Cs2CapService
             $query['phase'] = $phase;
         }
 
-        $response = Http::timeout(25)
-            ->withHeaders([
-                'Authorization' => 'Bearer '.$account['api_key'],
-                'Accept' => 'application/json',
-                'Accept-Encoding' => 'gzip',
-            ])
+        $response = Cs2CapHttp::client($account['api_key'], 25)
             ->get("{$base}/prices", $query);
 
         Cs2CapApiPool::handleResponse($account['label'], $response);

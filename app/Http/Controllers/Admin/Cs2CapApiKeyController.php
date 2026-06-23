@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Cs2CapApiKeyStore;
+use App\Support\Cs2CapHttp;
 use App\Support\Cs2CapQuotaTracker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -186,7 +186,8 @@ class Cs2CapApiKeyController extends Controller
      */
     private function probeCredentials(string $label, string $apiKey): array
     {
-        $apiKey = trim($apiKey);
+        $apiKey = Cs2CapHttp::normalizeApiKey($apiKey);
+        $keyHint = Cs2CapHttp::maskKey($apiKey);
         if ($apiKey === '') {
             return [
                 'ok' => false,
@@ -199,16 +200,17 @@ class Cs2CapApiKeyController extends Controller
                     'quota_remaining' => null,
                     'quota_limit' => null,
                     'quota_reset' => null,
+                    'key_hint' => $keyHint,
+                    'api_error_code' => null,
+                    'api_error_detail' => null,
                 ],
             ];
         }
 
-        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
+        $base = Cs2CapHttp::baseUrl();
 
-        $response = Http::timeout(20)->withHeaders([
-            'Authorization' => 'Bearer '.$apiKey,
-            'Accept' => 'application/json',
-        ])->get("{$base}/account/key");
+        $response = Cs2CapHttp::client($apiKey, 20)->get("{$base}/account/key");
+        $accountError = self::parseApiError($response);
 
         $ok = $response->successful();
 
@@ -222,25 +224,27 @@ class Cs2CapApiKeyController extends Controller
             Cs2CapQuotaTracker::acknowledgeValidKey($label);
         }
 
-        $prices = Http::timeout(20)->withHeaders([
-            'Authorization' => 'Bearer '.$apiKey,
-            'Accept' => 'application/json',
-        ])->get("{$base}/prices", [
+        $prices = Cs2CapHttp::client($apiKey, 20)->get("{$base}/prices", [
             'market_hash_name' => 'AK-47 | Redline (Field-Tested)',
             'limit' => 1,
         ]);
+        $pricesError = self::parseApiError($prices);
 
         Cs2CapQuotaTracker::recordFromResponse($label, $prices);
 
         $snapshot = Cs2CapQuotaTracker::snapshot($label);
         $tier = is_array($meta) ? ($meta['tier'] ?? ($snapshot['tier'] ?? null)) : ($snapshot['tier'] ?? null);
 
-        $message = $label.': HTTP '.$response->status().' — '.($ok ? 'OK' : 'Lỗi');
-        if ($ok && ! $prices->successful()) {
-            $message .= ' · /prices HTTP '.$prices->status();
-            if ($prices->status() === 429) {
-                $message .= ' (giới hạn tạm — key vẫn hợp lệ)';
+        if ($ok) {
+            $message = $label.': HTTP '.$response->status().' — OK';
+            if (! $prices->successful()) {
+                $message .= ' · '.Cs2CapHttp::formatHttpError('/prices', $prices, $keyHint);
+                if ($prices->status() === 429) {
+                    $message .= ' (giới hạn tạm — key vẫn hợp lệ)';
+                }
             }
+        } else {
+            $message = $label.': '.Cs2CapHttp::formatHttpError('/account/key', $response, $keyHint);
         }
 
         $details = array_merge([
@@ -251,6 +255,10 @@ class Cs2CapApiKeyController extends Controller
             'quota_remaining' => null,
             'quota_limit' => $effectiveQuota !== null ? (int) $effectiveQuota : null,
             'quota_reset' => null,
+            'key_hint' => $keyHint,
+            'api_error_code' => $accountError['code'] ?? $pricesError['code'] ?? null,
+            'api_error_detail' => $accountError['detail'] ?? $pricesError['detail'] ?? null,
+            'uses_proxy' => filter_var(config('cs2price.cs2cap_use_proxy', false), FILTER_VALIDATE_BOOL),
         ], $snapshot ?? []);
 
         return [
@@ -258,6 +266,19 @@ class Cs2CapApiKeyController extends Controller
             'message' => $message,
             'label' => $label,
             'details' => $details,
+        ];
+    }
+
+    /**
+     * @return array{code: string|null, detail: string|null}
+     */
+    private static function parseApiError(\Illuminate\Http\Client\Response $response): array
+    {
+        $parsed = Cs2CapHttp::parseApiError($response);
+
+        return [
+            'code' => $parsed['code'],
+            'detail' => $parsed['detail'],
         ];
     }
 

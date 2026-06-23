@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cs2CapApiKey;
+use App\Support\Cs2CapHttp;
 use App\Support\Cs2CapQuotaTracker;
 use Illuminate\Support\Collection;
 
@@ -54,7 +55,7 @@ class Cs2CapApiKeyStore
                 ->get()
                 ->map(fn (Cs2CapApiKey $row) => [
                     'label' => $row->label,
-                    'api_key' => trim((string) $row->api_key),
+                    'api_key' => Cs2CapHttp::normalizeApiKey((string) $row->api_key),
                 ])
                 ->filter(fn (array $account) => $account['api_key'] !== '')
                 ->values()
@@ -94,9 +95,9 @@ class Cs2CapApiKeyStore
         }
 
         $previousLabel = $model->exists ? (string) $model->label : null;
-        $previousApiKey = $model->exists ? trim((string) $model->api_key) : null;
+        $previousApiKey = $model->exists ? Cs2CapHttp::normalizeApiKey((string) $model->api_key) : null;
 
-        $apiKey = trim((string) ($attributes['api_key'] ?? ''));
+        $apiKey = Cs2CapHttp::normalizeApiKey((string) ($attributes['api_key'] ?? ''));
         if ($apiKey !== '') {
             $model->api_key = $apiKey;
         } elseif (! $model->exists) {

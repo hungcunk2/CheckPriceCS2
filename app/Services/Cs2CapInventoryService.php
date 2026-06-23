@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Support\Cs2CapApiPool;
+use App\Support\Cs2CapHttp;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class Cs2CapInventoryService
@@ -55,12 +55,8 @@ class Cs2CapInventoryService
             throw new RuntimeException(Cs2CapApiPool::unusableReason());
         }
 
-        $base = rtrim((string) config('cs2price.cs2cap_base_url', 'https://api.cs2c.app/v1'), '/');
-        $response = Http::timeout(30)
-            ->withHeaders([
-                'Authorization' => 'Bearer '.$account['api_key'],
-                'Accept' => 'application/json',
-            ])
+        $base = Cs2CapHttp::baseUrl();
+        $response = Cs2CapHttp::client($account['api_key'], 30)
             ->get("{$base}/inventory/steam/lookup", [
                 'steam_id' => $steamIdOrVanity,
             ]);
