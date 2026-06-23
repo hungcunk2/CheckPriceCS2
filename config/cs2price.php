@@ -156,7 +156,8 @@ return [
     'cs2cap_base_url' => env('CS2CAP_API_BASE', 'https://api.cs2c.app/v1'),
     'cs2cap_buff_currency' => env('CS2CAP_BUFF_CURRENCY', 'CNY'),
     'cs2cap_empire_currency' => env('CS2CAP_EMPIRE_CURRENCY', 'USD'),
-    'cs2cap_cooldown_seconds' => (int) env('CS2CAP_COOLDOWN_SECONDS', 30),
+    // Xoay key CS2Cap: mọi request /prices, /inventory… dùng cùng key trong N giây rồi mới đổi.
+    'cs2cap_cooldown_seconds' => (int) env('CS2CAP_COOLDOWN_SECONDS', 60),
     'cs2cap_use_inventory' => filter_var(env('CS2CAP_USE_INVENTORY', false), FILTER_VALIDATE_BOOL),
     'cs2cap_use_buff' => filter_var(env('CS2CAP_USE_BUFF', false), FILTER_VALIDATE_BOOL),
 

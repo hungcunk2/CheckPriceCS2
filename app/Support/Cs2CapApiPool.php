@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Services\Cs2CapApiKeyStore;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class Cs2CapApiPool
@@ -68,6 +69,8 @@ class Cs2CapApiPool
     }
 
     /**
+     * Key đang dùng cho mọi request CS2Cap — xoay sang key khác sau mỗi chu kỳ (mặc định 60s).
+     *
      * @return array{label: string, api_key: string}|null
      */
     public static function next(): ?array
@@ -77,9 +80,26 @@ class Cs2CapApiPool
             return null;
         }
 
-        $index = (int) \Illuminate\Support\Facades\Cache::get('cs2cap_api_pool:cursor', 0);
+        $rotateSeconds = max(60, (int) config('cs2price.cs2cap_cooldown_seconds', 60));
+        $sticky = Cache::get(self::stickyKey());
+        if (is_array($sticky)) {
+            $label = (string) ($sticky['label'] ?? '');
+            $since = (int) ($sticky['since'] ?? 0);
+            if ($label !== '' && (time() - $since) < $rotateSeconds) {
+                $account = self::findByLabel($available, $label);
+                if ($account !== null) {
+                    return $account;
+                }
+            }
+        }
+
+        $index = (int) Cache::get('cs2cap_api_pool:cursor', 0);
         $account = $available[$index % count($available)];
-        \Illuminate\Support\Facades\Cache::put('cs2cap_api_pool:cursor', ($index + 1) % count($available), 86400);
+        Cache::put('cs2cap_api_pool:cursor', ($index + 1) % count($available), 86400);
+        Cache::put(self::stickyKey(), [
+            'label' => $account['label'],
+            'since' => time(),
+        ], $rotateSeconds + 120);
 
         return $account;
     }
@@ -148,6 +168,26 @@ class Cs2CapApiPool
     public static function quotaSnapshot(string $label): ?array
     {
         return Cs2CapQuotaTracker::snapshot($label);
+    }
+
+    /**
+     * @param  list<array{label: string, api_key: string}>  $available
+     * @return array{label: string, api_key: string}|null
+     */
+    private static function findByLabel(array $available, string $label): ?array
+    {
+        foreach ($available as $account) {
+            if ($account['label'] === $label) {
+                return $account;
+            }
+        }
+
+        return null;
+    }
+
+    private static function stickyKey(): string
+    {
+        return 'cs2cap_api_pool:sticky';
     }
 
     /**
